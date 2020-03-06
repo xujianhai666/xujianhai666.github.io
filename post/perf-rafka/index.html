@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="">
+<meta name="description" content="因为研发rafka的需要, 进行了线上的压测, 这里记录下诊断的使用.
+简介 rafka是在kafka上封装的实时流数据库概念性质产品, 通过内嵌rocksdb实现了数据的get set scan接口.
+诊断使用 1.top 通过top看下服务的整体情况: 内存 cpu等情况
+2.查看是哪个线程 top -Hp 5608 转换16进制
+printf &amp;quot;%x\n&amp;quot; 5816 16b8 jstack 5608 | grep 16b8 &amp;quot;kafka-request-handler-0&amp;quot; #65 daemon prio=5 os_prio=0 tid=0x00007fd9db72d000 nid=0x16b8 runnable [0x00007fd80c4f4000] 看线程信息, 可以知道, handler线程一直忙着处理
+3.整体分布 这里使用过火焰图查看性能的分布 可以发现, 主要的性能分布在 kafka日制写入 和 rafka的rocksdb写入. 符合预期
+4.jni做了什么 因为rafka使用了jni调用rocksdb实现了存储, 那么, jni下面做了什么呢?我们使用perf进行诊断. 工具 上面的诊断方式中, 主要使用了三个工具: 火焰图 java-profiler 和 perf
+1.火焰图可视化 无论是 perf 还是 java-profiler, 生成的数据都是缺乏可读性的, 可以使用 flamegraph 工具生成图片. 项目地址: https://github.com/brendangregg/FlameGraph, 下载下来后建议将可执行目录放到 PATH路径." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="" />
+<link rel="canonical" href="https://xujianhai666.github.io/post/perf-rafka/" />
+
+
+    <title>
+        
+            Perf Rafka :: Hello Friend  — A simple theme for Hugo
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Perf Rafka">
+<meta itemprop="description" content="因为研发rafka的需要, 进行了线上的压测, 这里记录下诊断的使用.
+简介 rafka是在kafka上封装的实时流数据库概念性质产品, 通过内嵌rocksdb实现了数据的get set scan接口.
+诊断使用 1.top 通过top看下服务的整体情况: 内存 cpu等情况
+2.查看是哪个线程 top -Hp 5608 转换16进制
+printf &quot;%x\n&quot; 5816 16b8 jstack 5608 | grep 16b8 &quot;kafka-request-handler-0&quot; #65 daemon prio=5 os_prio=0 tid=0x00007fd9db72d000 nid=0x16b8 runnable [0x00007fd80c4f4000] 看线程信息, 可以知道, handler线程一直忙着处理
+3.整体分布 这里使用过火焰图查看性能的分布 可以发现, 主要的性能分布在 kafka日制写入 和 rafka的rocksdb写入. 符合预期
+4.jni做了什么 因为rafka使用了jni调用rocksdb实现了存储, 那么, jni下面做了什么呢?我们使用perf进行诊断. 工具 上面的诊断方式中, 主要使用了三个工具: 火焰图 java-profiler 和 perf
+1.火焰图可视化 无论是 perf 还是 java-profiler, 生成的数据都是缺乏可读性的, 可以使用 flamegraph 工具生成图片. 项目地址: https://github.com/brendangregg/FlameGraph, 下载下来后建议将可执行目录放到 PATH路径.">
+<meta itemprop="datePublished" content="2019-03-31T18:25:36&#43;08:00" />
+<meta itemprop="dateModified" content="2019-03-31T18:25:36&#43;08:00" />
+<meta itemprop="wordCount" content="328">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Perf Rafka"/>
+<meta name="twitter:description" content="因为研发rafka的需要, 进行了线上的压测, 这里记录下诊断的使用.
+简介 rafka是在kafka上封装的实时流数据库概念性质产品, 通过内嵌rocksdb实现了数据的get set scan接口.
+诊断使用 1.top 通过top看下服务的整体情况: 内存 cpu等情况
+2.查看是哪个线程 top -Hp 5608 转换16进制
+printf &quot;%x\n&quot; 5816 16b8 jstack 5608 | grep 16b8 &quot;kafka-request-handler-0&quot; #65 daemon prio=5 os_prio=0 tid=0x00007fd9db72d000 nid=0x16b8 runnable [0x00007fd80c4f4000] 看线程信息, 可以知道, handler线程一直忙着处理
+3.整体分布 这里使用过火焰图查看性能的分布 可以发现, 主要的性能分布在 kafka日制写入 和 rafka的rocksdb写入. 符合预期
+4.jni做了什么 因为rafka使用了jni调用rocksdb实现了存储, 那么, jni下面做了什么呢?我们使用perf进行诊断. 工具 上面的诊断方式中, 主要使用了三个工具: 火焰图 java-profiler 和 perf
+1.火焰图可视化 无论是 perf 还是 java-profiler, 生成的数据都是缺乏可读性的, 可以使用 flamegraph 工具生成图片. 项目地址: https://github.com/brendangregg/FlameGraph, 下载下来后建议将可执行目录放到 PATH路径."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-03-31 18:25:36 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about">About</a></li><li><a href="https://xujianhai666.github.io/post">Post</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            
+            </p>
+        </div>
+
+        <article>
+            <h2 class="post-title"><a href="https://xujianhai666.github.io/post/perf-rafka/">Perf Rafka</a></h2>
+
+            
+
+            <div class="post-content">
+                <p>因为研发rafka的需要, 进行了线上的压测, 这里记录下诊断的使用.</p>
+<h2 id="简介">简介</h2>
+<p>rafka是在kafka上封装的实时流数据库概念性质产品, 通过内嵌rocksdb实现了数据的get set scan接口.</p>
+<h2 id="诊断使用">诊断使用</h2>
+<h3 id="1top">1.top</h3>
+<p>通过top看下服务的整体情况: 内存 cpu等情况</p>
+<p><img src="/rafka-top.png" alt="rafka-top/png" title=""></p>
+<h3 id="2查看是哪个线程">2.查看是哪个线程</h3>
+<p>top -Hp 5608
+<img src="/rafka-toph.png" alt="rafka-toph/png" title="">
+转换16进制</p>
+<pre><code>printf &quot;%x\n&quot; 5816
+16b8
+</code></pre><pre><code>jstack 5608 | grep 16b8
+&quot;kafka-request-handler-0&quot; #65 daemon prio=5 os_prio=0 tid=0x00007fd9db72d000 nid=0x16b8 runnable [0x00007fd80c4f4000]
+</code></pre><p>看线程信息, 可以知道, handler线程一直忙着处理</p>
+<h3 id="3整体分布">3.整体分布</h3>
+<p>这里使用过火焰图查看性能的分布
+<img src="/rafka-falme.png" alt="rafka-falme/png" title="">
+可以发现, 主要的性能分布在 kafka日制写入 和 rafka的rocksdb写入. 符合预期</p>
+<h3 id="4jni做了什么">4.jni做了什么</h3>
+<p>因为rafka使用了jni调用rocksdb实现了存储, 那么, jni下面做了什么呢?我们使用perf进行诊断.
+<img src="/rafka-perf.png" alt="rafka-perf/png" title=""></p>
+<h2 id="工具">工具</h2>
+<p>上面的诊断方式中, 主要使用了三个工具: 火焰图 java-profiler 和 perf</p>
+<h3 id="1火焰图可视化">1.火焰图可视化</h3>
+<p>无论是 perf 还是 java-profiler,  生成的数据都是缺乏可读性的, 可以使用 flamegraph 工具生成图片. 项目地址: <a href="https://github.com/brendangregg/FlameGraph">https://github.com/brendangregg/FlameGraph</a>, 下载下来后建议将可执行目录放到 PATH路径.</p>
+<h3 id="1java">1.java</h3>
+<p>项目路径: <a href="https://github.com/dcapwell/lightweight-java-profiler">https://github.com/dcapwell/lightweight-java-profiler</a></p>
+<p>正常情况下不需要修改, 直接执行命令 make all  生成镜像包 liblagent.so.</p>
+<p>kafka使用的时候, 修改bin/kafka-server-start.sh, 将镜像放到javaagent路径.</p>
+<pre><code>    export KAFKA_OPTS=&quot; -javaagent:$base_dir/jmx_prometheus_javaagent-0.11.0.jar=9990:$base_dir/kafka-agent.yaml -agentpath:/home/tiger/tools/perf/lightweight-java-profiler/build-64/liblagent.so&quot;
+</code></pre><p>部署上线kafka之后, 经过压测一段时间后, kill 杀死进程, 会在启动路径下生成 traces.txt.</p>
+<p>使用flame进行可视化</p>
+<pre><code>stackcollapse-ljp.awk &lt; traces.txt | flamegraph.pl &gt; traces.svg 
+</code></pre><p>浏览器打开生成的trace.svg 就可以了</p>
+<h3 id="2-perf">2. perf</h3>
+<p>机器上执行如下命令:</p>
+<pre><code>perf record -e cpu-clock -g -p 5608
+ctrl+c
+perf script -i perf.data &amp;&gt; perf.unfold
+stackcollapse-perf.pl perf.unfold &amp;&gt; perf.folded
+</code></pre><p>生成火焰图:</p>
+<pre><code>flamegraph.pl perf.folded &gt; perf.svg
+</code></pre><p>浏览器打开生成的perf.svg 就可以了</p>
+<p>perf的原理分析可以参考: <a href="https://zhuanlan.zhihu.com/p/22194920">知乎</a></p>
+<h2 id="总结">总结</h2>
+<p>rafka最终作为概念性产品，并没有实际产出, 因为kafka本身的硬伤, 比如isr机制. 只能够探索其他的产品了.</p>
+<h2 id="其他">其他</h2>
+<ul>
+<li>
+<p>机器配置信息参考 <a href="/post/kafka-config-online">文章</a></p>
+</li>
+<li>
+<p>纯kafka的压测结果: [三次压测]</p>
+</li>
+</ul>
+<pre><code>50000000 records sent, 1175585.441550 records/sec (143.50 MB/sec), 4.12 ms avg latency, 182.00 ms max latency, 1 ms 50th, 8 ms 95th, 121 ms 99th, 178 ms 99.9th.
+50000000 records sent, 1202732.608486 records/sec (146.82 MB/sec), 3.59 ms avg latency, 292.00 ms max latency, 1 ms 50th, 8 ms 95th, 87 ms 99th, 255 ms 99.9th.
+50000000 records sent, 1141995.751776 records/sec (139.40 MB/sec), 0.96 ms avg latency, 136.00 ms max latency, 1 ms 50th, 1 ms 95th, 16 ms 99th, 35 ms 99.9th.
+</code></pre><ul>
+<li>添加rocksdb后的压测结果: [三次压测]</li>
+</ul>
+<pre><code>50000000 records sent, 857206.535343 records/sec (104.64 MB/sec), 158.13 ms avg latency, 741.00 ms max latency, 37 ms 50th, 668 ms 95th, 720 ms 99th, 733 ms 99.9th.
+50000000 records sent, 941601.853072 records/sec (114.94 MB/sec), 8.63 ms avg latency, 346.00 ms max latency, 1 ms 50th, 57 ms 95th, 144 ms 99th, 270 ms 99.9th.
+50000000 records sent, 949252.937938 records/sec (115.88 MB/sec), 21.12 ms avg latency, 151.00 ms max latency, 1 ms 50th, 108 ms 95th, 126 ms 99th, 148 ms 99.9th.
+</code></pre><p>对比压测数据, 以第二次压测结果计算, 941601/1202732=78%, 损失了22%的性能. 所以,rocksdb的造成的性能还是可以接受的.</p>
+<ul>
+<li>压测脚本:
+使用kafka本身bin目录下的脚本</li>
+</ul>
+<pre><code>bin/kafka-run-class.sh org.apache.kafka.tools.ProducerPerformance --topic test8 --num-records 50000000 --record-size 128  --throughput -1 --producer-props acks=1 bootstrap.servers=xxxx buffer.memory=67108864
+</code></pre>
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+  			</div>
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

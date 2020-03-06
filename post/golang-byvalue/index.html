@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="">
+<meta name="description" content="最近同事在设计 interceptor的时候, 发现 resp 通信层修改后, 并没有上传到 业务逻辑层, 后来发现是 调入了 golang 传值的陷阱中去了. 这里写一个例子一起review下golang传值的特点.
+ package main import ( &amp;quot;fmt&amp;quot; ) type Message struct{ Topic string Body []byte switcher bool } func doInt(resp interface{}) { resp = &amp;amp;Message{ Topic: &amp;quot;hahha&amp;quot;, Body: []byte(&amp;quot;heiya heiya&amp;quot;), } } func doStruct(resp *Message) { resp = &amp;amp;Message{ Topic: &amp;quot;hahha&amp;quot;, Body: []byte(&amp;quot;heiya heiya&amp;quot;), } } func doField(resp *Message) { resp.Topic = &amp;quot;haha&amp;quot; resp.Body = []byte(&amp;quot;lalal&amp;quot;) resp.switcher = true } func main() { r := new(Message) doInt(r) fmt." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="" />
+<link rel="canonical" href="https://xujianhai666.github.io/post/golang-byvalue/" />
+
+
+    <title>
+        
+            Golang Byvalue :: Hello Friend  — A simple theme for Hugo
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Golang Byvalue">
+<meta itemprop="description" content="最近同事在设计 interceptor的时候, 发现 resp 通信层修改后, 并没有上传到 业务逻辑层, 后来发现是 调入了 golang 传值的陷阱中去了. 这里写一个例子一起review下golang传值的特点.
+ package main import ( &quot;fmt&quot; ) type Message struct{ Topic string Body []byte switcher bool } func doInt(resp interface{}) { resp = &amp;Message{ Topic: &quot;hahha&quot;, Body: []byte(&quot;heiya heiya&quot;), } } func doStruct(resp *Message) { resp = &amp;Message{ Topic: &quot;hahha&quot;, Body: []byte(&quot;heiya heiya&quot;), } } func doField(resp *Message) { resp.Topic = &quot;haha&quot; resp.Body = []byte(&quot;lalal&quot;) resp.switcher = true } func main() { r := new(Message) doInt(r) fmt.">
+<meta itemprop="datePublished" content="2019-07-03T13:39:19&#43;08:00" />
+<meta itemprop="dateModified" content="2019-07-03T13:39:19&#43;08:00" />
+<meta itemprop="wordCount" content="139">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Golang Byvalue"/>
+<meta name="twitter:description" content="最近同事在设计 interceptor的时候, 发现 resp 通信层修改后, 并没有上传到 业务逻辑层, 后来发现是 调入了 golang 传值的陷阱中去了. 这里写一个例子一起review下golang传值的特点.
+ package main import ( &quot;fmt&quot; ) type Message struct{ Topic string Body []byte switcher bool } func doInt(resp interface{}) { resp = &amp;Message{ Topic: &quot;hahha&quot;, Body: []byte(&quot;heiya heiya&quot;), } } func doStruct(resp *Message) { resp = &amp;Message{ Topic: &quot;hahha&quot;, Body: []byte(&quot;heiya heiya&quot;), } } func doField(resp *Message) { resp.Topic = &quot;haha&quot; resp.Body = []byte(&quot;lalal&quot;) resp.switcher = true } func main() { r := new(Message) doInt(r) fmt."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-07-03 13:39:19 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about">About</a></li><li><a href="https://xujianhai666.github.io/post">Post</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            
+            </p>
+        </div>
+
+        <article>
+            <h2 class="post-title"><a href="https://xujianhai666.github.io/post/golang-byvalue/">Golang Byvalue</a></h2>
+
+            
+
+            <div class="post-content">
+                <p>最近同事在设计 interceptor的时候, 发现 resp 通信层修改后, 并没有上传到 业务逻辑层, 后来发现是 调入了 golang 传值的陷阱中去了.
+这里写一个例子一起review下golang传值的特点.</p>
+<pre><code>
+package main
+
+import (
+    &quot;fmt&quot;
+)
+
+type Message struct{
+    Topic string
+    Body []byte
+    switcher bool
+}
+
+func doInt(resp interface{}) {
+    resp = &amp;Message{
+        Topic: &quot;hahha&quot;,
+        Body: []byte(&quot;heiya heiya&quot;),
+    }
+}
+
+func doStruct(resp *Message) {
+    resp = &amp;Message{
+        Topic: &quot;hahha&quot;,
+        Body: []byte(&quot;heiya heiya&quot;),
+    }
+}
+
+func doField(resp *Message) {
+    resp.Topic = &quot;haha&quot;
+    resp.Body = []byte(&quot;lalal&quot;)
+    resp.switcher = true
+}
+
+func main() {
+    r := new(Message)
+    doInt(r)
+    fmt.Printf(&quot;after interface, msg: %v\n&quot;, r)
+
+    r1 := new(Message)
+    doStruct(r1)
+    fmt.Printf(&quot;after struct, msg: %v\n&quot;, r1)
+
+    r2 := new(Message)
+    doField(r2)
+    fmt.Printf(&quot;after field. msg: %v\n&quot;, r2)
+}
+</code></pre><p>在运行后, 会惊讶的发现:</p>
+<pre><code>after interface, msg: &amp;{ [] false}
+after struct, msg: &amp;{ [] false}
+after field. msg: &amp;{haha [108 97 108 97 108] true}
+</code></pre><p>因为在两种场景中, 传参是直接指向了另一块内存, 根据传值引用的特性, 虽然修改了 传参, 但是因为是传值的行为, 所以并不会透传到 使用者。第三种情况, 虽然也是传值类型, 但是参数和入参都是指向同一块内存的, 所以, 这里的修改, 实际上修改的是内存地址上的值, 因此使用者是可以感知的.</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+  			</div>
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="">
+<meta name="description" content="channel的源代码: chan.go
+关键的数据结构 type hchan struct { qcount uint // total data in the queue dataqsiz uint // size of the circular queue buf unsafe.Pointer // points to an array of dataqsiz elements elemsize uint16 closed uint32 elemtype *_type // element type sendx uint // send index recvx uint // receive index recvq waitq // list of recv waiters sendq waitq // list of send waiters lock mutex } type waitq struct { first *sudog last *sudog } sudog是等待的goroutine的表示, 参考 runtime2." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="" />
+<link rel="canonical" href="https://xujianhai666.github.io/post/golang-channel/" />
+
+
+    <title>
+        
+            Golang Channel :: Hello Friend  — A simple theme for Hugo
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Golang Channel">
+<meta itemprop="description" content="channel的源代码: chan.go
+关键的数据结构 type hchan struct { qcount uint // total data in the queue dataqsiz uint // size of the circular queue buf unsafe.Pointer // points to an array of dataqsiz elements elemsize uint16 closed uint32 elemtype *_type // element type sendx uint // send index recvx uint // receive index recvq waitq // list of recv waiters sendq waitq // list of send waiters lock mutex } type waitq struct { first *sudog last *sudog } sudog是等待的goroutine的表示, 参考 runtime2.">
+<meta itemprop="datePublished" content="2019-04-21T11:23:31&#43;08:00" />
+<meta itemprop="dateModified" content="2019-04-21T11:23:31&#43;08:00" />
+<meta itemprop="wordCount" content="321">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Golang Channel"/>
+<meta name="twitter:description" content="channel的源代码: chan.go
+关键的数据结构 type hchan struct { qcount uint // total data in the queue dataqsiz uint // size of the circular queue buf unsafe.Pointer // points to an array of dataqsiz elements elemsize uint16 closed uint32 elemtype *_type // element type sendx uint // send index recvx uint // receive index recvq waitq // list of recv waiters sendq waitq // list of send waiters lock mutex } type waitq struct { first *sudog last *sudog } sudog是等待的goroutine的表示, 参考 runtime2."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-04-21 11:23:31 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about">About</a></li><li><a href="https://xujianhai666.github.io/post">Post</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            
+            </p>
+        </div>
+
+        <article>
+            <h2 class="post-title"><a href="https://xujianhai666.github.io/post/golang-channel/">Golang Channel</a></h2>
+
+            
+
+            <div class="post-content">
+                <p>channel的源代码: chan.go</p>
+<h2 id="关键的数据结构">关键的数据结构</h2>
+<pre><code>type hchan struct {
+    qcount   uint           // total data in the queue
+    dataqsiz uint           // size of the circular queue
+    buf      unsafe.Pointer // points to an array of dataqsiz elements
+    elemsize uint16
+    closed   uint32
+    elemtype *_type // element type
+    sendx    uint   // send index
+    recvx    uint   // receive index
+    recvq    waitq  // list of recv waiters
+    sendq    waitq  // list of send waiters
+
+    lock mutex
+}
+
+type waitq struct {
+    first *sudog
+    last  *sudog
+}
+</code></pre><p>sudog是等待的goroutine的表示, 参考 runtime2.go</p>
+<pre><code>type sudog struct {
+    g *g
+
+    isSelect bool
+    next     *sudog
+    prev     *sudog
+    elem     unsafe.Pointer // data element (may point to stack)
+
+    acquiretime int64
+    releasetime int64
+    ticket      uint32
+    parent      *sudog // semaRoot binary tree
+    waitlink    *sudog // g.waiting list or semaRoot
+    waittail    *sudog // semaRoot
+    c           *hchan // channel
+}
+</code></pre><p>通过数据结构, 可以发现, hchan 使用环形队列组织数据, 发送和接受都是用 双向队列维护.</p>
+<h2 id="创建">创建</h2>
+<p>channel的创建, 会调用 #makechan</p>
+<ol>
+<li>如果是无界channel, 只分配基本的内存空间, 用首地址实现同步</li>
+<li>如果是基本类型的channel, 直接分配完整的内存空间, 数据buf指向 内存空间首地址+hchanSize</li>
+<li>指针类型的channel, 直接new方法分配</li>
+</ol>
+<h2 id="发送">发送</h2>
+<p>当我们执行 c &lt;- x 的语句的时候, 发生了什么?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-chan.go" data-lang="chan.go"><span style="color:#a6e22e">chansend1</span>(<span style="color:#a6e22e">汇编入口</span> ) <span style="color:#f92672">-</span>&gt; <span style="color:#a6e22e">chansend</span> <span style="color:#f92672">-</span>&gt; <span style="color:#a6e22e">sendDirect</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">goready</span>(<span style="color:#a6e22e">唤醒</span>)
+</code></pre></div><ol>
+<li>当channel是nil, 并且是阻塞调用, 挂起当前goroutine</li>
+<li>当channel是nil, 并且是非阻塞调用, 直接返回</li>
+<li>发送的时候会进行锁操作, 给已经关闭的channel 发送数据会抛出异常(不符合认知)</li>
+<li>如果有 recvq有等待的goroutine, 直接发送给它, 并进行唤醒</li>
+<li>databuf还没有满的情况下, 将数据放入环形缓冲区,</li>
+<li>放不下的情况, 放入senq的等待队列,</li>
+</ol>
+<h2 id="接收">接收</h2>
+<p>当我们执行 x &lt;- c, 执行流程</p>
+<pre><code>chanrecv1(汇编入口) -&gt; chanrecv -&gt; recv -&gt; recvDirect + goready(唤醒)
+</code></pre><p>快速检测: 针对channel没有关闭, 并且是非阻塞调用的情况下.</p>
+<ol>
+<li>unbuffer channel没有发送的队列(sendq)</li>
+<li>buffer channel没有数据发送(qcount=0)
+流程:</li>
+<li>当channel是nil, 并且是阻塞调用, 会挂起</li>
+<li>当channel是nil, 并且是非阻塞调用, 直接返回</li>
+<li>senq有阻塞的sender, 直接接收, 同时唤醒sender goroutine</li>
+<li>有数据的情况下, 复制数据,</li>
+<li>非阻塞调用, 直接返回</li>
+<li>构建sudog, 放入recvq.</li>
+</ol>
+<h2 id="close">close</h2>
+<p>方法入口 #closechan</p>
+<ol>
+<li>关闭多次, 会panic</li>
+<li>遍历recvq中阻塞的等待, 进行释放</li>
+<li>遍历sendq中阻塞的等待, 进行释放</li>
+<li>遍历之前需要释放的goroutine, 进行唤醒</li>
+</ol>
+<h2 id="select-模型">select 模型:</h2>
+<p>select的send:</p>
+<pre><code>selectnbsend(编译入口) -&gt; chansend, 不阻塞的调用 
+</code></pre><pre><code>selectnbrecv(编译入口) -&gt; chanrecv, 不阻塞的调用
+</code></pre><p>ok类型的receive:</p>
+<pre><code>selectnbrecv2(编译入口) -&gt; chanrecv, 不阻塞的调用
+</code></pre><p>相比之前的receive操作, 多了对nil的判断, 意义不是特别大.</p>
+<p>faq: 那么, 在使用上, 向一个nil的 channel 进行 receive 和 send会怎么样?
+原理分析:
+1. receive 情况:
+1. select模型下, 都是使用 非阻塞的调用, 会返回失败
+2. 常规使用, 没有ok的情况下, 都是阻塞调用, block forever(gopark), 可能没有线程执行, 会抛出异常
+3. 常规使用, 有ok的情况下, 不阻塞, ok是false
+2. send 情况:
+1. select模型下, 使用非阻塞调用, 会返回失败
+2. 常规使用, 都是阻塞调用, block forever (gopark), 可能没有线程执行, 会抛出异常
+因为不是golang风格的异常, 所以, 使用defer也不会被检查出来</p>
+<h2 id="实验">实验:</h2>
+<ol>
+<li>
+<p>常规空指针接收:
+<img src="/recvnil.png" alt="receive nil" title=""></p>
+</li>
+<li>
+<p>常规空指针发送:
+<img src="/sendnil.png" alt="send nil" title=""></p>
+</li>
+<li>
+<p>空指针 + select send
+<img src="/select-send-nil.png" alt="select send nil" title=""></p>
+</li>
+<li>
+<p>空指针 + select receive
+<img src="/select-recv-nil.png" alt="select receive nil" title=""></p>
+</li>
+</ol>
+<h2 id="补充说明">补充说明:</h2>
+<p>上面的4个实验, 看上去都有报错, 其实是因为 当前的main函数的goroutine被阻塞, 导致没有可执行的goroutine导致的报错, 添加一个可运行的goroutine就可以了, 实验如下图:</p>
+<p><img src="/just-sleep.png" alt="just-sleep" title=""></p>
+<p>参考:</p>
+<ol>
+<li><a href="https://blog.lab99.org/post/golang-2017-10-04-video-understanding-channels.html">Joshi的博客</a></li>
+<li><a href="https://ninokop.github.io/2017/11/07/Go-Channel%E7%9A%84%E5%AE%9E%E7%8E%B0/">nino的博客</a></li>
+</ol>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+  			</div>
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

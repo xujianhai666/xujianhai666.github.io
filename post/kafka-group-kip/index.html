@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="">
+<meta name="description" content="这里主要讨论 kafka group 相关的协议: rebalance, partition 等
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-480%3A&#43;Sticky&#43;Partitioner
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A&#43;Kafka&#43;Consumer&#43;Incremental&#43;Rebalance&#43;Protocol
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A&#43;Require&#43;member.id&#43;for&#43;initial&#43;join&#43;group&#43;request
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-379%3A&#43;Multiple&#43;Consumer&#43;Group&#43;Management
+https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89070828
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-341%3A&#43;Update&#43;Sticky&#43;Assignor%27s&#43;User&#43;Data&#43;Protocol
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A&#43;Introduce&#43;a&#43;configurable&#43;consumer&#43;group&#43;size&#43;limit
+在 group非常大的时候, rebalance 次数就会增加; rebalance 时间取决于最慢的consumer, group 越大, 慢consumer出现的概率就越大. 除此之外, group coordinator 可能多个 group 共享的, 所以彼此会影响. 这个提案中, 提出了 `consumer.group.max.size` 的概念, 对 server端进行了保护. 当有超过数量的member加入, 将会收到 异常. https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A&#43;Require&#43;member.id&#43;for&#43;initial&#43;join&#43;group&#43;request
+之前都是 broker 在 收到 joinGroup request 的时候, 返回 uuid 给 client 作为 member.id, 在边缘case中(client不断重启加入), 可能导致内存膨胀. 这个 proposal 中, 就是需要用户手动提交 memebr.id https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A&#43;Introduce&#43;static&#43;membership&#43;protocol&#43;to&#43;reduce&#43;consumer&#43;rebalances
+为了避免rebalance导致 有状态的应用程序的数据迁移. 目前的状态 broker group status: Running -&amp;gt; member JoinGroupRequest -&amp;gt; broker group status: PREPARE_REBALANCE -&amp;gt; broker group status: COMPLETING_REBALANCE -&amp;gt; sync group request (group members) -&amp;gt; SyncGroupResponse (broker send to memebrs) 其中, 第一个加入的 member 就是 group leader." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="" />
+<link rel="canonical" href="https://xujianhai666.github.io/post/kafka-group-kip/" />
+
+
+    <title>
+        
+            Kafka Group Kip :: Hello Friend  — A simple theme for Hugo
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Kafka Group Kip">
+<meta itemprop="description" content="这里主要讨论 kafka group 相关的协议: rebalance, partition 等
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-480%3A&#43;Sticky&#43;Partitioner
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A&#43;Kafka&#43;Consumer&#43;Incremental&#43;Rebalance&#43;Protocol
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A&#43;Require&#43;member.id&#43;for&#43;initial&#43;join&#43;group&#43;request
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-379%3A&#43;Multiple&#43;Consumer&#43;Group&#43;Management
+https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89070828
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-341%3A&#43;Update&#43;Sticky&#43;Assignor%27s&#43;User&#43;Data&#43;Protocol
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A&#43;Introduce&#43;a&#43;configurable&#43;consumer&#43;group&#43;size&#43;limit
+在 group非常大的时候, rebalance 次数就会增加; rebalance 时间取决于最慢的consumer, group 越大, 慢consumer出现的概率就越大. 除此之外, group coordinator 可能多个 group 共享的, 所以彼此会影响. 这个提案中, 提出了 `consumer.group.max.size` 的概念, 对 server端进行了保护. 当有超过数量的member加入, 将会收到 异常. https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A&#43;Require&#43;member.id&#43;for&#43;initial&#43;join&#43;group&#43;request
+之前都是 broker 在 收到 joinGroup request 的时候, 返回 uuid 给 client 作为 member.id, 在边缘case中(client不断重启加入), 可能导致内存膨胀. 这个 proposal 中, 就是需要用户手动提交 memebr.id https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A&#43;Introduce&#43;static&#43;membership&#43;protocol&#43;to&#43;reduce&#43;consumer&#43;rebalances
+为了避免rebalance导致 有状态的应用程序的数据迁移. 目前的状态 broker group status: Running -&gt; member JoinGroupRequest -&gt; broker group status: PREPARE_REBALANCE -&gt; broker group status: COMPLETING_REBALANCE -&gt; sync group request (group members) -&gt; SyncGroupResponse (broker send to memebrs) 其中, 第一个加入的 member 就是 group leader.">
+<meta itemprop="datePublished" content="2019-11-07T09:54:35&#43;08:00" />
+<meta itemprop="dateModified" content="2019-11-07T09:54:35&#43;08:00" />
+<meta itemprop="wordCount" content="212">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Kafka Group Kip"/>
+<meta name="twitter:description" content="这里主要讨论 kafka group 相关的协议: rebalance, partition 等
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-480%3A&#43;Sticky&#43;Partitioner
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A&#43;Kafka&#43;Consumer&#43;Incremental&#43;Rebalance&#43;Protocol
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A&#43;Require&#43;member.id&#43;for&#43;initial&#43;join&#43;group&#43;request
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-379%3A&#43;Multiple&#43;Consumer&#43;Group&#43;Management
+https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89070828
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-341%3A&#43;Update&#43;Sticky&#43;Assignor%27s&#43;User&#43;Data&#43;Protocol
+https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A&#43;Introduce&#43;a&#43;configurable&#43;consumer&#43;group&#43;size&#43;limit
+在 group非常大的时候, rebalance 次数就会增加; rebalance 时间取决于最慢的consumer, group 越大, 慢consumer出现的概率就越大. 除此之外, group coordinator 可能多个 group 共享的, 所以彼此会影响. 这个提案中, 提出了 `consumer.group.max.size` 的概念, 对 server端进行了保护. 当有超过数量的member加入, 将会收到 异常. https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A&#43;Require&#43;member.id&#43;for&#43;initial&#43;join&#43;group&#43;request
+之前都是 broker 在 收到 joinGroup request 的时候, 返回 uuid 给 client 作为 member.id, 在边缘case中(client不断重启加入), 可能导致内存膨胀. 这个 proposal 中, 就是需要用户手动提交 memebr.id https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A&#43;Introduce&#43;static&#43;membership&#43;protocol&#43;to&#43;reduce&#43;consumer&#43;rebalances
+为了避免rebalance导致 有状态的应用程序的数据迁移. 目前的状态 broker group status: Running -&gt; member JoinGroupRequest -&gt; broker group status: PREPARE_REBALANCE -&gt; broker group status: COMPLETING_REBALANCE -&gt; sync group request (group members) -&gt; SyncGroupResponse (broker send to memebrs) 其中, 第一个加入的 member 就是 group leader."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-11-07 09:54:35 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about">About</a></li><li><a href="https://xujianhai666.github.io/post">Post</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            
+            </p>
+        </div>
+
+        <article>
+            <h2 class="post-title"><a href="https://xujianhai666.github.io/post/kafka-group-kip/">Kafka Group Kip</a></h2>
+
+            
+
+            <div class="post-content">
+                <p>这里主要讨论 kafka group 相关的协议: rebalance, partition 等</p>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-480%3A+Sticky+Partitioner">https://cwiki.apache.org/confluence/display/KAFKA/KIP-480%3A+Sticky+Partitioner</a></p>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A+Kafka+Consumer+Incremental+Rebalance+Protocol">https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A+Kafka+Consumer+Incremental+Rebalance+Protocol</a></p>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A+Require+member.id+for+initial+join+group+request">https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A+Require+member.id+for+initial+join+group+request</a></p>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-379%3A+Multiple+Consumer+Group+Management">https://cwiki.apache.org/confluence/display/KAFKA/KIP-379%3A+Multiple+Consumer+Group+Management</a></p>
+<p><a href="https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89070828">https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89070828</a></p>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-341%3A+Update+Sticky+Assignor%27s+User+Data+Protocol">https://cwiki.apache.org/confluence/display/KAFKA/KIP-341%3A+Update+Sticky+Assignor%27s+User+Data+Protocol</a></p>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configurable+consumer+group+size+limit">https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configurable+consumer+group+size+limit</a></p>
+<pre><code>在 group非常大的时候, rebalance 次数就会增加; rebalance 时间取决于最慢的consumer, group 越大, 慢consumer出现的概率就越大. 除此之外, group coordinator 可能多个 group 共享的, 所以彼此会影响. 
+这个提案中, 提出了 `consumer.group.max.size` 的概念, 对 server端进行了保护. 当有超过数量的member加入, 将会收到 异常. 
+</code></pre><p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A+Require+member.id+for+initial+join+group+request">https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A+Require+member.id+for+initial+join+group+request</a></p>
+<pre><code>之前都是 broker 在 收到 joinGroup request 的时候, 返回 uuid 给 client 作为 member.id, 在边缘case中(client不断重启加入), 可能导致内存膨胀. 这个 proposal 中, 就是需要用户手动提交 memebr.id
+</code></pre><p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A+Introduce+static+membership+protocol+to+reduce+consumer+rebalances">https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A+Introduce+static+membership+protocol+to+reduce+consumer+rebalances</a></p>
+<pre><code>为了避免rebalance导致 有状态的应用程序的数据迁移.
+目前的状态 broker group status: Running -&gt; member JoinGroupRequest -&gt; broker group status: PREPARE_REBALANCE -&gt; broker group status: COMPLETING_REBALANCE -&gt; sync group request (group members) -&gt; SyncGroupResponse (broker send to memebrs)
+其中, 第一个加入的 member 就是 group leader.
+这个方案的实现, 是持久化 member.id(需要用户主动配置`group.instance.id`), 这样, 每次client 重启就不会重新生成 member.id. 在执行 assignmemt的时候, 可以根据 member.id 执行相同的分配. 这个就是 'static membership'. 没有配置 `group.instance.id` 的情况下, 则是 动态的, member.id 由 coordinator 分配. 
+membership rebalance protocol 被触发的情况: 
+1. 新的 member join 
+2. leader rejoin 
+3. existing member offline 
+4. member leave group(leave group request) 
+比较有意思的是, 是添加了 `group.instance.id`, 和 member.id 一起用在了  Join/Sync/Heartbeat/OffsetCommit request/responses. member.id 是 broker 生层的递增的数字.
+在proposal中, 列举了 滚动升级中 range assigner 的列子, 如果是 dynamic membership, 就会引起迁移; 如果是 static membership, 就不会.
+使用了 static membership, 只有 session timeout 才会在 broker 中移除 client. 之前在 COMPLETING_REBALANCE 阶段就会移除。
+为了维护 `group.instance.id` 的分配关系, 会将映射存储在 “_consumer_offsets” 的 topic 里面
+</code></pre><ul>
+<li><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-134%3A+Delay+initial+consumer+group+rebalance">https://cwiki.apache.org/confluence/display/KAFKA/KIP-134%3A+Delay+initial+consumer+group+rebalance</a></li>
+</ul>
+<pre><code>GroupCoordinator 在收到 加入 新的或者empty group, group 状态会进入 InitialRebalance, 并延迟 min(rebalanceTimeout, group.initial.rebalance.delay.ms) 等待其他的 member加入, 如果有member加入, 那么 延迟就会重置. 过期后就会进入 PreparingRebalance. 
+0.11.0 中发布的功能
+</code></pre>
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+  			</div>
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

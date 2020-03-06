@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="">
+<meta name="description" content="周末上午, 突然接到业务方反馈 nsq-consumer 发生了 netty 内存泄露. 通过heap dump文件分析文件, 发下了大内存占用. 如下图
+overall 界面
+object-list 界面
+通过点击 &amp;ldquo;overall 界面&amp;rdquo; 图的list object功能, 会进入 &amp;ldquo;object-list 界面&amp;rdquo;, 可以发现 nsqj 的内存占用最高, 问题定位到了, 那么, nsqj 线程是做什么的呢? nsqj实例化如下:
+public AbstractNSQClient(BootstrapConfig config, String topic, String channel, int rdy, int workerNumber) { connections = new Connections(); executor = Executors.newFixedThreadPool(workerNumber, new ThreadFactoryBuilder().setNameFormat(&amp;quot;nsqj-&amp;quot;).setDaemon(true).build()); ...... } 可以发现, executor 使用了 fixed线程池, 这里的队列在sdk中使用的是 LinkedBlockingQueue, 队列是无限增长的. 这样看, 稳定是定位了, 就是因为 executor的队列一直在增长, 但是, 是谁再往队列中投递数据的呢? 还是无限投递! review代码如下:
+public class NSQHandler extends SimpleChannelInboundHandler&amp;lt;NSQFrame&amp;gt; { ." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="" />
+<link rel="canonical" href="https://xujianhai666.github.io/post/tmq-oom/" />
+
+
+    <title>
+        
+            Tmq Oom :: Hello Friend  — A simple theme for Hugo
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Tmq Oom">
+<meta itemprop="description" content="周末上午, 突然接到业务方反馈 nsq-consumer 发生了 netty 内存泄露. 通过heap dump文件分析文件, 发下了大内存占用. 如下图
+overall 界面
+object-list 界面
+通过点击 &ldquo;overall 界面&rdquo; 图的list object功能, 会进入 &ldquo;object-list 界面&rdquo;, 可以发现 nsqj 的内存占用最高, 问题定位到了, 那么, nsqj 线程是做什么的呢? nsqj实例化如下:
+public AbstractNSQClient(BootstrapConfig config, String topic, String channel, int rdy, int workerNumber) { connections = new Connections(); executor = Executors.newFixedThreadPool(workerNumber, new ThreadFactoryBuilder().setNameFormat(&quot;nsqj-&quot;).setDaemon(true).build()); ...... } 可以发现, executor 使用了 fixed线程池, 这里的队列在sdk中使用的是 LinkedBlockingQueue, 队列是无限增长的. 这样看, 稳定是定位了, 就是因为 executor的队列一直在增长, 但是, 是谁再往队列中投递数据的呢? 还是无限投递! review代码如下:
+public class NSQHandler extends SimpleChannelInboundHandler&lt;NSQFrame&gt; { .">
+<meta itemprop="datePublished" content="2019-04-13T14:10:45&#43;08:00" />
+<meta itemprop="dateModified" content="2019-04-13T14:10:45&#43;08:00" />
+<meta itemprop="wordCount" content="200">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Tmq Oom"/>
+<meta name="twitter:description" content="周末上午, 突然接到业务方反馈 nsq-consumer 发生了 netty 内存泄露. 通过heap dump文件分析文件, 发下了大内存占用. 如下图
+overall 界面
+object-list 界面
+通过点击 &ldquo;overall 界面&rdquo; 图的list object功能, 会进入 &ldquo;object-list 界面&rdquo;, 可以发现 nsqj 的内存占用最高, 问题定位到了, 那么, nsqj 线程是做什么的呢? nsqj实例化如下:
+public AbstractNSQClient(BootstrapConfig config, String topic, String channel, int rdy, int workerNumber) { connections = new Connections(); executor = Executors.newFixedThreadPool(workerNumber, new ThreadFactoryBuilder().setNameFormat(&quot;nsqj-&quot;).setDaemon(true).build()); ...... } 可以发现, executor 使用了 fixed线程池, 这里的队列在sdk中使用的是 LinkedBlockingQueue, 队列是无限增长的. 这样看, 稳定是定位了, 就是因为 executor的队列一直在增长, 但是, 是谁再往队列中投递数据的呢? 还是无限投递! review代码如下:
+public class NSQHandler extends SimpleChannelInboundHandler&lt;NSQFrame&gt; { ."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-04-13 14:10:45 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about">About</a></li><li><a href="https://xujianhai666.github.io/post">Post</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            
+            </p>
+        </div>
+
+        <article>
+            <h2 class="post-title"><a href="https://xujianhai666.github.io/post/tmq-oom/">Tmq Oom</a></h2>
+
+            
+
+            <div class="post-content">
+                <p>周末上午, 突然接到业务方反馈 nsq-consumer 发生了 netty 内存泄露. 通过heap dump文件分析文件, 发下了大内存占用. 如下图</p>
+<p><img src="/oom-ana.png" alt="oom-ana" title="oom-ana">
+overall  界面</p>
+<p><img src="/oom-list.png" alt="oom-list" title="oom-list">
+object-list 界面</p>
+<p>通过点击 &ldquo;overall  界面&rdquo; 图的list object功能, 会进入 &ldquo;object-list 界面&rdquo;, 可以发现 nsqj 的内存占用最高, 问题定位到了, 那么, nsqj 线程是做什么的呢? nsqj实例化如下:</p>
+<pre><code>public AbstractNSQClient(BootstrapConfig config, String topic, String channel, int rdy,
+      int workerNumber) {
+    connections = new Connections();
+    executor = Executors.newFixedThreadPool(workerNumber,
+        new ThreadFactoryBuilder().setNameFormat(&quot;nsqj-&quot;).setDaemon(true).build());
+    ......
+}
+</code></pre><p>可以发现, executor 使用了 fixed线程池, 这里的队列在sdk中使用的是 LinkedBlockingQueue, 队列是无限增长的.
+这样看, 稳定是定位了, 就是因为 executor的队列一直在增长, 但是, 是谁再往队列中投递数据的呢? 还是无限投递!
+review代码如下:</p>
+<pre><code>public class NSQHandler extends SimpleChannelInboundHandler&lt;NSQFrame&gt; {
+  .....
+  protected void channelRead0(ChannelHandlerContext ctx, NSQFrame msg) throws Exception {
+    final Connection con = Channels.getConnection(ctx.channel());
+    if (con != null) {
+      con.getParent().getExecutor().execute(() -&gt; con.incoming(msg));
+    } else {
+      if (!(msg instanceof ResponseFrame)) {
+        throw new IllegalStateException(
+            &quot;no connection attachment for channel : &quot; + ctx.channel().id());
+      }
+      logger.warn(&quot;unknow message: {}&quot;, msg);
+    }
+  }
+  ......
+</code></pre><p>通过查看引用关系, 发现是 nsq的consumer不断处理消息, 将收到的消息不断放入 executor 的队列. 但是nsq本身是有很好的 流控策略的, nsq 的 机制参考<a href="https://nsq.io/clients/tcp_protocol_spec.html">官方文档</a>, 结合现在发现的现象, 我直接怀疑是不是 rdy 计算上出现了问题, 这里看下rdy的流控的实现, 如下:</p>
+<pre><code>public void incoming(NSQFrame frame) {
+    ......
+    if (frame instanceof MessageFrame) {
+      MessageFrame msg = (MessageFrame) frame;
+      long tot = this.totalMessages.incrementAndGet();
+      if (tot % messagesPerBatch &gt; (messagesPerBatch / 2)) {
+        this.write(new RDYCommand(this.messagesPerBatch));
+      }
+    .........
+}
+</code></pre><p>在上面的代码可以发现, 每次消费点位在 (messagesPerBatch / 2, messagesPerBatch) 的时候, 每消费一个消息, 都会触发向 服务端请求 messagesPerBatch 数量的消息. 这样, 消息量会叠加的很多, 如果消息体 还很大的话, oom现象就会很明显. 询问了业务方, 消息体确实很大, 为了快速修复问题, 先修改了新的 rdy策略 上线, 问题消息.</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+  			</div>
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="">
+<meta name="description" content="这里记录下经过压测后, 我们推荐的线上配置
+bin/kafka-server-start.sh if [ &amp;quot;x$KAFKA_HEAP_OPTS&amp;quot; = &amp;quot;x&amp;quot; ]; then export KAFKA_HEAP_OPTS=&amp;quot;-Xmx16G -Xms16G&amp;quot; export KAFKA_JVM_PERFORMANCE_OPTS=&amp;quot;-server -XX:PermSize=48m -XX:MaxPermSize=48m -XX:&#43;UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:&#43;DisableExplicitGC -Djava.awt.headless=true -XX:&#43;ExitOnOutOfMemoryError&amp;quot; fi 其实, 最主要的重点是, 内存的大小设置, 官方推荐的8G内存并不比16G高效, 当然也不是越大越好, 30G的内存配置跑分并没有16G高.
+server.config配置 broker.id=0 port=9098 advertised.host.name= num.network.threads=32 num.io.threads=200 socket.send.buffer.bytes=1048576 socket.receive.buffer.bytes=1048576 socket.request.max.bytes=104857600 log.dirs=xxxxxx num.partitions=40 num.recovery.threads.per.data.dir=2 log.retention.hours=48 log.retention.bytes=274877906944 log.segment.bytes=536870912 log.retention.check.interval.ms=300000 log.cleaner.enable=true zookeeper.connect=xxxxx zookeeper.session.timeout.ms=120000 zookeeper.connection.timeout.ms=60000 auto.create.topics.enable=false num.replica.fetchers=4 replica.fetch.max.bytes=4194304 message.max.bytes=4194304 queued.max.requests=200 auto.leader.rebalance.enable=false replica.lag.max.messages=4000000 inter.broker.protocol.version=0.10.1.0 log.message.format.version=0.8.2.1 delete.topic.enable=true offsets.retention.minutes=4320 controller.socket.timeout.ms=120000 advertised.listeners=SASL_PLAINTEXT://:,PLAINTEXT://: listeners=SASL_PLAINTEXT://:,PLAINTEXT://: security.inter.broker.protocol=PLAINTEXT sasl.mechanism.inter.broker.protocol=PLAIN sasl.enabled.mechanisms=PLAIN 其中, log.dirs 每个磁盘一个目录, 保证磁盘的高效." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="" />
+<link rel="canonical" href="https://xujianhai666.github.io/post/kafka-config-online/" />
+
+
+    <title>
+        
+            Kafka Config Online :: Hello Friend  — A simple theme for Hugo
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Kafka Config Online">
+<meta itemprop="description" content="这里记录下经过压测后, 我们推荐的线上配置
+bin/kafka-server-start.sh if [ &quot;x$KAFKA_HEAP_OPTS&quot; = &quot;x&quot; ]; then export KAFKA_HEAP_OPTS=&quot;-Xmx16G -Xms16G&quot; export KAFKA_JVM_PERFORMANCE_OPTS=&quot;-server -XX:PermSize=48m -XX:MaxPermSize=48m -XX:&#43;UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:&#43;DisableExplicitGC -Djava.awt.headless=true -XX:&#43;ExitOnOutOfMemoryError&quot; fi 其实, 最主要的重点是, 内存的大小设置, 官方推荐的8G内存并不比16G高效, 当然也不是越大越好, 30G的内存配置跑分并没有16G高.
+server.config配置 broker.id=0 port=9098 advertised.host.name= num.network.threads=32 num.io.threads=200 socket.send.buffer.bytes=1048576 socket.receive.buffer.bytes=1048576 socket.request.max.bytes=104857600 log.dirs=xxxxxx num.partitions=40 num.recovery.threads.per.data.dir=2 log.retention.hours=48 log.retention.bytes=274877906944 log.segment.bytes=536870912 log.retention.check.interval.ms=300000 log.cleaner.enable=true zookeeper.connect=xxxxx zookeeper.session.timeout.ms=120000 zookeeper.connection.timeout.ms=60000 auto.create.topics.enable=false num.replica.fetchers=4 replica.fetch.max.bytes=4194304 message.max.bytes=4194304 queued.max.requests=200 auto.leader.rebalance.enable=false replica.lag.max.messages=4000000 inter.broker.protocol.version=0.10.1.0 log.message.format.version=0.8.2.1 delete.topic.enable=true offsets.retention.minutes=4320 controller.socket.timeout.ms=120000 advertised.listeners=SASL_PLAINTEXT://:,PLAINTEXT://: listeners=SASL_PLAINTEXT://:,PLAINTEXT://: security.inter.broker.protocol=PLAINTEXT sasl.mechanism.inter.broker.protocol=PLAIN sasl.enabled.mechanisms=PLAIN 其中, log.dirs 每个磁盘一个目录, 保证磁盘的高效.">
+<meta itemprop="datePublished" content="2019-03-31T18:11:37&#43;08:00" />
+<meta itemprop="dateModified" content="2019-03-31T18:11:37&#43;08:00" />
+<meta itemprop="wordCount" content="89">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Kafka Config Online"/>
+<meta name="twitter:description" content="这里记录下经过压测后, 我们推荐的线上配置
+bin/kafka-server-start.sh if [ &quot;x$KAFKA_HEAP_OPTS&quot; = &quot;x&quot; ]; then export KAFKA_HEAP_OPTS=&quot;-Xmx16G -Xms16G&quot; export KAFKA_JVM_PERFORMANCE_OPTS=&quot;-server -XX:PermSize=48m -XX:MaxPermSize=48m -XX:&#43;UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:&#43;DisableExplicitGC -Djava.awt.headless=true -XX:&#43;ExitOnOutOfMemoryError&quot; fi 其实, 最主要的重点是, 内存的大小设置, 官方推荐的8G内存并不比16G高效, 当然也不是越大越好, 30G的内存配置跑分并没有16G高.
+server.config配置 broker.id=0 port=9098 advertised.host.name= num.network.threads=32 num.io.threads=200 socket.send.buffer.bytes=1048576 socket.receive.buffer.bytes=1048576 socket.request.max.bytes=104857600 log.dirs=xxxxxx num.partitions=40 num.recovery.threads.per.data.dir=2 log.retention.hours=48 log.retention.bytes=274877906944 log.segment.bytes=536870912 log.retention.check.interval.ms=300000 log.cleaner.enable=true zookeeper.connect=xxxxx zookeeper.session.timeout.ms=120000 zookeeper.connection.timeout.ms=60000 auto.create.topics.enable=false num.replica.fetchers=4 replica.fetch.max.bytes=4194304 message.max.bytes=4194304 queued.max.requests=200 auto.leader.rebalance.enable=false replica.lag.max.messages=4000000 inter.broker.protocol.version=0.10.1.0 log.message.format.version=0.8.2.1 delete.topic.enable=true offsets.retention.minutes=4320 controller.socket.timeout.ms=120000 advertised.listeners=SASL_PLAINTEXT://:,PLAINTEXT://: listeners=SASL_PLAINTEXT://:,PLAINTEXT://: security.inter.broker.protocol=PLAINTEXT sasl.mechanism.inter.broker.protocol=PLAIN sasl.enabled.mechanisms=PLAIN 其中, log.dirs 每个磁盘一个目录, 保证磁盘的高效."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-03-31 18:11:37 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about">About</a></li><li><a href="https://xujianhai666.github.io/post">Post</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            
+            </p>
+        </div>
+
+        <article>
+            <h2 class="post-title"><a href="https://xujianhai666.github.io/post/kafka-config-online/">Kafka Config Online</a></h2>
+
+            
+
+            <div class="post-content">
+                <p>这里记录下经过压测后, 我们推荐的线上配置</p>
+<h2 id="binkafka-server-startsh">bin/kafka-server-start.sh</h2>
+<pre><code>if [ &quot;x$KAFKA_HEAP_OPTS&quot; = &quot;x&quot; ]; then
+    export KAFKA_HEAP_OPTS=&quot;-Xmx16G -Xms16G&quot;
+    export KAFKA_JVM_PERFORMANCE_OPTS=&quot;-server -XX:PermSize=48m -XX:MaxPermSize=48m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+DisableExplicitGC -Djava.awt.headless=true -XX:+ExitOnOutOfMemoryError&quot;
+fi
+</code></pre><p>其实, 最主要的重点是, 内存的大小设置, 官方推荐的8G内存并不比16G高效, 当然也不是越大越好, 30G的内存配置跑分并没有16G高.</p>
+<h2 id="serverconfig配置">server.config配置</h2>
+<pre><code>broker.id=0
+port=9098
+advertised.host.name=
+num.network.threads=32
+num.io.threads=200
+socket.send.buffer.bytes=1048576
+socket.receive.buffer.bytes=1048576
+socket.request.max.bytes=104857600
+log.dirs=xxxxxx 
+num.partitions=40
+num.recovery.threads.per.data.dir=2
+log.retention.hours=48
+log.retention.bytes=274877906944
+log.segment.bytes=536870912
+log.retention.check.interval.ms=300000
+log.cleaner.enable=true   
+zookeeper.connect=xxxxx 
+zookeeper.session.timeout.ms=120000
+zookeeper.connection.timeout.ms=60000
+auto.create.topics.enable=false 
+num.replica.fetchers=4
+replica.fetch.max.bytes=4194304
+message.max.bytes=4194304
+queued.max.requests=200
+auto.leader.rebalance.enable=false
+replica.lag.max.messages=4000000
+inter.broker.protocol.version=0.10.1.0
+log.message.format.version=0.8.2.1
+delete.topic.enable=true
+offsets.retention.minutes=4320
+controller.socket.timeout.ms=120000
+advertised.listeners=SASL_PLAINTEXT://:,PLAINTEXT://:
+listeners=SASL_PLAINTEXT://:,PLAINTEXT://:
+security.inter.broker.protocol=PLAINTEXT
+sasl.mechanism.inter.broker.protocol=PLAIN
+sasl.enabled.mechanisms=PLAIN
+</code></pre><p>其中, log.dirs 每个磁盘一个目录, 保证磁盘的高效. 磁盘使用HDD就可以, 没必要使用ssd, 即使HDD, 在压测情况下也能达到 100+qps, 已经很高效了, 没必要浪费资源.</p>
+<p>这里配置处理线程数目 num.io.threads=20. 单partition压测的时候, 建议设置成1, 因为partiton的写操作有锁, 频繁的等待、唤醒 和上下文切换会造成很大的代价.</p>
+<h2 id="机器信息">机器信息</h2>
+<p>256GB 48C 10HDD*10T</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+  			</div>
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

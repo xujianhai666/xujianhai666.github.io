@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="">
+<meta name="description" content="介绍 fasthttp 是一个极致复用的http框架, 根据官网, 相比于 net/http, 有 10x性能的提升. fasthttp 也提供了 adapter, 适配到 net/http.
+实现 fasthttp 的核心理念就是复用, 在review代码的时候, 发现有大量的 sync.Pool 的使用, 比如 Server的池化: ServerPool, func worker 以及通过第三方组件 &amp;ldquo;github.com/valyala/bytebufferpool&amp;rdquo; 实现 byteBuffer 的 syncPool, 实现对 []byte 的复用.
+在fasthttp中, 有一个核心的设计: workerPool. workPool 中, 有一个关键组件: workerChan, workerChan 既是资源的基本单位, 也是任务处理的基本单位. 每个到来的请求, 都会分配到workerChan中, 由workerChan的goroutine进行处理.
+数据结构 workerChan的数据结构 和 分配如下:
+type workerChan struct { lastUseTime time.Time ch chan net.Conn } func (wp *workerPool) Serve(c net.Conn) bool { ch := wp." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="" />
+<link rel="canonical" href="https://xujianhai666.github.io/post/fasthttp/" />
+
+
+    <title>
+        
+            Fasthttp :: Hello Friend  — A simple theme for Hugo
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Fasthttp">
+<meta itemprop="description" content="介绍 fasthttp 是一个极致复用的http框架, 根据官网, 相比于 net/http, 有 10x性能的提升. fasthttp 也提供了 adapter, 适配到 net/http.
+实现 fasthttp 的核心理念就是复用, 在review代码的时候, 发现有大量的 sync.Pool 的使用, 比如 Server的池化: ServerPool, func worker 以及通过第三方组件 &ldquo;github.com/valyala/bytebufferpool&rdquo; 实现 byteBuffer 的 syncPool, 实现对 []byte 的复用.
+在fasthttp中, 有一个核心的设计: workerPool. workPool 中, 有一个关键组件: workerChan, workerChan 既是资源的基本单位, 也是任务处理的基本单位. 每个到来的请求, 都会分配到workerChan中, 由workerChan的goroutine进行处理.
+数据结构 workerChan的数据结构 和 分配如下:
+type workerChan struct { lastUseTime time.Time ch chan net.Conn } func (wp *workerPool) Serve(c net.Conn) bool { ch := wp.">
+<meta itemprop="datePublished" content="2019-06-23T18:12:26&#43;08:00" />
+<meta itemprop="dateModified" content="2019-06-23T18:12:26&#43;08:00" />
+<meta itemprop="wordCount" content="452">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Fasthttp"/>
+<meta name="twitter:description" content="介绍 fasthttp 是一个极致复用的http框架, 根据官网, 相比于 net/http, 有 10x性能的提升. fasthttp 也提供了 adapter, 适配到 net/http.
+实现 fasthttp 的核心理念就是复用, 在review代码的时候, 发现有大量的 sync.Pool 的使用, 比如 Server的池化: ServerPool, func worker 以及通过第三方组件 &ldquo;github.com/valyala/bytebufferpool&rdquo; 实现 byteBuffer 的 syncPool, 实现对 []byte 的复用.
+在fasthttp中, 有一个核心的设计: workerPool. workPool 中, 有一个关键组件: workerChan, workerChan 既是资源的基本单位, 也是任务处理的基本单位. 每个到来的请求, 都会分配到workerChan中, 由workerChan的goroutine进行处理.
+数据结构 workerChan的数据结构 和 分配如下:
+type workerChan struct { lastUseTime time.Time ch chan net.Conn } func (wp *workerPool) Serve(c net.Conn) bool { ch := wp."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-06-23 18:12:26 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about">About</a></li><li><a href="https://xujianhai666.github.io/post">Post</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            
+            </p>
+        </div>
+
+        <article>
+            <h2 class="post-title"><a href="https://xujianhai666.github.io/post/fasthttp/">Fasthttp</a></h2>
+
+            
+
+            <div class="post-content">
+                <h2 id="介绍">介绍</h2>
+<p>fasthttp 是一个极致复用的http框架, 根据<a href="https://github.com/valyala/fasthttp">官网</a>, 相比于 net/http, 有 10x性能的提升. fasthttp 也提供了 adapter, 适配到 net/http.</p>
+<h2 id="实现">实现</h2>
+<p>fasthttp 的核心理念就是复用, 在review代码的时候, 发现有大量的 sync.Pool 的使用, 比如 Server的池化: ServerPool, func worker 以及通过第三方组件 &ldquo;github.com/valyala/bytebufferpool&rdquo; 实现 byteBuffer 的 syncPool, 实现对 []byte 的复用.</p>
+<p>在fasthttp中, 有一个核心的设计: workerPool. workPool 中, 有一个关键组件: workerChan, workerChan 既是资源的基本单位, 也是任务处理的基本单位. 每个到来的请求, 都会分配到workerChan中, 由workerChan的goroutine进行处理.</p>
+<h3 id="数据结构">数据结构</h3>
+<p>workerChan的数据结构 和 分配如下:</p>
+<pre><code>type workerChan struct {
+    lastUseTime time.Time
+    ch          chan net.Conn
+}
+
+func (wp *workerPool) Serve(c net.Conn) bool {
+    ch := wp.getCh()
+    if ch == nil {
+        return false
+    }
+    ch.ch &lt;- c
+    return true
+}
+
+func (wp *workerPool) getCh() *workerChan {
+    var ch *workerChan
+    createWorker := false
+
+    wp.lock.Lock()
+    ready := wp.ready
+    n := len(ready) - 1
+    if n &lt; 0 {
+        if wp.workersCount &lt; wp.MaxWorkersCount {
+            createWorker = true
+            wp.workersCount++
+        }
+    } else {
+        ch = ready[n]
+        ready[n] = nil
+        wp.ready = ready[:n]
+    }
+    wp.lock.Unlock()
+
+    if ch == nil {
+        if !createWorker {
+            return nil
+        }
+        vch := wp.workerChanPool.Get()
+        if vch == nil {
+            vch = &amp;workerChan{
+                ch: make(chan net.Conn, workerChanCap),
+            }
+        }
+        ch = vch.(*workerChan)
+        go func() {
+            wp.workerFunc(ch)
+            wp.workerChanPool.Put(vch)
+        }()
+    }
+    return ch
+}
+</code></pre><p>代码中, Serve 是 workerPool 的服务入口, getCh 是 workerChan 的分配逻辑, 实现中, 有两级缓存: ready的chan队列 和 workerChanPool 缓存池, ready队列的设计是 后进先出的, 是为了实现 cpu cache hot. ready队列的 workerChan 都是有 相应的 goroutine 运行的, 实现了 goroutine 池的概念. workerChanPool 只是 sync.Pool 的池化, 没有相应的goroutine, 分配之后, 需要 go 启动一个函数.</p>
+<h3 id="clean">clean</h3>
+<p>那么, workerChan 会不会一直增长呢? 比如, 流量突然增加, 然后随着流量逐渐下滑, goroutine是否也会下降呢?</p>
+<p>workerPool在启动的时候, 是会定期执行 clean操作的, 将超过过期时间的空闲的goroutine进行关闭(通过发送nil实现). 如下</p>
+<pre><code>func (wp *workerPool) Start() {
+    if wp.stopCh != nil {
+        panic(&quot;BUG: workerPool already started&quot;)
+    }
+    wp.stopCh = make(chan struct{})
+    stopCh := wp.stopCh
+    go func() {
+        var scratch []*workerChan
+        for {
+            wp.clean(&amp;scratch)
+            select {
+            case &lt;-stopCh:
+                return
+            default:
+                time.Sleep(wp.getMaxIdleWorkerDuration())
+            }
+        }
+    }()
+}
+
+func (wp *workerPool) clean(scratch *[]*workerChan) {
+    maxIdleWorkerDuration := wp.getMaxIdleWorkerDuration()
+
+    // Clean least recently used workers if they didn't serve connections
+    // for more than maxIdleWorkerDuration.
+    currentTime := time.Now()
+
+    wp.lock.Lock()
+    ready := wp.ready
+    n := len(ready)
+    i := 0
+    for i &lt; n &amp;&amp; currentTime.Sub(ready[i].lastUseTime) &gt; maxIdleWorkerDuration {
+        i++
+    }
+    *scratch = append((*scratch)[:0], ready[:i]...)
+    if i &gt; 0 {
+        m := copy(ready, ready[i:])
+        for i = m; i &lt; n; i++ {
+            ready[i] = nil
+        }
+        wp.ready = ready[:m]
+    }
+    wp.lock.Unlock()
+
+    // Notify obsolete workers to stop.
+    // This notification must be outside the wp.lock, since ch.ch
+    // may be blocking and may consume a lot of time if many workers
+    // are located on non-local CPUs.
+    tmp := *scratch
+    for i, ch := range tmp {
+        ch.ch &lt;- nil
+        tmp[i] = nil
+    }
+}
+</code></pre><p>需要注意的是, 因为ready 是 后进先出的实现, 所以,</p>
+<pre><code>*scratch = append((*scratch)[:0], ready[:i]...)
+</code></pre><p>就是 需要被删除的workerChan.</p>
+<h3 id="执行">执行</h3>
+<p>workerPool 的 workerChan 的执行函数是 workerFunc, 为了保证处理完单个请求不退出 goroutine, workerChan 使用了 chan net.Conn + for &hellip; range 的实现, workerPool 的 chan是无缓冲chan, 保证了 在启动的时候, 异步 goroutine 在启动之后, sender 才能发送数据. 每次处理完一个连接, 就会返回到 ready队列, 等待下一个 连接的处理.</p>
+<p>如果被关闭了, 那么就会被归还到 workerChanPool 中, 最终在下一次gc的时候被释放掉.</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+  			</div>
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

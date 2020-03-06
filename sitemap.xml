@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <url>
+    <loc>https://xujianhai666.github.io/</loc>
+    <lastmod>2020-03-06T21:48:49+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/</loc>
+    <lastmod>2020-03-06T21:48:49+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-heartbeat-timeout/</loc>
+    <lastmod>2020-03-06T21:48:49+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/protobuf/</loc>
+    <lastmod>2020-01-11T15:16:40+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kip-2018-12/</loc>
+    <lastmod>2019-12-11T19:49:58+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-admin/</loc>
+    <lastmod>2019-11-17T21:50:30+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-controller-redesign/</loc>
+    <lastmod>2019-11-10T11:10:24+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-group-codereview/</loc>
+    <lastmod>2019-11-09T21:52:25+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-group-kip/</loc>
+    <lastmod>2019-11-07T09:54:35+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-mirror-review/</loc>
+    <lastmod>2019-11-02T23:33:49+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-connect-codereview/</loc>
+    <lastmod>2019-11-02T23:32:49+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-connect-design-kip/</loc>
+    <lastmod>2019-11-02T23:31:22+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-connect-kip/</loc>
+    <lastmod>2019-11-02T23:30:41+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-mirror-review/</loc>
+    <lastmod>2019-11-02T11:19:22+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-connect-review/</loc>
+    <lastmod>2019-11-02T10:27:03+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-connect/</loc>
+    <lastmod>2019-11-01T19:44:59+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kip-simple/</loc>
+    <lastmod>2019-11-01T13:06:56+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-jira/</loc>
+    <lastmod>2019-11-01T11:49:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-connect-start/</loc>
+    <lastmod>2019-10-27T11:08:14+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-start/</loc>
+    <lastmod>2019-10-24T11:39:18+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-schema/</loc>
+    <lastmod>2019-09-20T11:51:39+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/python-deadlock/</loc>
+    <lastmod>2019-09-08T11:20:15+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/site-blog/</loc>
+    <lastmod>2019-07-03T17:45:53+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-byvalue/</loc>
+    <lastmod>2019-07-03T13:39:19+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-options/</loc>
+    <lastmod>2019-06-24T22:49:36+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/goroutine-pool/</loc>
+    <lastmod>2019-06-23T21:53:44+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-expvar/</loc>
+    <lastmod>2019-06-23T21:03:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/http/</loc>
+    <lastmod>2019-06-23T20:57:26+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pprof/</loc>
+    <lastmod>2019-06-23T19:22:23+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/fasthttp/</loc>
+    <lastmod>2019-06-23T18:12:26+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/k8s-article/</loc>
+    <lastmod>2019-06-21T22:18:15+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/lru/</loc>
+    <lastmod>2019-06-19T10:23:57+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/gin/</loc>
+    <lastmod>2019-06-16T10:12:55+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-thrift/</loc>
+    <lastmod>2019-06-14T23:14:25+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/bitmap/</loc>
+    <lastmod>2019-06-13T10:08:59+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-journalmq/</loc>
+    <lastmod>2019-06-13T09:50:30+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-generate/</loc>
+    <lastmod>2019-06-04T09:55:54+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-project/</loc>
+    <lastmod>2019-06-02T22:59:19+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-sync/</loc>
+    <lastmod>2019-06-02T08:54:15+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-error/</loc>
+    <lastmod>2019-06-02T08:52:48+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-epoll/</loc>
+    <lastmod>2019-05-29T23:10:21+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-string/</loc>
+    <lastmod>2019-05-26T12:29:11+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-slice/</loc>
+    <lastmod>2019-05-24T17:43:40+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-writeb/</loc>
+    <lastmod>2019-05-24T09:45:30+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-syncmap/</loc>
+    <lastmod>2019-05-20T10:00:02+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-wg/</loc>
+    <lastmod>2019-05-18T23:20:37+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-rwmutex/</loc>
+    <lastmod>2019-05-18T21:53:50+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-condition/</loc>
+    <lastmod>2019-05-15T21:58:55+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-mutex/</loc>
+    <lastmod>2019-05-14T15:39:34+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/blog/</loc>
+    <lastmod>2019-05-09T19:07:10+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-for/</loc>
+    <lastmod>2019-05-01T10:11:45+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-mod/</loc>
+    <lastmod>2019-05-01T10:11:38+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-init/</loc>
+    <lastmod>2019-04-21T12:04:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-channel/</loc>
+    <lastmod>2019-04-21T11:23:31+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-face/</loc>
+    <lastmod>2019-04-21T10:54:16+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/golang-sch/</loc>
+    <lastmod>2019-04-14T13:00:03+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/tmq-oom/</loc>
+    <lastmod>2019-04-13T14:10:45+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rust_learn/</loc>
+    <lastmod>2019-04-11T16:01:17+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/github_lb/</loc>
+    <lastmod>2019-04-06T15:13:43+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/consistent-hash-overall/</loc>
+    <lastmod>2019-04-05T17:44:49+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/raft-paper/</loc>
+    <lastmod>2019-04-03T20:31:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/tidb-debug/</loc>
+    <lastmod>2019-04-03T10:00:02+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/perf-rafka/</loc>
+    <lastmod>2019-03-31T18:25:36+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-config-online/</loc>
+    <lastmod>2019-03-31T18:11:37+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/phx-oversall/</loc>
+    <lastmod>2019-03-31T11:52:43+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-compact/</loc>
+    <lastmod>2019-03-30T23:33:11+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-component/</loc>
+    <lastmod>2019-03-30T23:24:53+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-lookup/</loc>
+    <lastmod>2019-03-30T14:39:39+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-bundle/</loc>
+    <lastmod>2019-03-29T23:11:49+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/redis-overall/</loc>
+    <lastmod>2019-03-25T09:58:36+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/qmq-overall/</loc>
+    <lastmod>2019-03-24T00:42:13+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/mq-overall/</loc>
+    <lastmod>2019-03-24T00:08:23+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/qmq-consumer/</loc>
+    <lastmod>2019-03-23T09:34:58+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/qmq-producer/</loc>
+    <lastmod>2019-03-23T09:34:54+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/qmq-broker/</loc>
+    <lastmod>2019-03-23T09:34:43+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-pre-pressure/</loc>
+    <lastmod>2019-03-21T22:23:41+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-broker-consume/</loc>
+    <lastmod>2019-03-13T23:11:04+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-broker-send/</loc>
+    <lastmod>2019-03-13T23:07:35+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-broker/</loc>
+    <lastmod>2019-03-11T21:52:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-namesrv/</loc>
+    <lastmod>2019-03-11T21:20:32+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/rocketmq-debug/</loc>
+    <lastmod>2019-03-11T16:40:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-proto/</loc>
+    <lastmod>2019-03-09T21:56:40+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-debug/</loc>
+    <lastmod>2019-03-03T21:59:31+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-producer/</loc>
+    <lastmod>2019-03-03T21:41:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-consumer/</loc>
+    <lastmod>2019-03-03T21:40:53+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-consumer-proto/</loc>
+    <lastmod>2019-03-03T21:40:47+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-producer-proto/</loc>
+    <lastmod>2019-03-03T21:40:41+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/kafka-broker/</loc>
+    <lastmod>2019-03-03T21:40:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/categories/</loc>
+    <lastmod>2019-03-03T19:46:10+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/categories/pulsar/</loc>
+    <lastmod>2019-03-03T19:46:10+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-broker/</loc>
+    <lastmod>2019-03-03T19:46:10+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-broker-producer-proto/</loc>
+    <lastmod>2019-03-03T18:35:39+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-client-producer/</loc>
+    <lastmod>2019-03-03T14:43:01+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-function/</loc>
+    <lastmod>2019-03-03T10:07:06+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-proxy/</loc>
+    <lastmod>2019-03-03T10:06:30+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-client-consumer/</loc>
+    <lastmod>2019-03-03T09:59:33+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-broker-consumer-proto/</loc>
+    <lastmod>2019-03-02T21:40:57+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-debug/</loc>
+    <lastmod>2019-03-02T17:22:50+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/post/pulsar-intro/</loc>
+    <lastmod>2019-03-02T17:06:25+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/about/</loc>
+    <lastmod>2019-03-02T13:25:34+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai666.github.io/tags/</loc>
+  </url>
+  
+</urlset>
