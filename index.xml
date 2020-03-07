@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Hello Friend</title>
+    <title>zero.xu blog</title>
     <link>https://xujianhai666.github.io/</link>
-    <description>Recent content on Hello Friend</description>
+    <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
+    <language>en</language>
     <lastBuildDate>Sat, 07 Mar 2020 09:35:43 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai666.github.io/index.xml" rel="self" type="application/rss+xml" />
@@ -13,10 +13,10 @@
     
     <item>
       <title>Rocketmq Heartbeat Timeout</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-heartbeat-timeout/</link>
+      <link>https://xujianhai666.github.io/posts/rocketmq-heartbeat-timeout/</link>
       <pubDate>Sat, 07 Mar 2020 09:35:43 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/rocketmq-heartbeat-timeout/</guid>
+      <guid>https://xujianhai666.github.io/posts/rocketmq-heartbeat-timeout/</guid>
       <description>背景 最近线上发现了一些报警: &amp;ldquo;send heart beat to broker add: xxx error: request timeout&amp;rdquo;, 同时伴随着服务重启, 会出现consumer 流量短时间降低, 同时 consumer的连接创建也很缓慢
 排查 通过关键字匹配, 发现这个是 rocektmq-golang-sdk 的一处错误打印, 是心跳命令请求broker超时的场景下打印的
 既然是请求rocketmq超时了, 直接登录到线上rocketmq broker查看负载, 但是通过top执行发现cpu和内存占比都比较正常, 同时 netstat -anp | grep pid 扫描的socket的数量也只有几千个,没有异常点.
@@ -25,10 +25,10 @@
     
     <item>
       <title>Protobuf</title>
-      <link>https://xujianhai666.github.io/post/protobuf/</link>
+      <link>https://xujianhai666.github.io/posts/protobuf/</link>
       <pubDate>Sat, 11 Jan 2020 15:16:40 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/protobuf/</guid>
+      <guid>https://xujianhai666.github.io/posts/protobuf/</guid>
       <description>gogo-protobuf 扩展了 protobuf 的使用姿势, 不仅添加了丰富的插件: string/euqla/marshal/unmarshal, 性能上还进行了优化. gogo-protobuf 的插件体系相对于原生的protobuf-go的插件实现(虽然只有一个grpc), 不仅丰富, 而且支持开关. 开关是借助于 描述符中extension 实现的.
 gogo-protobuf 因为支持的插件体系比较多, 为此, 将插件分成了几种启用级别, 对外是不同的使用入口. 比如 protoc-gen-gogofast、protoc-gen-gogofaster、protoc-gen-gogoslick. 除了通过不同的入口, 还可以通过不同proto文件的参数定制, 比如 option (gogoproto.gostring_all) = true; 实现给每个message添加string的方法.
 补充:  extension  extension 是 proto2 中支持的语法, 在新的pb文件中, 使用了 Any 进行了替代. 更多关于extension可以参考: https://developers.google.com/protocol-buffers/docs/proto#extensions, Any可以参照 https://developers.google.com/protocol-buffers/docs/proto3#any . 但是在 gogo的使用实现中, 还是用 extend 机制, proto2 用extend, proto3 使用本地登记的方式
@@ -40,19 +40,19 @@ protoc插件  protoc是支持插件的, 比如gogo-out其实就是去找gogo的�
     
     <item>
       <title>Kip 2018 12</title>
-      <link>https://xujianhai666.github.io/post/kip-2018-12/</link>
+      <link>https://xujianhai666.github.io/posts/kip-2018-12/</link>
       <pubDate>Wed, 11 Dec 2019 19:49:58 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/kip-2018-12/</guid>
+      <guid>https://xujianhai666.github.io/posts/kip-2018-12/</guid>
       <description> reassignment 限流   摘要: 对 reassignment 的 replication 进行限流, 避免全局限流的导致isr落后的partition 的无法追上。这里的限流是动态的. 以前的通用的限流不进行废弃, 因为存在无isr而且 follower 用光带宽的时候, 这个限制还是需要的。新增加了两个配置: leader.reassignment.throttled.rate 和 follower.reassignment.throttled.rate, 前者是 leader broker 统一限流, 但是因为kafka reassignment 的 partition follower 可以有很多个, leader限流的话需要计算每个followerd的比例, 所以添加了 follower限流 kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-542%3A+Partition+Reassignment+Throttling  replication quota   摘要: client 的限流是通过延迟实现的, replica原来也有类似的限流 replica.fetch.max.bytes , 不过是 partition 级别的。新的方案, 添加了 LeaderQuotaRate 和 FollowerQuotaRate. kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-73+Replication+Quotas  </description>
     </item>
     
     <item>
       <title>Rocketmq Admin</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-admin/</link>
+      <link>https://xujianhai666.github.io/posts/rocketmq-admin/</link>
       <pubDate>Sun, 17 Nov 2019 21:50:30 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/rocketmq-admin/</guid>
+      <guid>https://xujianhai666.github.io/posts/rocketmq-admin/</guid>
       <description>查看消费进度:
 sh mqadmin consumerProgress -g $groupName -n ${ip:port} 查看客户端的连接信息
 sh mqadmin consumerConnection -g $group -n ${ip:port} 查看topic状态
@@ -63,10 +63,10 @@ sh mqadmin updateTopic -t $topic -n ${ip:port} -c $cluster -r 1 -w 1 -o true </d
     
     <item>
       <title>Kafka Controller Redesign</title>
-      <link>https://xujianhai666.github.io/post/kafka-controller-redesign/</link>
+      <link>https://xujianhai666.github.io/posts/kafka-controller-redesign/</link>
       <pubDate>Sun, 10 Nov 2019 11:10:24 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/kafka-controller-redesign/</guid>
+      <guid>https://xujianhai666.github.io/posts/kafka-controller-redesign/</guid>
       <description>最近学习 kafka 相关的kip, 发现了一个 kafka controller redesign 的设计的文章, 这里叙述一下:
   kip: https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#
   kip: https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Redesign
@@ -76,10 +76,10 @@ sh mqadmin updateTopic -t $topic -n ${ip:port} -c $cluster -r 1 -w 1 -o true </d
     
     <item>
       <title>Kafka Group Codereview</title>
-      <link>https://xujianhai666.github.io/post/kafka-group-codereview/</link>
+      <link>https://xujianhai666.github.io/posts/kafka-group-codereview/</link>
       <pubDate>Sat, 09 Nov 2019 21:52:25 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/kafka-group-codereview/</guid>
+      <guid>https://xujianhai666.github.io/posts/kafka-group-codereview/</guid>
       <description>最近学习 kafka-connect 的设计和实现. 其中设计到 group member protocol 的内容. 这里展开学习.
 kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以及 ConsumerCoordinator 的实现.
 整体生命流程: 找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. ConsumerCoordinator子类 从上面的流程中可以知道, 继承 AbstractCoordinator 的子类, 需要实现 onJoinPrepare、metadata、onLeavePrepare、performAssignment、onJoinComplete
@@ -88,10 +88,10 @@ kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以�
     
     <item>
       <title>Kafka Group Kip</title>
-      <link>https://xujianhai666.github.io/post/kafka-group-kip/</link>
+      <link>https://xujianhai666.github.io/posts/kafka-group-kip/</link>
       <pubDate>Thu, 07 Nov 2019 09:54:35 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/kafka-group-kip/</guid>
+      <guid>https://xujianhai666.github.io/posts/kafka-group-kip/</guid>
       <description>这里主要讨论 kafka group 相关的协议: rebalance, partition 等
 https://cwiki.apache.org/confluence/display/KAFKA/KIP-480%3A+Sticky+Partitioner
 https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A+Kafka+Consumer+Incremental+Rebalance+Protocol
@@ -107,19 +107,19 @@ https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configu
     
     <item>
       <title>Kafka Mirror Review</title>
-      <link>https://xujianhai666.github.io/post/kafka-mirror-review/</link>
+      <link>https://xujianhai666.github.io/posts/kafka-mirror-review/</link>
       <pubDate>Sat, 02 Nov 2019 23:33:49 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/kafka-mirror-review/</guid>
+      <guid>https://xujianhai666.github.io/posts/kafka-mirror-review/</guid>
       <description></description>
     </item>
     
     <item>
       <title>Kafka Connect Codereview</title>
-      <link>https://xujianhai666.github.io/post/kafka-connect-codereview/</link>
+      <link>https://xujianhai666.github.io/posts/kafka-connect-codereview/</link>
       <pubDate>Sat, 02 Nov 2019 23:32:49 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/kafka-connect-codereview/</guid>
+      <guid>https://xujianhai666.github.io/posts/kafka-connect-codereview/</guid>
       <description>kafka 支持两种模式: standalone 和 distributed. 分开来讲.
 组件 kafka-connect 主要的组件如下
  Herder: 管理 worker、statusBackingStore、configBackingStore、offsetBackingStore. Connect: kafka-connect 组件的生命周期的管理 statusBackingStore: task/worker 状态变化, 都需要调用这个 offsetBackingStore: 管理offset configBackingStore: 管理配置 ConfigProvider: 管理配置信息  standalone standalone 的实现比较简单, 这里简单说下 生命周期.
@@ -130,1051 +130,16 @@ https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configu
     
     <item>
       <title>Kafka Connect Design Kip</title>
-      <link>https://xujianhai666.github.io/post/kafka-connect-design-kip/</link>
+      <link>https://xujianhai666.github.io/posts/kafka-connect-design-kip/</link>
       <pubDate>Sat, 02 Nov 2019 23:31:22 +0800</pubDate>
       
-      <guid>https://xujianhai666.github.io/post/kafka-connect-design-kip/</guid>
+      <guid>https://xujianhai666.github.io/posts/kafka-connect-design-kip/</guid>
       <description>早期的设计 最早的设计可以看: KIP-26 - Add Kafka Connect framework for data import/export,
 通过kip, 可以发现, connect设计的目标是 导入和导出数据. 设计目标:
  只聚焦数据处理 并行度的支持. 能够支持大量数据的拷贝 尽可能提供 准确一次的分发. 管理元数据 设计良好的connector api. 易于扩展 流式和批处理的支持 Strandalone 和 集群的支持  为什么是基于 kafka 构建一套connect, 而不是其他框架呢?
  kafka 本身就有并行度的概念 kafka 本身良好的 容错能力, 使得编码简单 kafka 提供了 准确一次、最多一次、最少一次  除此之外, 其他的框架 本身也是从一个具体的case进行 泛化, 不能很好的利用kafka本身的优势。 学习成本和复杂度很高. 部分依赖于 yarn, 对于大集群是好处, 但是应该是 利用而不是依赖. 最后, 其他框架的技术栈 和 kafka 不匹配.
 那么, 为什么 kafka-connect 和 kafka 放在一起呢?
  文档入口友好度 生态化.</description>
-    </item>
-    
-    <item>
-      <title>Kafka Connect Kip</title>
-      <link>https://xujianhai666.github.io/post/kafka-connect-kip/</link>
-      <pubDate>Sat, 02 Nov 2019 23:30:41 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-connect-kip/</guid>
-      <description>kip 最近研究kafka-connect, 相关的kip 整理:
-KIP-521: Enable redirection of Connect&amp;rsquo;s log4j messages to a file by default
-KIP-507: Securing Internal Connect REST Endpoints
-KIP-495: Dynamically Adjust Log Levels in Connect
-可以通过 网络请求 动态调整 loglevel. 重启后修改是丢失的 KIP-481: SerDe Improvements for Connect Decimal type in JSON
-KIP-475: New Metrics to Measure Number of Tasks on a Connector
-添加了 connector-total-task-count 、connector-running-task-count、connector-paused-task-count、connector-failed-task-count、connector-unassigned-task-count、connector-destroyed-task-count 的监控指标 KIP-465: Add Consolidated Connector Endpoint to Connect REST API
-KIP-458: Connector Client Config Override Policy</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Mirror Review</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-mirror-review/</link>
-      <pubDate>Sat, 02 Nov 2019 11:19:22 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rocketmq-mirror-review/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Connect Review</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-connect-review/</link>
-      <pubDate>Sat, 02 Nov 2019 10:27:03 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rocketmq-connect-review/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Connect</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-connect/</link>
-      <pubDate>Fri, 01 Nov 2019 19:44:59 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rocketmq-connect/</guid>
-      <description>最近在弄 rocketmq replicator相关的开源工作, 这里记录下 connect 的调试步骤:
-  启动 connect-runtime 直接 参照 rocketmq-connect README.md, 足够用了
-  启动 connect-sample
-   执行 mvn clean install -Dmaven.test.skip=true 打包 将target目录下的jar复制到 runtime 配置的 pluginPath 下面 执行下面的 curl 命令启动 sample connect  curl http://localhost:8081/connectors/test0\?config\=%7b%22connector-class%22%3a%22org.apache.rocketmq.connect.file.FileSourceConnector%22%2c%22topic%22%3a%22fileTopic%22%2c%22filename%22%3a%22%2fhome%2fconnect%2frocketmq-externals%2frocketmq-connect%2frocketmq-connect-runtime%2fsource-file.txt%22%2c%22source-record-converter%22%3a%22org.apache.rocketmq.connect.runtime.converter.JsonConverter%22%7d 因为 rest http 编码的缘故, 这里进行了 urlencode 编码. 没有进行 urlencode 编码之前, 张这样
-curl http://localhost:8081/connectors/test0\?config={&amp;quot;connector-class&amp;quot;:&amp;quot;org.apache.rocketmq.connect.file.FileSourceConnector&amp;quot;,&amp;quot;topic&amp;quot;:&amp;quot;fileTopic&amp;quot;,&amp;quot;filename&amp;quot;:&amp;quot;home/connect/rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt&amp;quot;,&amp;quot;source-record-converter&amp;quot;:&amp;quot;org.apache.rocketmq.connect.runtime.converter.JsonConverter&amp;quot;} </description>
-    </item>
-    
-    <item>
-      <title>Kip Simple</title>
-      <link>https://xujianhai666.github.io/post/kip-simple/</link>
-      <pubDate>Fri, 01 Nov 2019 13:06:56 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kip-simple/</guid>
-      <description>KIP-352: Distinguish URPs caused by reassignment kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-352%3A+Distinguish+URPs+caused+by+reassignment  背景: 在 kafka中 有一个指标 kafka.UnderReplicatedPartitions, 这个是用来显示 集群中处于同步失败或者失效状态的分区数.
-这个kip讲的是在 reassignment 过程中 URP (under-replicated partition) metrics不准确, 不利于报警的情况。 在 reassignment 的时候, 部分新增的 replica 因为正在同步数据而不再 ISR, 但是broker确认为这些 replica在 URP 中, 导致 hasUnderReplicatedPartitions 不准确. 当前计算方式是: info.isr.size &amp;lt; info.replicas.size, 所以, 在reassignment 情况下, 应该是 info.isr.size &amp;lt; replica - adding, 非 reassignment情况保持不变. 具体的pr: https://github.com/apache/kafka/pull/7361/files.
-note: 更多监控参考 https://docs.confluent.io/current/kafka/monitoring.html</description>
-    </item>
-    
-    <item>
-      <title>Kafka Jira</title>
-      <link>https://xujianhai666.github.io/post/kafka-jira/</link>
-      <pubDate>Fri, 01 Nov 2019 11:49:29 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-jira/</guid>
-      <description>用来记录自己在 kafka 的探险历程.
- 未来规划: https://cwiki.apache.org/confluence/display/KAFKA/Future+release+plan 目前最新的: https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=125307901 所有的kip: https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Improvement+Proposals 模块划分: https://issues.apache.org/jira/projects/KAFKA?selectedItem=com.atlassian.jira.jira-projects-plugin:components-page 所有的issue: https://issues.apache.org/jira/browse/KAFKA-9127?jql=project%20%3D%20KAFKA%20AND%20status%20%3D%20Open  </description>
-    </item>
-    
-    <item>
-      <title>Kafka Connect Start</title>
-      <link>https://xujianhai666.github.io/post/kafka-connect-start/</link>
-      <pubDate>Sun, 27 Oct 2019 11:08:14 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-connect-start/</guid>
-      <description>最近在弄rocketmq-connect, 顺便参考 kafka-connect 的原理和实践. 这里做一下记录.
-前置工作  打包file模块  gradle connect:file:build -x test   指定 plugin 路径  修改 config/connect-standalone.properties 中 plugin.path 为你的路径 将 file 模块打包的 jar 移动到 plugin.path 中   创建topic  ./kafka-topics.sh &amp;ndash;create &amp;ndash;topic connect-test &amp;ndash;replication-factor 1 &amp;ndash;partitions 1 &amp;ndash;zookeeper localhost:2181 ./kafka-topics.sh &amp;ndash;list &amp;ndash;zookeeper localhost:2181    启动 file source  启动kafka, 参考 kafka-start 创建connect的source文件: filesource.txt, 文件内容如下:  Hello World One Step of Kafka  修改 config/connect-file-source.</description>
-    </item>
-    
-    <item>
-      <title>Kafka Start</title>
-      <link>https://xujianhai666.github.io/post/kafka-start/</link>
-      <pubDate>Thu, 24 Oct 2019 11:39:18 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-start/</guid>
-      <description>最近开始对kafka contribute, 升级到最新的kafka, 突然发现 kafka 不能启动了, 特此记录.
- 启动类配置: core目录下 kafka.Kafka 类是启动入口, 可以先进行run创建启动文件 启动参数配置: Program Arguments: config/server.properties 环境变量配置: Environment Variables: kafka.logs.dir=${自己的路径}/log, 比如我配置的是: kafka.logs.dir=/Users/snow_young/deploy/log 日志配置: 将 config/log4j.properties 复制到 core/src/main/resources 目录下 将 compile libs.slf4jlog4j 复制到 build.gradle文件的 core 项目的 dependencies 中 启动zk: zkServer start. 我是 brew 安装的 zk, 启动比较方便 重新运行, 大功告成  注意  kafka 加载到 intellij, 可能会存在索引缺失, intellij 的 import 路径标红的情况发生. 为了避免这样的情况发生, 我们需要进行索引构建 命令行使用 gradle idea 构建索引 Intellij 更新缓存. 通过选项卡 File -&amp;gt; invalidate caches and restart, 进行一次重启  </description>
-    </item>
-    
-    <item>
-      <title>Pulsar Schema</title>
-      <link>https://xujianhai666.github.io/post/pulsar-schema/</link>
-      <pubDate>Fri, 20 Sep 2019 11:51:39 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-schema/</guid>
-      <description>pulsar相比于其他的mq产品, 支持了schema管理, 相比于其他MQ产品, 有很强的竞争力.
-pulsar schema 主要支持 json、avro 和 protobuf, 还支持keyvalue 和 常见的基础类型. 定义了 Schema 接口统一了 decode encode行为. 通过SchemaInfo将schema信息传递服务端. (参考Commands#newSend Commands#newSubscribe Commands#newGetSchemaResponse)
-admin平台: SchemasImpl: getSchemaInfo:
-producer:
-consumer: 启动的时候, 会发起 subcribe 交互协议. client 在 subscribe 协议中添加了 schema 参数, broker 接收到 subscribe 请求后, 会从 schemaStorage 获取 topic(如果是partition topic: my-topic-partition-1, 返回的是 my-topic) 最新版本的数据 检查schema 的兼容性,不兼容的情况下, 会返回错误. 不存在, 就会将 schema 存储到 schemaStorage 中。 检查兼容性需要满足一下任何一个条件:
- 原来有schema 有producer或者consuer在使用, 有发送过消息 (PersistentTopic检查ledger, NonPersistentTopic是检查本地记录) 否则, 都是添加schema  兼容性检查原理: 有两种schema检查方式, 满足任意一个就可以:</description>
-    </item>
-    
-    <item>
-      <title>Python Deadlock</title>
-      <link>https://xujianhai666.github.io/post/python-deadlock/</link>
-      <pubDate>Sun, 08 Sep 2019 11:20:15 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/python-deadlock/</guid>
-      <description>一次线上针对python 死锁问题进行了追踪, 这里进行记录.
- 更新镜像源: 我使用了清华大学的开源镜像站 https://mirror.tuna.tsinghua.edu.cn/help/ubuntu/ vim /etc/apt/sources.list  # 默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-updates main restricted universe multiverse # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-updates main restricted universe multiverse deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-backports main restricted universe multiverse # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-backports main restricted universe multiverse deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-security main restricted universe multiverse # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-security main restricted universe multiverse sudo apt-get update</description>
-    </item>
-    
-    <item>
-      <title>Site Blog</title>
-      <link>https://xujianhai666.github.io/post/site-blog/</link>
-      <pubDate>Wed, 03 Jul 2019 17:45:53 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/site-blog/</guid>
-      <description>如何将github个人blog迁移到自己的域名? 比如阿里云上买的自己的域名: xujianhai.fun 步骤如下:
- 阿里云 CName. github 仓库设置 custom domain 在其他教程中, 往往会缺失第二步, 很蛋疼.  </description>
-    </item>
-    
-    <item>
-      <title>Golang Byvalue</title>
-      <link>https://xujianhai666.github.io/post/golang-byvalue/</link>
-      <pubDate>Wed, 03 Jul 2019 13:39:19 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-byvalue/</guid>
-      <description>最近同事在设计 interceptor的时候, 发现 resp 通信层修改后, 并没有上传到 业务逻辑层, 后来发现是 调入了 golang 传值的陷阱中去了. 这里写一个例子一起review下golang传值的特点.
- package main import ( &amp;quot;fmt&amp;quot; ) type Message struct{ Topic string Body []byte switcher bool } func doInt(resp interface{}) { resp = &amp;amp;Message{ Topic: &amp;quot;hahha&amp;quot;, Body: []byte(&amp;quot;heiya heiya&amp;quot;), } } func doStruct(resp *Message) { resp = &amp;amp;Message{ Topic: &amp;quot;hahha&amp;quot;, Body: []byte(&amp;quot;heiya heiya&amp;quot;), } } func doField(resp *Message) { resp.Topic = &amp;quot;haha&amp;quot; resp.Body = []byte(&amp;quot;lalal&amp;quot;) resp.switcher = true } func main() { r := new(Message) doInt(r) fmt.</description>
-    </item>
-    
-    <item>
-      <title>Golang Options</title>
-      <link>https://xujianhai666.github.io/post/golang-options/</link>
-      <pubDate>Mon, 24 Jun 2019 22:49:36 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-options/</guid>
-      <description>golang里面, 经常要使用到 option的配置, 有时候配置项太多, 以至于不能在函数参数列表中进行解决, 如果处理到一个函数列表参数很长的函数, 估计得抽风了.
-常见的解决方案:
- Config对象, 将参数放到 Config对象中, 但是这样会很臃肿, 尤其是 是否设置和0值的区分度 会变得很模糊. 如果使用指针避免了 0值的问题，那么, 指针的对象 一般意味着 修改的传递性, 那么, 使用指针也会变的疑惑. 实例化传递的指针 在使用过程中变化了, 会产生什么影响? 调用者会很惶恐, 充满着不确定性.  参考的文章1、2中指出了使用Option 的方式进行简化, 通过变长参数的方式 提升了 可配置性、可维护性.
-在grpc-go的实现中, option使用了新的方式, 提供了Option对象的配置形式. 比如 DialOptions 这里列出grpc serverOptions的使用方式:
-type serverOptions struct { creds credentials.TransportCredentials codec baseCodec cp Compressor dc Decompressor unaryInt UnaryServerInterceptor streamInt StreamServerInterceptor inTapHandle tap.ServerInHandle statsHandler stats.Handler maxConcurrentStreams uint32 maxReceiveMessageSize int maxSendMessageSize int unknownStreamDesc *StreamDesc keepaliveParams keepalive.</description>
-    </item>
-    
-    <item>
-      <title>Golang Ants</title>
-      <link>https://xujianhai666.github.io/post/goroutine-pool/</link>
-      <pubDate>Sun, 23 Jun 2019 21:53:44 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/goroutine-pool/</guid>
-      <description>总述 在实践中, 我们经常使用 goroutine pool 来减少 go func的内存分配和gc压力, 这次主要参考了 fasthttp、ants、tidb、jager tarsgo.
-细节  fasthttp: 参考前面的文章. ants: 主要参考了fasthttp的实现. 也是 worker数组的队列 + sync.Pool 的组合的方式, worker队列 也是 后进先出的处理方式. 不多叙述 jager: 实现参考: 地址, 是通过一个 有界队列实现的, 开启多个任务goroutine, 和 队列 channel 交互, 获取队列 channel的任务进行执行. targo: 实现地址, Pool内部 维护了 worker队列 和 job队列, 每个 worker 内部维护了一个 job队列. 这样, 请求会先进入 pool的job队列, pool通过worker队列分发job, 将job分发到相应的 worker的 job队列, 每个worker在初始化的时候, 会启动一个goroutine不断从 job队列取出来执行.  对比 对比各种实现: - jager的实现, 比较粗糙, 限定死了 worker数量, 不能很好的处理并发量上来的情况, 但是也符合本身的定位, 一个 有界的队列 - fasthttp、ants 定位是 workerpool, 能够很好的处理流量尖峰, 有回收空闲goroutine的能力.</description>
-    </item>
-    
-    <item>
-      <title>Golang Expvar</title>
-      <link>https://xujianhai666.github.io/post/golang-expvar/</link>
-      <pubDate>Sun, 23 Jun 2019 21:03:29 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-expvar/</guid>
-      <description>在review fasthttp的刷实现中, 发现一个有趣的依赖: expvar, 是注册全局变量的, 可以通过 遍历的方式 将全局变量导出. 常规使用方式就是 通过 注册http url 来暴露注册的变量. 可以参考实现: gin框架 + http 整一个demo</description>
-    </item>
-    
-    <item>
-      <title>Http</title>
-      <link>https://xujianhai666.github.io/post/http/</link>
-      <pubDate>Sun, 23 Jun 2019 20:57:26 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/http/</guid>
-      <description>参考鸟窝的几个转载翻译:
- 老的性能比较 iris的思考 新的web framework benchmark  通过新的benchmark可以知道, 由吞吐量、平均处理延时、内存占用 三个方面衡量, fasthttp 相关框架的性能非常高, iris 也不错, 但是 fasthttp 对其他框架的兼容比较差, 以后难以迁移. 压测中的一个亮点, 就是 http pipeling 开启的情况下, fasthttp 系列 和 iris 的性能彪的很高
-我们使用了gin框架, 很无奈, 无论是 内存、cpu 还是吞吐量, 都不是最佳的.</description>
-    </item>
-    
-    <item>
-      <title>Pprof</title>
-      <link>https://xujianhai666.github.io/post/pprof/</link>
-      <pubDate>Sun, 23 Jun 2019 19:22:23 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pprof/</guid>
-      <description>总述 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
-经常使用:  总入口 http://$host:$port/debug/pprof 查看goroutine信息: http://$host:$port/debug/pprof/goroutine?debug=1 查看内存使用 go tool pprof -inuse_space http://$host:$port/debug/pprof/heap go tool pprof web http://10.110.160.41:9314/debug/pprof/heap 查看cpu使用 go tool pprof http://$host:$port/debug/pprof/profile  除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔
-其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:
- top N: 查看排名前N个的函数 web: 进入web页面进行控制  pprof 还可以使用ui： go tool pprof -http :9090 http://$host:$port/debug/pprof/heap 指定代码路径, 可以查看相关代码: go tool pprof -call_tree -source_path ~/go/pkg/mod http://localhost:9301/debug/pprof/profile 指定采样间隔 go tool pprof &amp;ndash;seconds 25 http://localhost:9090/debug/pprof/profile cpu采样中, 常用的命令: top -cum top 20 -cum list funcname: 显示函数信息 web: 浏览器观察</description>
-    </item>
-    
-    <item>
-      <title>Fasthttp</title>
-      <link>https://xujianhai666.github.io/post/fasthttp/</link>
-      <pubDate>Sun, 23 Jun 2019 18:12:26 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/fasthttp/</guid>
-      <description>介绍 fasthttp 是一个极致复用的http框架, 根据官网, 相比于 net/http, 有 10x性能的提升. fasthttp 也提供了 adapter, 适配到 net/http.
-实现 fasthttp 的核心理念就是复用, 在review代码的时候, 发现有大量的 sync.Pool 的使用, 比如 Server的池化: ServerPool, func worker 以及通过第三方组件 &amp;ldquo;github.com/valyala/bytebufferpool&amp;rdquo; 实现 byteBuffer 的 syncPool, 实现对 []byte 的复用.
-在fasthttp中, 有一个核心的设计: workerPool. workPool 中, 有一个关键组件: workerChan, workerChan 既是资源的基本单位, 也是任务处理的基本单位. 每个到来的请求, 都会分配到workerChan中, 由workerChan的goroutine进行处理.
-数据结构 workerChan的数据结构 和 分配如下:
-type workerChan struct { lastUseTime time.Time ch chan net.Conn } func (wp *workerPool) Serve(c net.Conn) bool { ch := wp.</description>
-    </item>
-    
-    <item>
-      <title>K8s Article</title>
-      <link>https://xujianhai666.github.io/post/k8s-article/</link>
-      <pubDate>Fri, 21 Jun 2019 22:18:15 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/k8s-article/</guid>
-      <description>kubectl 创建pod背后发生了什么 https://mp.weixin.qq.com/s/ctdvbasKE-vpLRxDJjwVMw 生成器的概念 需要理解下 initializer的概念 需要了解下 deployment controller/ replica controller 通过 etcd watcher 实现的吗 ? informers ? scheduler 中调度策略有哪些? CNI 有哪些知名的? 跨主机通信: overlay flannel pause 容器
-发布策略、金丝雀发布、蓝绿发布、分批发布 ???</description>
-    </item>
-    
-    <item>
-      <title>Lru</title>
-      <link>https://xujianhai666.github.io/post/lru/</link>
-      <pubDate>Wed, 19 Jun 2019 10:23:57 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/lru/</guid>
-      <description>linux lru: 避免冷数据的干扰 https://www.ibm.com/developerworks/cn/linux/l-cn-pagerecycle/ mysql lru: 涉及到冷热数据 的概念 https://www.cnblogs.com/geaozhang/p/7276802.html: 3/8的点 区分冷热 http://mysql.taobao.org/monthly/2017/11/05/ mysql 还有一个 高低水位 的概念, 用于 flush list. dgraph 的lru:
-golang的库: github.com/coocood/freecache hashicorp/golang-lru: 通过两个lru解决 冷热数据的问题. groupcache/lru: 代替memcached. go-cache: 带超时器的存储:</description>
-    </item>
-    
-    <item>
-      <title>Gin</title>
-      <link>https://xujianhai666.github.io/post/gin/</link>
-      <pubDate>Sun, 16 Jun 2019 10:12:55 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/gin/</guid>
-      <description>gin是一个广泛使用的、golang风格的http框架, github地址: gin
-Engine 在gin的实现中. Engine是整个核心, 定义如下
-type Engine struct { RouterGroup FuncMap template.FuncMap allNoRoute HandlersChain allNoMethod HandlersChain noRoute HandlersChain noMethod HandlersChain pool sync.Pool trees methodTrees Engin实现了golang的http接口, 接口和启动方法的查看如下
-// ServeHTTP conforms to the http.Handler interface. func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) { c := engine.pool.Get().(*Context) c.writermem.reset(w) c.Request = req c.reset() engine.handleHTTPRequest(c) engine.pool.Put(c) } func (engine *Engine) Run(addr ...string) (err error) { defer func() { debugPrintError(err) }() address := resolveAddress(addr) debugPrint(&amp;#34;Listening and serving HTTP on %s\n&amp;#34;, address) err = http.</description>
-    </item>
-    
-    <item>
-      <title>Golang Thrift</title>
-      <link>https://xujianhai666.github.io/post/golang-thrift/</link>
-      <pubDate>Fri, 14 Jun 2019 23:14:25 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-thrift/</guid>
-      <description>官网: https://github.com/apache/thrift
-突然被问到 thrift的知识点, 问service mesh为什么使用 transport: thrift.NewTBufferedTransportFactory + NewHeaderTransportFactory, 协议上使用 NewHeaderProtocolFactory. 而非service mesh场景下, 却使用 transport: NewTBufferedTransportFactory, 协议上: NewTBinaryProtocolFactoryDefault
-  协议层: thrift 提供的协议层的实现有下面几种:
-binary: 二进制 compact: 压缩 json: simple json: debug 我们自定义了一个 HeaderProtocol, 配合的必须是 HeaderTransport. 通过对原来的transport封装实现的
-  transport: TransportFactory: Stream: Buffered: HttpClient: MemoryBuffer: Framed: Header: 我们自定义了一个 HeaderTransport, 能够携带header信息, 比如 mesh信息. HeaderTransport只是在 原来的transport 上添加了 header信息, 原来的transport 只支持 Binary 和 Compact(内部定义).
-  Frame&amp;amp;UnFramed: 第一代是没有长度编码响应体, 是 UnFramed.</description>
-    </item>
-    
-    <item>
-      <title>Bitmap</title>
-      <link>https://xujianhai666.github.io/post/bitmap/</link>
-      <pubDate>Thu, 13 Jun 2019 10:08:59 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/bitmap/</guid>
-      <description>https://badootech.badoo.com/bitmap-indexes-in-go-unbelievable-search-speed-bb4a6b00851
-讲述了golang对bitmap的设计和优化. es的bitmap学习下</description>
-    </item>
-    
-    <item>
-      <title>Golang Journalmq</title>
-      <link>https://xujianhai666.github.io/post/golang-journalmq/</link>
-      <pubDate>Thu, 13 Jun 2019 09:50:30 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-journalmq/</guid>
-      <description>参考: https://mp.weixin.qq.com/s/3NU_BptIp5UrDUIKQzjVxw</description>
-    </item>
-    
-    <item>
-      <title>Golang Generate</title>
-      <link>https://xujianhai666.github.io/post/golang-generate/</link>
-      <pubDate>Tue, 04 Jun 2019 09:55:54 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-generate/</guid>
-      <description>go generate 本质上是一个是一个组合器: parser + ast + template 的组合, 最终生成文件.
-const 初级demo: https://yushuangqi.com/blog/2017/go-command-generate.html function demo: interface demo:
-写入到文件内部</description>
-    </item>
-    
-    <item>
-      <title>Golang Project</title>
-      <link>https://xujianhai666.github.io/post/golang-project/</link>
-      <pubDate>Sun, 02 Jun 2019 22:59:19 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-project/</guid>
-      <description>这篇是关于项目结构的思考.
-1. 项目结构 常见的项目约定是: https://github.com/golang-standards/project-layout 因为是操作 rpc, 所以我更倾向于下面:
-. ├── LICENSE.md ├── Makefile ├── README.md ├── build │ ├── README.md │ └── ci ├── cmd │ ├── README.md │ └── _your_app_ ├── deployments │ └── README.md ├── docs │ └── README.md ├── examples │ └── README.md ├── githooks │ └── README.md ├── internal │ ├── README.md │ ├── app │ │ └── _your_app_ │ └── pkg │ └── _your_private_lib_ ├── pkg │ ├── README.</description>
-    </item>
-    
-    <item>
-      <title>Golang Sync</title>
-      <link>https://xujianhai666.github.io/post/golang-sync/</link>
-      <pubDate>Sun, 02 Jun 2019 08:54:15 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-sync/</guid>
-      <description>这个是对之前分析的 mutex、rwmutex、condition、semaphore的回顾和总结.
-论文参考  https://swtch.com/semaphore.pdf 谈到 plan9 使用 user-space semaphore 代替 多进程协调中的flag状态的 spin lock. user-space semaphore 使用一个字段表示用户状态下的sema值, 0-&amp;gt;1 就是非竞态. 竞态情况下, 使用 内核的 QLock 排队锁 实现.
-其中, 谈到 多进程的内核中, 自旋锁是可以的, 因为锁会被很快释放. 但是在用户态, 自旋锁状态下, 需要不断调度自己 + sleep, 其实什么也没有做.  golang中提供给用户的 Mutex 就是参照这个实现的, 先用 state 表示状态, 初始状态下直接获取锁, 并发争抢的时候, 进入semaRoot的逻辑, 形成sudog队列; 非抢占情况下, 只是简单的一次cas.
-futex: redhat的文章 连接不上不去, 参照man
-概念解析   sudog: goroutine 的 wait的表示, channel和 sudog是多对多的, 一个goroutine可能阻塞在多个对象上, 一个对象可能有多个 goroutine阻塞着, 使用 sudog解耦.
-  内部mutex: golang自定义的mutex实现, 通过对指针地址操作实现.</description>
-    </item>
-    
-    <item>
-      <title>Golang Error</title>
-      <link>https://xujianhai666.github.io/post/golang-error/</link>
-      <pubDate>Sun, 02 Jun 2019 08:52:48 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-error/</guid>
-      <description>golang的错误处理, 可以参看 官方 grpc的实践:</description>
-    </item>
-    
-    <item>
-      <title>Golang Epoll</title>
-      <link>https://xujianhai666.github.io/post/golang-epoll/</link>
-      <pubDate>Wed, 29 May 2019 23:10:21 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-epoll/</guid>
-      <description>套接字知识点: https://www.cnblogs.com/wmx-learn/p/5312259.html
- 有 监听套接字 和 连接套接字 两个概念. listen 返回的是 监听套接字, accept 返回的是 每个client相关的 连接套接字. 大量客户端连接, 会导致 连接套接字增多 socket函数 只是创建了 socket文件描述符, bind 操作是为了给 socket 分配一个端口 socket 有 发送缓冲区、接受缓存区、等待列表  epoll https://mp.weixin.qq.com/s/MzrhaWMwrFxKT7YZvd68jw
- 硬件层: 网线接收到数据写入网卡, 网卡将数据写入内存，同时发起中断, cpu收到中断后进行处理 socket阻塞与唤醒: 进行recv, 没有数据的情况下, 操作系统 会将进程 注册到 socket的等待列表, 同时将 进程从 活动列表 添加到 阻塞列表。然后, 有数据的到来, socket会唤醒等待列表的进程, 将进程放到工作队列, 这个时候进程recv的时候 就可以拿到数据了 所以, 阻塞和唤醒的本质就是: 注册到等待列表, 和 从等待列表中删除. 注意: 唤醒操作，就是讲 进程从 等待队列 放到了 工作队列 当大量客户端连接的时候, 服务端会有大量的 连接套接字, 这时候 recv的操作，会导致 进程 大量注册 socket的等待列表, 以及 唤醒的时候, 大量的从等待列表中删除、多次唤醒.</description>
-    </item>
-    
-    <item>
-      <title>Golang String</title>
-      <link>https://xujianhai666.github.io/post/golang-string/</link>
-      <pubDate>Sun, 26 May 2019 12:29:11 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-string/</guid>
-      <description>总述 数据结构
-type stringStruct struct { str unsafe.Pointer len int } string 本质上通过 slice 实现.
-实现  concate 实现: 2/3/4/5 不懂呀 slicebytetostring: []byte 转换为 string对象 stringDataOnStack: 通过判断 string的指针是否在 stach的指针范围内 其他的太琐碎, 不提  特殊设计  使用固定大小的 tmpbuf 优化调用  问题  不是并发安全的, 需要atomic保证安全  </description>
-    </item>
-    
-    <item>
-      <title>Golang Slice</title>
-      <link>https://xujianhai666.github.io/post/golang-slice/</link>
-      <pubDate>Fri, 24 May 2019 17:43:40 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-slice/</guid>
-      <description>总述 slice本质上 就是一个 内存地址指针, 通过 len、cap 实现内存块 的管理
-实现 数据结构:
-type slice struct { array unsafe.Pointer len int cap int } // An notInHeapSlice is a slice backed by go:notinheap memory. type notInHeapSlice struct { array *notInHeap len int cap int } 常用方法  扩容: growslice 扩容, len还是以前的大小, cap是新的cap. 拷贝: 简单的内存复制 append: ?没找到实现  特殊设计  使用数组管理了最大cap, 避免溢出  </description>
-    </item>
-    
-    <item>
-      <title>Golang Writeb</title>
-      <link>https://xujianhai666.github.io/post/golang-writeb/</link>
-      <pubDate>Fri, 24 May 2019 09:45:30 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-writeb/</guid>
-      <description>总述 本文会分析gc中 writeBarrier、bitmap 、writeBuffer技术.
-背景 写屏障这个技术是从 go1.5引入的, 是三色标记的gc需要的一个策略, 后来在go1.8中, 消除rescan的设计中进行了升级, 使用了混合屏障, 避免了rescan的STW的消耗. gc过程中, 除了写屏障技术, 在mark阶段也进行了 优化, 使用 bitmap 替换了sweep流程, 避免sweep带来的性能问题: 遍历堆、 缓存亲和力差.
-分析 源码路径: mwbuf.go mbarrier.go
-mbarrier mbarrier.go的注释很全了. (和proposal一致) 通过注释知道, golang使用了 Yuasa-style deletetion barrier 和 Dijkstra insertion barrier. shade(染色)和condition work 一起工作避免了 修改器对gc隐藏了对象. 方法如下
- 当 从堆上unlink object 的时候, 进行染色, 将唯一的指针从堆上移动到栈上 当将指针 安装到 黑色对象, 进行染色. 将唯一指针从栈移动到 黑色对象. 一旦goroutine栈是黑色的, 就没必要 染色了  主要用来:
- 内存顺序的解决 stack write global writes publication ordering singal handler pointer writes  在实现上, 是在类似memmove的操作前面</description>
-    </item>
-    
-    <item>
-      <title>Golang Syncmap</title>
-      <link>https://xujianhai666.github.io/post/golang-syncmap/</link>
-      <pubDate>Mon, 20 May 2019 10:00:02 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-syncmap/</guid>
-      <description>数据结构 type Map struct { mu Mutex // read contains the portion of the map&#39;s contents that are safe for // concurrent access (with or without mu held). // // The read field itself is always safe to load, but must only be stored with // mu held. // // Entries stored in read may be updated concurrently without mu, but updating // a previously-expunged entry requires that the entry be copied to the dirty // map and unexpunged with mu held.</description>
-    </item>
-    
-    <item>
-      <title>Golang Wg</title>
-      <link>https://xujianhai666.github.io/post/golang-wg/</link>
-      <pubDate>Sat, 18 May 2019 23:20:37 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-wg/</guid>
-      <description>waitGroup在并发访问下游的时候会被频发用到.
-数据结构 type WaitGroup struct { noCopy noCopy // 64-bit value: high 32 bits are counter, low 32 bits are waiter count.  // 64-bit atomic operations require 64-bit alignment, but 32-bit  // compilers do not ensure it. So we allocate 12 bytes and then use  // the aligned 8 bytes in them as state, and the other 4 as storage  // for the sema.  state1 [3]uint32 } state1 字段第一个字节表示 all counter, 第二个字节表示 waiter count , 最后一个字节是 sema 的指针, 我们认作statep (根据前面的分析可以知道, sema使用avl + 链表的方式实现的).</description>
-    </item>
-    
-    <item>
-      <title>Golang Rwmutex</title>
-      <link>https://xujianhai666.github.io/post/golang-rwmutex/</link>
-      <pubDate>Sat, 18 May 2019 21:53:50 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-rwmutex/</guid>
-      <description>除了mutex, rwmutex也会经常被使用.
-数据结构 type RWMutex struct { w Mutex // held if there are pending writers  writerSem uint32 // semaphore for writers to wait for completing readers  readerSem uint32 // semaphore for readers to wait for completing writers  readerCount int32 // number of pending readers  readerWait int32 // number of departing readers } RWMutex中使用 Mutex 来实现writer 排队, 只有一个writer操作. 使用 writerSem 用来 readers通知 正在阻塞的 writer. readerSem 用来 reader/writer Unlock/RUnlock 的时候释放阻塞的reader.</description>
-    </item>
-    
-    <item>
-      <title>Golang Condition</title>
-      <link>https://xujianhai666.github.io/post/golang-condition/</link>
-      <pubDate>Wed, 15 May 2019 21:58:55 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-condition/</guid>
-      <description>源代码参考: sync/cond.go 数据结构:
-type Cond struct { noCopy noCopy // L is held while observing or changing the condition  L Locker notify notifyList checker copyChecker } 重点关注下 notifyList 的实现.
-notifyList 实现原理 数据结构 需要注意的是, 这里的notifyList最终的实现其实是 sema.go 中 notifyList.
-type notifyList struct { // wait is the ticket number of the next waiter. It is atomically  // incremented outside the lock.  wait uint32 // notify is the ticket number of the next waiter to be notified.</description>
-    </item>
-    
-    <item>
-      <title>Golang Mutex</title>
-      <link>https://xujianhai666.github.io/post/golang-mutex/</link>
-      <pubDate>Tue, 14 May 2019 15:39:34 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-mutex/</guid>
-      <description>Mutex实现原理 Mutex的设计参照了 plan9, linux也有相关实现: futex
-先看mutex.go的注释:
- // Mutex fairness. // // Mutex can be in 2 modes of operations: normal and starvation. // In normal mode waiters are queued in FIFO order, but a woken up waiter // does not own the mutex and competes with new arriving goroutines over // the ownership. New arriving goroutines have an advantage -- they are // already running on CPU and there can be lots of them, so a woken up // waiter has good chances of losing.</description>
-    </item>
-    
-    <item>
-      <title>Blog</title>
-      <link>https://xujianhai666.github.io/post/blog/</link>
-      <pubDate>Thu, 09 May 2019 19:07:10 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/blog/</guid>
-      <description>Russ Cox: 以golang的思考为主 https://research.swtch.com/ Dave cheney: https://dave.cheney.net/about go doc: https://talks.golang.org/ horror: https://blog.codinghorror.com Rob Pike: https://commandcenter.blogspot.com/ 各个公司的blog
-jeff dean 的ppt: http://static.googleusercontent.com/media/research.google.com/zh-CN//people/jeff/Berkeley-Latency-Mar2012.pdf</description>
-    </item>
-    
-    <item>
-      <title>Golang For</title>
-      <link>https://xujianhai666.github.io/post/golang-for/</link>
-      <pubDate>Wed, 01 May 2019 10:11:45 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-for/</guid>
-      <description>小伙伴写for循环, 提出了一个问题: 为啥下面的不可以这么写 (虽然是新手问题, 但是还是得从源代码解释):
-arr := []int32{1, 2, 3, 4, 5} for _, a := range arr { go func(){ fmt.Println(&amp;quot;a: %v&amp;quot;, a) }() } 我们编译查看下
-go build -gcflags &#39;-l&#39; -o main main.go go tool objdump -s &amp;quot;main\.test0&amp;quot; main 我们可以看到
-TEXT main.test0(SB) /Users/snow_young/go/src/code.byted.org/im_cloud/teq_stack/main.go main.go:14 0x1091cf0 65488b0c2530000000 MOVQ GS:0x30, CX main.go:14 0x1091cf9 483b6110 CMPQ 0x10(CX), SP main.go:14 0x1091cfd 0f868a000000 JBE 0x1091d8d main.go:14 0x1091d03 4883ec48 SUBQ $0x48, SP main.go:14 0x1091d07 48896c2440 MOVQ BP, 0x40(SP) main.</description>
-    </item>
-    
-    <item>
-      <title>Golang Mod</title>
-      <link>https://xujianhai666.github.io/post/golang-mod/</link>
-      <pubDate>Wed, 01 May 2019 10:11:38 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-mod/</guid>
-      <description>缘起 最近, 打算升级govendor到go mod, 为什么呢?
- 版本化的语义, govendor中是 revision 和 revisionTime 本地多版本共存, 不再像之前kite升级后, 导致 生成 kite客户端 很费力(因为生成模板是老版本, 新老不兼容) 清晰的依赖管理, go module 是将依赖作为一个group的, 使用 govendor 无法很好的管理依赖, 升级往往是 升级完kite, 再升级kite依赖, 导致每次升级都是一次耗费时间的辛苦活 官方的toolchain replace语义, 方便本地替换 exclude语义, 方便拦截一些bug的版本  参考 首先, 阅读来自swtch的依赖管理的三篇文章 0. 入口索引: https://research.swtch.com/vgo
- 第一篇: https://research.swtch.com/vgo-intro  讲述了依赖管理的演进 09 nothing -&amp;gt; 2010 go install -&amp;gt; 2011 go get, 存在没有版本的问题: 1. api 稳定性变更 2. 可重复构建. 未来的规划: dep/glide 不将支持, 发布了vgo(兼容目前的依赖管理), go mod 是未来 go mod 的演示   第二篇: https://research.</description>
-    </item>
-    
-    <item>
-      <title>Golang Init</title>
-      <link>https://xujianhai666.github.io/post/golang-init/</link>
-      <pubDate>Sun, 21 Apr 2019 12:04:00 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-init/</guid>
-      <description>初始化根据平台的不同而不同, 这里参考 adm64 的汇编. 入口参考 runtime#asm_amd64.s, _rt0_amd64(SB)、main(SB)、_rt0_amd64_lib(SB) 分别对应了 内部链接、外部连接以及共享库的三种不同的启动方式. 但是, 最终都会调用 rt0_go.
-TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack MOVQ DI, AX // argc MOVQ SI, BX // argv SUBQ $(4*8+7), SP // 2args 2auto ANDQ $~15, SP MOVQ AX, 16(SP) MOVQ BX, 24(SP) // create istack out of the given (operating system) stack. // _cgo_init may update stackguard. MOVQ $runtime·g0(SB), DI LEAQ (-64*1024+104)(SP), BX MOVQ BX, g_stackguard0(DI) MOVQ BX, g_stackguard1(DI) MOVQ BX, (g_stack+stack_lo)(DI) MOVQ SP, (g_stack+stack_hi)(DI) .</description>
-    </item>
-    
-    <item>
-      <title>Golang Channel</title>
-      <link>https://xujianhai666.github.io/post/golang-channel/</link>
-      <pubDate>Sun, 21 Apr 2019 11:23:31 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-channel/</guid>
-      <description>channel的源代码: chan.go
-关键的数据结构 type hchan struct { qcount uint // total data in the queue dataqsiz uint // size of the circular queue buf unsafe.Pointer // points to an array of dataqsiz elements elemsize uint16 closed uint32 elemtype *_type // element type sendx uint // send index recvx uint // receive index recvq waitq // list of recv waiters sendq waitq // list of send waiters lock mutex } type waitq struct { first *sudog last *sudog } sudog是等待的goroutine的表示, 参考 runtime2.</description>
-    </item>
-    
-    <item>
-      <title>Golang Face</title>
-      <link>https://xujianhai666.github.io/post/golang-face/</link>
-      <pubDate>Sun, 21 Apr 2019 10:54:16 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-face/</guid>
-      <description>preface golang的interface是使用很广泛的一种手段, 相比java python 等语言, golang的interface不需要明显的继承和实现, 只需要实现相应的方法就可以了. 常常我们需要抽象struct的interface, 方便mock进行测试.
-detail golang的interface主要有两种: eface 和 iface. eface是不带方法的interface,
-定义参看 runtime2.go 和 type.go,
-type iface struct { tab *itab data unsafe.Pointer } type eface struct { _type *_type data unsafe.Pointer } type itab struct { inter *interfacetype _type *_type hash uint32 // copy of _type.hash. Used for type switches.  _ [4]byte fun [1]uintptr // variable sized. fun[0]==0 means _type does not implement inter. } type interfacetype struct { typ _type pkgpath name mhdr []imethod } type _type struct { size uintptr ptrdata uintptr // size of memory prefix holding all pointers  hash uint32 tflag tflag align uint8 fieldalign uint8 kind uint8 alg *typeAlg // gcdata stores the GC type data for the garbage collector.</description>
-    </item>
-    
-    <item>
-      <title>Golang Sch</title>
-      <link>https://xujianhai666.github.io/post/golang-sch/</link>
-      <pubDate>Sun, 14 Apr 2019 13:00:03 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/golang-sch/</guid>
-      <description>2015上学的时候, golang正在兴起, 参加了一些会议和组织等, 但是工作关系, 一直无缘接触, 在饿了么打算开发分布式文件系统的时候, 也因为自身身体原因提出了离职在家休养, 错过了一次机会. 后来到头条上班, 发现golang承担了主要的系统语言, 重新激起了很强的学习兴趣. &amp;ndash; zero.xu
-构成 通过proc.go可以知道, golang的调度器实现只要有以下三个部分构成:
- G: goroutine. M: worker线程, 或者机器. P: 指定Go代码块的资源  关系如下: M必须拥有P来执行Go代码, 但是, M可以在P上被阻塞或者读写的系统调用
-个人的理解下来, 是
- G: golang里面的goroutine代码块, 以及对应的stack等信息 M: 对应着操作系统的物理线程 P: Goroutine队列, 也称作 logic processor. M执行的时候, 会选择一个P, 然后取出其中的G进行执行  设计的文档: Scalable Go Scheduler Design Doc
- 设计的思考 proc.go 注释上的详细分析, 个人理解如下: worker线程挂起/唤醒的研究: 一方面, 为了提高并行度尽量多的保持work线程, 一方面, 为了节约cpu和电量, 要挂起运行的worker线程. 为了在这两个方面取得很好的平衡, 我们需要考虑:
- 调度状态需要是分布式的(特殊状态下, 可以使用 每个P一个worker 队列), 所以, 不可能快速的计算出全局状态?</description>
-    </item>
-    
-    <item>
-      <title>Tmq Oom</title>
-      <link>https://xujianhai666.github.io/post/tmq-oom/</link>
-      <pubDate>Sat, 13 Apr 2019 14:10:45 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/tmq-oom/</guid>
-      <description>周末上午, 突然接到业务方反馈 nsq-consumer 发生了 netty 内存泄露. 通过heap dump文件分析文件, 发下了大内存占用. 如下图
-overall 界面
-object-list 界面
-通过点击 &amp;ldquo;overall 界面&amp;rdquo; 图的list object功能, 会进入 &amp;ldquo;object-list 界面&amp;rdquo;, 可以发现 nsqj 的内存占用最高, 问题定位到了, 那么, nsqj 线程是做什么的呢? nsqj实例化如下:
-public AbstractNSQClient(BootstrapConfig config, String topic, String channel, int rdy, int workerNumber) { connections = new Connections(); executor = Executors.newFixedThreadPool(workerNumber, new ThreadFactoryBuilder().setNameFormat(&amp;quot;nsqj-&amp;quot;).setDaemon(true).build()); ...... } 可以发现, executor 使用了 fixed线程池, 这里的队列在sdk中使用的是 LinkedBlockingQueue, 队列是无限增长的. 这样看, 稳定是定位了, 就是因为 executor的队列一直在增长, 但是, 是谁再往队列中投递数据的呢? 还是无限投递! review代码如下:
-public class NSQHandler extends SimpleChannelInboundHandler&amp;lt;NSQFrame&amp;gt; { .</description>
-    </item>
-    
-    <item>
-      <title>Rust_learn</title>
-      <link>https://xujianhai666.github.io/post/rust_learn/</link>
-      <pubDate>Thu, 11 Apr 2019 16:01:17 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rust_learn/</guid>
-      <description>rust学习资料: rust每日新闻: https://github.com/RustStudy/rust_daily_news rust社区: https://rust.cc/ rust中文: https://rustlang-cn.org/ rust新闻: https://www.yuque.com/chaosbot/rustnews rust文档: https://doc.rust-lang.org/stable/book</description>
-    </item>
-    
-    <item>
-      <title>Github_lb</title>
-      <link>https://xujianhai666.github.io/post/github_lb/</link>
-      <pubDate>Sat, 06 Apr 2019 15:13:43 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/github_lb/</guid>
-      <description>preface github 去年8月份开源了自家的 load balance策略, 主要解决ecmp情况下增删服务器导致的in-progress连接失败的情况: 新增proxy加上去之后, router将正在处理的连接转移到新的proxy上, 但是新的proxy并不清楚这些连接信息(应该交给那个服务器处理), 所以只能失败.
-detail github使用了load balancer拆分成两层, 一层是 director, 负责和router层的ecmp协议打交道, 另一层是代理层. 这样的做法是怎么解决之前的问题的呢?
-首先, director会维护一份 有primary/secondary 的 跳转表, status可以区分为 active、filling、draining 三种状态. 通过 Rendezvous hashing 算法将proxy映射到row上: 每个proxy + row number 进行hash运算选择前两个分别作为primary、secondary proxy.
- 正常流程:  请求过来的时候, 通过对连接进行hash, 映射到指定的row, 将请求转发给 primary proxy proxy 检查本地的本地状态, 只接受新创建的连接/本地已经创建的连接.   添加  director 重新进行hash运算, 更新 跳转表, 因为使用了Rendezvous hashing, 会发现, 只有部分行发生了变化, 一种是新增的proxy成为了 secondary, 这种情况下, 依然是active状态, 另一种是新增的proxy成为了 primary, row status变成了 filling, 原有的请求到来的时候, 被分配到 primary proxy primary proxy 发现本地不存在这个连接, 并且也不是新创建的连接, 转发给 secondary proxy(也就是这个连接的owner)   删除  在跳转表中, director将 primary == 要删除的server的row的状态重置为 Draining, 同时, 将primary和secondary进行转换 原有的请求到来的时候, 被分配到 primary proxy primary proxy 发现本地不存在这个连接, 并且也不是新创建的连接, 转发给 secondary proxy(也就是这个连接的owner)    通过上面的流程发现, 因为 primary/secondary 的设计, 实现了 优雅关闭的特性.</description>
-    </item>
-    
-    <item>
-      <title>Consistent Hash Overall</title>
-      <link>https://xujianhai666.github.io/post/consistent-hash-overall/</link>
-      <pubDate>Fri, 05 Apr 2019 17:44:49 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/consistent-hash-overall/</guid>
-      <description>preface 一致性hash最早提出, 是为了解决缓存服务器高热、节点增删导致缓存数据大量变动的问题, 减少大型web应用中的部分系统失败的影响.
-在缓存服务中, 如果使用 hash(key) % n 的方式, 那么, 机器节点的增删 都会导致 所有节点重新映射到新的位置, 使用了一致性hash之后, 节点的添加/删除 只影响到部分的key.
-theory   先看下一致性hash的实现
- 将机器/bucket 映射到 circle/环 的多个伪随机分布的point/点, 也就是说 bucket对应着ciricle上的多个point 将请求的key映射到hash 环的一个位置, 顺序遍历找到最近的一个有bucket的point 当机器节点删除的时候: 机器节点在circle/环上响应的point也会删除, 那么, 之前在 point上的数据会迁移到原来point下一个有bucket的point 当机器节点增加的时候: 机器节点/bucket在circle/环上添加映射的point/点, 将这个point 和 上一个smaller point上的资源迁移到这个point上. 因为是一个point是负责 (smaller_point, point] range的point的资源, 所以, 当在smaller_point和point中间插入一个point的时候, 就会产生分裂.    在衡量一致性算法的质量方面, 提出了四个特性:
- Balance/: 对象均衡的分布在bucket里面。 Monotonicity/单调性: 缩扩容bucket情况下, key要么在原来的bucket的位置, 要么映射到新的bucket, 而不能在原来的bucket集合内迁移, 保证均匀分布 Spread/分散性: 同一个key被分散到不同bucket的严重程度, 因为client端看到的视图是不一致的, 所以, 同一个key, 在不同的client会被映射到不同的bucket Load/负载： 是分散性在bucket的视角.</description>
-    </item>
-    
-    <item>
-      <title>Raft Paper</title>
-      <link>https://xujianhai666.github.io/post/raft-paper/</link>
-      <pubDate>Wed, 03 Apr 2019 20:31:08 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/raft-paper/</guid>
-      <description>摘要 raft: 比paxos简单的共识算法, 相比paxos, 有什么特殊的点:
- 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&amp;gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
- 需要得到包括自己在内一半以上的投票 Candidate的term比voter大, 在相同的情况下, candidate的logEntry的sn比voter大  这里存在问题: 当一个节点被隔离了, 会出现不断投票给自己的情况, 导致term非常大, 隔离的节点重新加入集群后, 会触发集群多次选举, 直到集群中的节点的term和被隔离的节点一样大
-  raft在leader当选成功后, 会执行下面几个特点和操作:
- leader立即发送一个 no-op entry, 保证leader commit index是最新的, 使整个集群快速进入可读状态. 当follower 发送自身的commit index 比leader大, 会进行删除操作, 删除本地 leader commit index 之后的内容 leader不能提交之前term的entry, 必须当entry已经得到集群节点半数的响应, 才能将之前的entry提交    leader存活期间, 有下面几个特点</description>
-    </item>
-    
-    <item>
-      <title>Tidb Debug</title>
-      <link>https://xujianhai666.github.io/post/tidb-debug/</link>
-      <pubDate>Wed, 03 Apr 2019 10:00:02 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/tidb-debug/</guid>
-      <description> 准备  参考前面的文章
-编译&amp;amp;启动  获取与编译:
-go get github.com/pingcap/tidb cd ~/go/src/github.com/pingcap/pd] make server 启动:
-./tidb-server -p 4000:4000 \ -p 10080:10080 \ -v /etc/localtime:/etc/localtime:ro \ pingcap/tidb:latest \ --store=tikv \ --path=&amp;quot;192.168.1.101:2379&amp;quot; 客户端连接:
-mysql -h 127.0.0.1 -P 4000 -u root -D test 然后出现如下提示, 就成功了
-Welcome to the MySQL monitor. Commands end with ; or \g. Your MySQL connection id is 2 Server version: 5.7.25-TiDB-v3.0.0-beta.1-49-g4cbe896 MySQL Community Server (Apache License 2.0) </description>
-    </item>
-    
-    <item>
-      <title>Perf Rafka</title>
-      <link>https://xujianhai666.github.io/post/perf-rafka/</link>
-      <pubDate>Sun, 31 Mar 2019 18:25:36 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/perf-rafka/</guid>
-      <description>因为研发rafka的需要, 进行了线上的压测, 这里记录下诊断的使用.
-简介 rafka是在kafka上封装的实时流数据库概念性质产品, 通过内嵌rocksdb实现了数据的get set scan接口.
-诊断使用 1.top 通过top看下服务的整体情况: 内存 cpu等情况
-2.查看是哪个线程 top -Hp 5608 转换16进制
-printf &amp;quot;%x\n&amp;quot; 5816 16b8 jstack 5608 | grep 16b8 &amp;quot;kafka-request-handler-0&amp;quot; #65 daemon prio=5 os_prio=0 tid=0x00007fd9db72d000 nid=0x16b8 runnable [0x00007fd80c4f4000] 看线程信息, 可以知道, handler线程一直忙着处理
-3.整体分布 这里使用过火焰图查看性能的分布 可以发现, 主要的性能分布在 kafka日制写入 和 rafka的rocksdb写入. 符合预期
-4.jni做了什么 因为rafka使用了jni调用rocksdb实现了存储, 那么, jni下面做了什么呢?我们使用perf进行诊断. 工具 上面的诊断方式中, 主要使用了三个工具: 火焰图 java-profiler 和 perf
-1.火焰图可视化 无论是 perf 还是 java-profiler, 生成的数据都是缺乏可读性的, 可以使用 flamegraph 工具生成图片. 项目地址: https://github.com/brendangregg/FlameGraph, 下载下来后建议将可执行目录放到 PATH路径.</description>
-    </item>
-    
-    <item>
-      <title>Kafka Config Online</title>
-      <link>https://xujianhai666.github.io/post/kafka-config-online/</link>
-      <pubDate>Sun, 31 Mar 2019 18:11:37 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-config-online/</guid>
-      <description>这里记录下经过压测后, 我们推荐的线上配置
-bin/kafka-server-start.sh if [ &amp;quot;x$KAFKA_HEAP_OPTS&amp;quot; = &amp;quot;x&amp;quot; ]; then export KAFKA_HEAP_OPTS=&amp;quot;-Xmx16G -Xms16G&amp;quot; export KAFKA_JVM_PERFORMANCE_OPTS=&amp;quot;-server -XX:PermSize=48m -XX:MaxPermSize=48m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+DisableExplicitGC -Djava.awt.headless=true -XX:+ExitOnOutOfMemoryError&amp;quot; fi 其实, 最主要的重点是, 内存的大小设置, 官方推荐的8G内存并不比16G高效, 当然也不是越大越好, 30G的内存配置跑分并没有16G高.
-server.config配置 broker.id=0 port=9098 advertised.host.name= num.network.threads=32 num.io.threads=200 socket.send.buffer.bytes=1048576 socket.receive.buffer.bytes=1048576 socket.request.max.bytes=104857600 log.dirs=xxxxxx num.partitions=40 num.recovery.threads.per.data.dir=2 log.retention.hours=48 log.retention.bytes=274877906944 log.segment.bytes=536870912 log.retention.check.interval.ms=300000 log.cleaner.enable=true zookeeper.connect=xxxxx zookeeper.session.timeout.ms=120000 zookeeper.connection.timeout.ms=60000 auto.create.topics.enable=false num.replica.fetchers=4 replica.fetch.max.bytes=4194304 message.max.bytes=4194304 queued.max.requests=200 auto.leader.rebalance.enable=false replica.lag.max.messages=4000000 inter.broker.protocol.version=0.10.1.0 log.message.format.version=0.8.2.1 delete.topic.enable=true offsets.retention.minutes=4320 controller.socket.timeout.ms=120000 advertised.listeners=SASL_PLAINTEXT://:,PLAINTEXT://: listeners=SASL_PLAINTEXT://:,PLAINTEXT://: security.inter.broker.protocol=PLAINTEXT sasl.mechanism.inter.broker.protocol=PLAIN sasl.enabled.mechanisms=PLAIN 其中, log.dirs 每个磁盘一个目录, 保证磁盘的高效.</description>
-    </item>
-    
-    <item>
-      <title>Phx Oversall</title>
-      <link>https://xujianhai666.github.io/post/phx-oversall/</link>
-      <pubDate>Sun, 31 Mar 2019 11:52:43 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/phx-oversall/</guid>
-      <description>phxQueue的组件模块：  store service: 依赖Paxos 协议作副本同步, 实现消息存储, 通过租约保证master模型 lock service: 为scheduler 选主、consumer-queue的分配 scheduler service: 根据负载调度consumer和queue的映射关系  模型:  producer: 生产者 consumer: 消费者 store: 负责消息/cursor的存储 queue: 消息队列 paxos-group: 存储的一组集合, 集合中所有的store数据一致. 使用scheduler避免consumer的负载过高, 进行负载均衡  交互上: producer/consumer使用了rpc方式和broker进行交互, broker的消息存储使用了leveldb, 通过paxos实现内容的一致性.
-逻辑层面:  queueId 和 queue的关系比较特殊, queue是一段连续的queueId, queue之间可以进行排序 topic负责部分queue consumer层通过拉取queue实现消息的拉取  特殊的地方:  在paxos上进行了大量的优化: broker层的批提交 相比传统的mq, 添加了consumer层的scheduler: 负载调度  不足:  开源的版本没有broker负载调度模型, 避免broker负载过重, 相对pulsar欠缺. 怀疑queueId/queue模型是可以切分负载的, qmq有类似的功能. leveldb可以考虑使用rocksdb, 在review代码的时候, 发现很多针对leveldb的优化. 开源的版本没有运维的方式说明. 比如 queue的切分, 部署模型  参考文档:</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Compact</title>
-      <link>https://xujianhai666.github.io/post/pulsar-compact/</link>
-      <pubDate>Sat, 30 Mar 2019 23:33:11 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-compact/</guid>
-      <description>Topic-Compaction 的设计比较特殊, 他不是简单的删除历史消息的操作, 相反，他却是一个移动 topic Ledger的操作, 通过将每个key的最新的消息移动到新的leader实现.
-整个执行分两步执行:
- pre: 获取到最老的消息最为迭代key的起点, 最新的消息作为迭代key的终点 first round: 遍历两个key范围内的消息, 获取每个key最新的 messageId second round: 遍历两个key范围内的消息, 过滤出是 key最新的 message, 添加到新的leader.  显然, 从设计上来讲, compact ledger 的缺点还是很明显的
- topic-compaction 期间不能够有新的消息 key的重复率需要比较高, 否则没有效果  目前比较合适的场景也就是 股票场景，只关心每个key最新的消息</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Component</title>
-      <link>https://xujianhai666.github.io/post/pulsar-component/</link>
-      <pubDate>Sat, 30 Mar 2019 23:24:53 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-component/</guid>
-      <description>通过整体的阅读, pulsar-broker内部可以区分一下几个组件:
- NamespaceService: 负责管理 NamespaceBundles. PulsarAdmin: 负责admin管理的http服务, 比如 split bundle, unload bundle. 逻辑上的Lookup service: 负责和客户端交互, 提供topic的元数据信息 Leader broker: 负责资源统计、负载迁移(触发删除bundle)  </description>
-    </item>
-    
-    <item>
-      <title>Pulsar Lookup</title>
-      <link>https://xujianhai666.github.io/post/pulsar-lookup/</link>
-      <pubDate>Sat, 30 Mar 2019 14:39:39 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-lookup/</guid>
-      <description>根据前面producer交互以及consumer交互的分析, producer/consumer 会先和 Lookup服务交互, 获取topic的信息以及对应的 broker, 但是呢, 获取topic的对应的信息的时候, 如果topic没有own的情况下, topic会在当前的Lookup broker上own. 所以, Lookup broker会承担了大量的topic服务,
-但是根据这篇文章, topic 是以 NamespaceBundle作为一个单位进行 资源分配的, 当资源负载过重, 并且有多个 NamespaceBundle 和 低负载的broker的时候, 会进行负载迁移.
-在配置的时候, 建议使用http方式部署 lookup broker, 这样可以实现高可用.</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Bundle</title>
-      <link>https://xujianhai666.github.io/post/pulsar-bundle/</link>
-      <pubDate>Fri, 29 Mar 2019 23:11:49 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-bundle/</guid>
-      <description>基本概念 在pulsar中, 为了支持多租户, 有 tenant和namespace 概念. tenant和租户相关, 一个tenant一般是一个 team. namespace 可以区别不同的项目, 一个项目可以有多个topic. 在实现的过程中, 为了更好的支持资源调度的概念, 使用 NamespaceBundles 对象, NamespaceBundles 中有多个 NamespaceBundle, 根据负载, NamespaceBundle 会进行迁移和split. topic在资源上跟着bundle走. 查看NamespaceBundles定义:
-public class NamespaceBundles { private final NamespaceName nsname; private final ArrayList&amp;lt;NamespaceBundle&amp;gt; bundles; private final NamespaceBundleFactory factory; private final long version; protected final long[] partitions; public static final Long FULL_LOWER_BOUND = 0x00000000L; public static final Long FULL_UPPER_BOUND = 0xffffffffL; private final NamespaceBundle fullBundle; 每个bundle负责一段range. 一开始的时候, 只有一个bound, range是 [0x00000000L,0xffffffffL], 后面随着负载过高, 会进行split, 拆分成多个bundle, 每个bundle由一个broker负责, 一个broker可能负责多个bundle.</description>
-    </item>
-    
-    <item>
-      <title>Redis Overall</title>
-      <link>https://xujianhai666.github.io/post/redis-overall/</link>
-      <pubDate>Mon, 25 Mar 2019 09:58:36 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/redis-overall/</guid>
-      <description>第一次学习redis和深入redis源代码的时候, 已经是大学的光景, 当时memcached还很盛行, 新浪在csdn blog上分享关于redis实操免费的视频(当时应该果断到官网学习呀&amp;hellip;), 后来redis设计与实现一书发版, 也跟进了学习. 算下来, 从接触到现在生产使用, 已经5年光景. 这里附上自己的一些体会.
- 常见的数据结构 主从复制 主从切换  参考书籍 &amp;ldquo;Redis设计与实现&amp;rdquo;</description>
-    </item>
-    
-    <item>
-      <title>Qmq Overall</title>
-      <link>https://xujianhai666.github.io/post/qmq-overall/</link>
-      <pubDate>Sun, 24 Mar 2019 00:42:13 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/qmq-overall/</guid>
-      <description>之前, 去哪儿开源了MQ中间件, 有下面几个fature:
- 延迟/定时消息 广播消息 支持按条ack消息 死信消息 Consumer/Server 随意扩容 有序消息(没有开源) 历史消息的自动备份(没有开源) 消息投递轨迹(没有开源)  arch 从qmq的架构上来讲, 如下图, 其中, meta server 使用mysql存储了 topic/consumer/producer 的关系. debug debug参照github, 不赘述
-社区活跃度 最近, qmq的活跃度不错, 还支持企业的落地.
-官方文章  https://mp.weixin.qq.com/s/v2JkSxxAUurXNqb28cwPmA https://mp.weixin.qq.com/s/bkHD00HD6hiIApKx_-gBBA https://mp.weixin.qq.com/s/ND1Fpu9zhpLzc87YMq3T8g  </description>
-    </item>
-    
-    <item>
-      <title>Mq Overall</title>
-      <link>https://xujianhai666.github.io/post/mq-overall/</link>
-      <pubDate>Sun, 24 Mar 2019 00:08:23 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/mq-overall/</guid>
-      <description>因为做IM的缘故, 需要使用Queue进行削谷填峰, 这里对比市面上不同的queue, 从不同角度观察Queue.
-feature 对比 Kafka/RocketMQ/qmq/pulsar, 不考虑consumer/producer 客户端上的特性, 针对broker实现上对比
-   Type/feature kafka rocketmq qmq pulsar     delay message false true true design   consume mode group 广播/集群 广播/group 广播/group   ack mode acc acc acc/One acc/One   ordered message partition queue queue sub-topic   history msg local local backup offload   高可用 partition rebalance Master/Slave Master/Slave bookkeeper + broker leader base zk   transaction true true false false    从定位上来说, kafka是实时流, rocketmq、qmq、pulsar 是MQ, pulsar 比较特殊, 很多feature和常规的MQ不一样, 但是实现了feature的效果, 比如, 在 消息消费模式中, pulsar 本身支持 Shared/Exclusive/Failover, 其中, Shared 和 广播模式一致, 除此之外, pulsar还支持 sub topic 模式, 将topic路由成多个 sub topic, 结合 Exclusive/Failover, 实现 group 模式.</description>
-    </item>
-    
-    <item>
-      <title>Qmq Consumer</title>
-      <link>https://xujianhai666.github.io/post/qmq-consumer/</link>
-      <pubDate>Sat, 23 Mar 2019 09:34:58 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/qmq-consumer/</guid>
-      <description>启动协议  consumer -&amp;gt; meta server: CLIENT_REGISTER, 注册, 获取topic原信息 consumer -&amp;gt; broker: PULL_MESSAGE: 拉取消息 consumer -&amp;gt; broker: ACK_REQUEST: 消息消费完确认  消息的消费流程 consumer consume 获取消息
- PullRegister#regist...registPullEntry...createAndSubmitPullEntry -&amp;gt; PullEntry#run...#doPull -&amp;gt; AbstractPullEntry#pull -&amp;gt; PullService#pull -&amp;gt; NettyClient#sendAsync 消息的处理
-PullEntry#doPull -&amp;gt; PushConsumerImpl#push -&amp;gt; HandleTaskImpl#run-&amp;gt; HandleTask#run -&amp;gt; GeneratedListener#onMessage -&amp;gt; @QmqConsumer注解的方法 DefaultPullConsumer: 通过queue设计的生产消费模型, PlainPullEntry: 对broker进行负载均衡，从broker拉取消息 WeightLoadBalance: 按权重随机分配要消费的queue的默认策略
-ack
-HandleTask#run...triggerAfterCompletion -&amp;gt; PushConsumerImpl#ack -&amp;gt; AckHelper#ackWithTrace...#ack -&amp;gt; AckEntry#ack...completed -&amp;gt; AckSendQueue#ackCompleted -&amp;gt; LinkedBlockingQueue#offer -&amp;gt; AckSendQueue#sendAck...doSendAck -&amp;gt; AckService#sendAck...sendRequest -&amp;gt; NettyClient.sendAsync 处理完消息之后, 在开启auto commit的时候[ps:并没有不开启的方法], 会进行ack.</description>
-    </item>
-    
-    <item>
-      <title>Qmq Producer</title>
-      <link>https://xujianhai666.github.io/post/qmq-producer/</link>
-      <pubDate>Sat, 23 Mar 2019 09:34:54 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/qmq-producer/</guid>
-      <description>启动协议  producer -&amp;gt; meta-server: CLIENT_REGISTER: 注册, 获取topic原信息 producer -&amp;gt; broker: SEND_MESSAGE: 发消息到指定的broker  消息的发送流程 producer MessageProducerProvider#sendMessage -&amp;gt; ProduceMessageImpl#send...#doSend...#sendSync -&amp;gt; RPCQueueSender#send...process -&amp;gt; MessageSenderGroup#send -&amp;gt; NettyConnection#send...#doSend -&amp;gt; NettyProducerClient#sendMessage -&amp;gt; NettyClient#sendSync...sendAsync 主要的代码:
- NettyClient: 负责底层连接的创建和消息的发送 NettyProducerClient: 简单的封装 BrokerLoadBalance: 负载均衡消息到集群中broker NettyConnection: queue的消息处理器 MessageSenderGroup: 消息发送和异常处理的封装 RPCQueueSender: 通过RouterManager将消息遍历投递给NettyConnection RouterManager: 路由消息应该进入哪一个队列  broker 处理流程如下
- SendMessageProcessor#processRequest -&amp;gt; SendMessageWorker#receive -&amp;gt; MessageStoreWrapper#putMessage -&amp;gt; DefaultStorage#appendMessage -&amp;gt; MessageLog#putMessage -&amp;gt; LogSegment#append -&amp;gt; RawMessageAppender#doAppend broker使用LogManager维护log, 提供最新的log进行mmap方式写入.
-除了正常的消息投递, broker还会异步构建consumer queue. 相关处理流程如下:
-Dispatcher#run...processLog -&amp;gt; FixedExecOrderEventBus#post -&amp;gt; BuildConsumerLogEventListener#onEvent -&amp;gt; ConsumerLog#putMessageLogOffset -&amp;gt; LogSegment#append -&amp;gt; ConsumerLogMessageAppender#doAppend 入口是在 ActionLogIterateService内部类 Dispatcher中, 通过不断读取 message Log构建consumer log.</description>
-    </item>
-    
-    <item>
-      <title>Qmq Broker</title>
-      <link>https://xujianhai666.github.io/post/qmq-broker/</link>
-      <pubDate>Sat, 23 Mar 2019 09:34:43 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/qmq-broker/</guid>
-      <description>debug debug参照github, 不赘述
-目录结构 启动情况的结构:
-├── actionlog ├── checkpoint └── messagelog 只生产的情况下的结构:
-├── actionlog ├── checkpoint │ └── message-checkpoint.00000000000000000228 ├── consumerlog │ └── order.changed │ └── 00000000000000000000 └── messagelog └── 00000000000000000000 有消费的情况下: 目录结构
-├── actionlog │ └── 00000000000000000000 ├── checkpoint │ ├── action-checkpoint.00000000000000000747 │ └── message-checkpoint.00000000000000000684 ├── consumerlog │ └── order.changed │ └── 00000000000000000000 ├── messagelog │ └── 00000000000000000000 └── pulllog └── snow4young-2.local@@9eb6e93294de88e6e8fa84468e4ebaf7 └── ordercenter@order.changed └── 00000000000000000000 messageLog: 所有消息的统一的存储文件 consumerLog: 每个消息队列的索引文件, 消息内容在messageLog中, consumerLog 只是索引记录 pullLog: 记录consumer已经ack的位置</description>
-    </item>
-    
-    <item>
-      <title>Kafka Pre Pressure</title>
-      <link>https://xujianhai666.github.io/post/kafka-pre-pressure/</link>
-      <pubDate>Thu, 21 Mar 2019 22:23:41 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-pre-pressure/</guid>
-      <description>因为对kafka做了新特性, 需要进行压测, 工作如下:
- 机器选择 kafka配置 jmx 指标 prometheus grafana  详细 1.机器选择
-根据 kafka官网配置, 我申请了如下的机器配置
-CPU:48c RAM:256G HDD:10T*8 Nic:25G   faq: 为什么要这么大内存?
- 因为kafka通过mmap读写文件, 为了保证写入的数据能够及时、快速的被读取, 依赖OS Cache, 将mmap写入的数据缓存在系统中, 这样, 读取的数据就会在内存中, 而不是磁盘上. 在高并发写+大量partition部署的时候, 为了保证及时、高效的读取, 系统的缓存需要很大. 在线上, 也经常由于 partition数量过多[申请的topic很多, 每个topic的partition混布在不同的broker上,单个broker上的partition负载过多], 会导致读取性能下降, consumer延时升高.    2.Kafka配置
-参照 https://docs.confluent.io/current/kafka/deployment.html, 配置gc参数
-if [ &amp;quot;x$KAFKA_HEAP_OPTS&amp;quot; = &amp;quot;x&amp;quot; ]; then export KAFKA_HEAP_OPTS=&amp;quot;-Xmx6G -Xms6G&amp;quot; export KAFKA_JVM_PERFORMANCE_OPTS=&amp;quot;-server -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true&amp;quot; fi 3.</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Broker Consume</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-broker-consume/</link>
-      <pubDate>Wed, 13 Mar 2019 23:11:04 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rocketmq-broker-consume/</guid>
-      <description>流程分析-消息接收: consumer 收消息 MQConsumerInner有DefaultMQPushConsumerImpl&amp;amp;DefaultMQPullConsumerImpl两种模式, 同时区分有序性和并发两种, 这里先看 push&amp;amp;并发的实现:
-DefaultMQPushConsumer#start -&amp;gt; DefaultMQPushConsumerImpl#start -&amp;gt; MQClientInstance#start -&amp;gt; RebalanceService#start -&amp;gt; #run -&amp;gt; MQClientInstance#doRebalance -&amp;gt; RebalanceImpl#doRebalance ...#updateProcessQueueTableInRebalance -&amp;gt; RebalancePushImpl#dispatchPullRequest -&amp;gt; DefaultMQPushConsumerImpl#executePullRequestImmediately -&amp;gt; PullMessageService#executePullRequestImmediately -&amp;gt; #run -&amp;gt; #pullMessage -&amp;gt; DefaultMQPushConsumerImpl#pullMessage -&amp;gt; PullAPIWrapper#pullKernelImpl -&amp;gt; MQClientAPIImpl#pullMessage -&amp;gt; ConsumeMessageConcurrentlyService#submitConsumeRequest -&amp;gt; ConsumeRequest#run -&amp;gt; MessageListenerConcurrently#consumeMessage 总结:
- push模式中, 通过rebalance定期触发消费消息 pull模式中, 需要手动拉取. 无论是push模式还是pull模式, 最终都是调用 PullAPIWrapper#pullKernelImpl 实现的  broker 接受消息 PullMessageProcessor:
- PullMessageProcessor#processRequest -&amp;gt; DefaultMessageStore#getMessage -&amp;gt; ConsumeQueue.getIndexBuffer + CommitLog#getMessage 逻辑: 先从ConsumeQueue查找索引内容, 再到 CommitLog 中读取文件内容.</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Broker Send</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-broker-send/</link>
-      <pubDate>Wed, 13 Mar 2019 23:07:35 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rocketmq-broker-send/</guid>
-      <description>流程分析-消息发送: producer 发送消息 DefaultMQProducer#send -&amp;gt; DefaultMQProducerImpl#send...#sendDefaultImpl -&amp;gt; #sendKernelImpl -&amp;gt; MQClientAPIImpl#sendMessage -&amp;gt; 不同情况讨论 分类情况:
- invokeOneway: NettyRemotingClient#invokeOneway, netty channel发送. sendMessageAsync: netty channel 异步发送, 通过回调处理结果 sendMessageSync: NettyRemotingClient#invokeSync, netty channel 阻塞等待结果  broker 发送消息 SendMessageProcessor: 负责处理消息的发送 普通消息的发送:
-SendMessageProcessor#processRequest -&amp;gt; #sendMessage -&amp;gt; DefaultMessageStore#putMessage -&amp;gt; CommitLog#putMessage -&amp;gt; MappedFile#appendMessage 批量消息的发送:
-SendMessageProcessor#processRequest -&amp;gt; #sendBatchMessage-&amp;gt; DefaultMessageStore#putMessages -&amp;gt; CommitLog#putMessages -&amp;gt; MappedFile#appendMessages -&amp;gt; DefaultAppendMessageCallback#doAppend 值得注意的是, 无论是 SendMessage 还是 putMessages, 最后都会执行下面两个函数
-handleDiskFlush(result, putMessageResult, msg); handleHA(result, putMessageResult, msg); handleDiskFlush主要是处理磁盘刷新策略的, 主要有同步模式和异步模式, 有三种实现
- CommitRealTimeService: 异步刷盘 FlushRealTimeService: 异步刷盘 GroupCommitService: 同步刷盘  ha机制处理: 进行主从同步</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Broker</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-broker/</link>
-      <pubDate>Mon, 11 Mar 2019 21:52:08 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rocketmq-broker/</guid>
-      <description>BrokerController分析
-主要的类和作用  NettyRemotingServer: 网络协议处理 NettyRequestProcessor及其子类: 负责请求的处理 DefaultMessageStore: 存储层, 负责写入消息到CommitLog, 异步写入ConsummeQueue, 异步索引消息 CommitLog: 消息数据的写入和读取. 所有的消息都写入一个文件里. ConsumeQueue: 消费者消息索引的写入和读取, ConsumeQueue对应着一个文件, 是 topic+queueId 维度的, 只有索引, 没有实际的数据. ReputMessageService: 负责从CommitLog中读取数据, 调用Dispatcher链进行处理, ConsummeQueue 和 IndexFile 的构建就是通过注册到Dispatcher链实现的 MappedFile: 通过mapp方式实现的文件的读写 HAService: 主从同步的处理 ManyMessageTransfer/OneMessageTransfer/QueryMessageTransfer: 通过继承Netty FileRegion的方式实现zero copy BrokerOuterAPI: broker 和 namesrv 交互的组件 ConsumerOffsetManager: offset的管理  特点  所有的topic的消息都是放在一个 CommitLog 里面的 ConsumeQueue 的构建是异步进行的, 是 topic+queueId 维度的. 消费支持 zero copy. 可以自定义MessageStore的实现  </description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Namesrv</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-namesrv/</link>
-      <pubDate>Mon, 11 Mar 2019 21:20:32 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rocketmq-namesrv/</guid>
-      <description>namesrv 负责 broker和topic的管理, 实现比较简单. 数据存放在内存中, 也支持配置的文件存储方式支持.
-namesrv 的主要模块有 RouteInfoManager 和 KVConfigManager, 就是分别维护 broker/topic 管理和配置的管理.
-因为太简单了, 不赘述.</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Debug</title>
-      <link>https://xujianhai666.github.io/post/rocketmq-debug/</link>
-      <pubDate>Mon, 11 Mar 2019 16:40:08 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/rocketmq-debug/</guid>
-      <description>这里记录下启动 rocketmq 的启动 和 消息的收发
-rocketmq-namesrv 环境变量添加:
-ROCKETMQ_HOME ${YOUR_DOWNLOAD_PATH}/rocketmq/distribution run 按妞运行服务, 启动成功后, 控制台会输出:
-The Name Server boot success. serializeType=JSON rocketmq-broker program arguments:
--n localhost:9876 环境变量参数
-ROCKETMQ_HOME ${YOUR_DOWNLOAD_PATH}/rocketmq/distribution run 按妞运行服务, 启动成功后, 控制台会输出:
-The broker[${YOUR_MAC_NAME}, ${YOUR_IP}:${YOUR_PORT}] boot success. serializeType=JSON and name server is localhost:9876 rocketmq-consumer 环境变量参数
-NAMESRV_ADDR=localhost:9876 run 按妞运行服务, 启动成功后, 控制台会输出:
-Consumer Started. rocketmq-producer 环境变量参数
-NAMESRV_ADDR=localhost:9876 run 按妞运行服务, 启动成功后, 控制台输出大量SendResult日志如下:
-SendResult [sendStatus=SEND_OK, msgId=0A5E54923F6218B4AAC236E079DA0000, offsetMsgId=0A5E549200002A9F0000000000000000, messageQueue=MessageQueue [topic=TopicTest, brokerName=${YOUR_NAME}, queueId=1], queueOffset=0] ....... ....... 此时, consumer 也会输出 接收到的日志内容:</description>
-    </item>
-    
-    <item>
-      <title>Kafka Proto</title>
-      <link>https://xujianhai666.github.io/post/kafka-proto/</link>
-      <pubDate>Sat, 09 Mar 2019 21:56:40 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-proto/</guid>
-      <description>debug方式启动服务端后, 通过在 KafkaApis#handle 设置断点, 可以发现启动过程中, broker 接受了三个请求:
-UpdateMetadata -&amp;gt; LeaderAndIsr -&amp;gt; UpdateMetadata 但是, 后来通过调试分析发现, 只有当存在topic的时候, broker才会接收到三个请求, 没有topic的情况下, 其实, broker只会接受到一个请求.
-没有topic的处理 没有topic的情况下, Kafka broker 只会接受到一个请求: UpdateMetadata. 执行流程如下:
- KafkaController#startup -&amp;gt; Startup#process -&amp;gt; KafkaController#elect -&amp;gt; #onControllerFailover -&amp;gt; #sendUpdateMetadataRequest -&amp;gt; brokerRequestBatch#addUpdateMetadataRequestForBrokers 描述: Kafka Controller 启动后, 会竞选 leader, 成功后会立即触发发送一次 UpdateMetadata.
-broker接受到请求后, 处理流程:
- 如果有删除的partition, 删除partition 完成topic的延时任务  有topic的处理 有topic的情况下, Kafka broker 会接受到三个请求: UpdateMetadata、LeaderAndIsr、UpdateMetadata. 通过debug, 执行流程如下:
-  UpdateMetadata:
-同上. KafkaController 竞选leader成功后发送请求给Broker
-  LeaderAndIsr:</description>
-    </item>
-    
-    <item>
-      <title>Kafka Debug</title>
-      <link>https://xujianhai666.github.io/post/kafka-debug/</link>
-      <pubDate>Sun, 03 Mar 2019 21:59:31 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-debug/</guid>
-      <description> 修改配置文件: config/server.properties, 替换 log.dirs 的参数 在 build.gradle 的 core 模块添加以下依赖, 保证日志的输出  compile libs.slf4jlog4j  在 intellij 的启动参数中添加 config/server.properties 启动Debug  </description>
-    </item>
-    
-    <item>
-      <title>Kafka Producer</title>
-      <link>https://xujianhai666.github.io/post/kafka-producer/</link>
-      <pubDate>Sun, 03 Mar 2019 21:41:08 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-producer/</guid>
-      <description>kafka Producer的实现比较简单, 按照 sarama 的go语言实现, 简单说下:
-AsyncProducer -&amp;gt; topicProducer -&amp;gt; partitionProducer -&amp;gt; brokerProducer -&amp;gt; Broker 无论是 哪一种Producer的实现, 都是通过 channel 实现异步的send 和 dispatcher. 为了避免 broker 元数据发生变化, 消息发送给 错误的broker, 在 启动的时候, 会获取producer leader进行消息发送, 同时如果发送失败, 就会 关闭当前的broker[客户端broker的概念, 对应着 kafka producer的一个实例].
-producer 发送消息到哪一个Partition，可以自定义partition策略, 默认的有 randomPartitioner、roundRobinPartitioner、hashPartitioner.</description>
-    </item>
-    
-    <item>
-      <title>Kafka Consumer</title>
-      <link>https://xujianhai666.github.io/post/kafka-consumer/</link>
-      <pubDate>Sun, 03 Mar 2019 21:40:53 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-consumer/</guid>
-      <description>kafka Consumer的实现比较简单, 类似 kafka producer, 按照 sarama 的go语言实现, 简单说下:
-Consumer -&amp;gt; partitionConsumer -&amp;gt; brokerConsumer -&amp;gt; Broker partition 会发送MetadataRequest请求到kafka Broker 获取 topic partition的leader, 创建相应的Broker对象.</description>
-    </item>
-    
-    <item>
-      <title>Kafka Consumer Proto</title>
-      <link>https://xujianhai666.github.io/post/kafka-consumer-proto/</link>
-      <pubDate>Sun, 03 Mar 2019 21:40:47 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-consumer-proto/</guid>
-      <description>Debug  参照debug文章在intellij启动Kafka  2.terminal 发送请求:
-bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test 服务端的交互 通过分析发现交互的请求协议如下
-API_VERSIONS METADATA FindCoordinator ApiVersions JoinGroup SyncGroup OffsetFetch ApiVersion ListOffsets Fetch ... Heartbeat ... OffsetCommit ...Fetch... 细节分析   API_VERSIONS
-返回 broker 是否支持client version
-  METADATA
-获取broker信息, 以及相应的partition信息
-  FindCoordinator
-获取coordinator的信息
-  ApiVersions
-同上
-  JoinGroup
-添加到 group 中, 等待运算
-  SyncGroup
-client leader 同步运算结果, 并返回
-  OffsetFetch
-v0 从zk读, 后面的版本通过 GroupCoordinator#handleFetchOffsets 获取offset</description>
-    </item>
-    
-    <item>
-      <title>Kafka Producer Proto</title>
-      <link>https://xujianhai666.github.io/post/kafka-producer-proto/</link>
-      <pubDate>Sun, 03 Mar 2019 21:40:41 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-producer-proto/</guid>
-      <description>Debug   参照debug文章在intellij中启动Kafka
-  terminal 发送请求:
-bin/kafka-console-producer.sh &amp;ndash;broker-list localhost:9092 &amp;ndash;topic test
-  服务端的交互 通过分析发现交互的请求协议如下
-ApiVersions Metadata ApiVersions Produce.... 细节分析   ApiVersions
-返回 broker 是否支持client version
-  Metadata
-获取broker信息, 以及相应的partition信息
-  ApiVersions
-同上
-  Produce 主要的流程
-   ReplicaManager#appendRecords -&amp;gt; #appendToLocalLog -&amp;gt; Partition#appendRecordsToLeader -&amp;gt; Log#appendAsLeader -&amp;gt; #append -&amp;gt; LogSegment#append -&amp;gt; FileRecords#append -&amp;gt; MemoryRecords#writeFullyTo faq  为什么两次 ApiVersins ?  </description>
-    </item>
-    
-    <item>
-      <title>Kafka Broker</title>
-      <link>https://xujianhai666.github.io/post/kafka-broker/</link>
-      <pubDate>Sun, 03 Mar 2019 21:40:29 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/kafka-broker/</guid>
-      <description>Kafka 的服务端 主要有以下几个部分组成:
-  GroupCoordinator: 负责consumer的成员管理和offset管理, 一个集群有多个 GroupCoordinator, consumer group 根据 group names被分派到 consumer group 的一个partition, 作为这个consumer group的 coordinator.
-  KafkaController: 负责监听 zk 处理 topic/parititon/broker 等信息, 一个集群只有一个 KafkaController
-  SocketServer: 自定义的socketServer, 1 Acceptor &amp;amp; n Processor.
-  KafkaApis: 负责处理相应的client&amp;amp;follower的请求和响应
-  TimingWheel: 时间轮的实现, kafka broker中 DelayedJoin DelayedHeartbeat 等延迟等待的事件的实现
-  Log: 日志层的管理, 包括多个 LogSegment
-   /**
- An append-only log for storing messages.  The log is a sequence of LogSegments, each with a base offset denoting the first message in the segment.</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Broker</title>
-      <link>https://xujianhai666.github.io/post/pulsar-broker/</link>
-      <pubDate>Sun, 03 Mar 2019 19:46:10 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-broker/</guid>
-      <description>这里分析Broker的主要实现.
-impl  基于Netty实现网络层, ServerCnx.java 是网络层和Broker交互的媒介 Consumer: 消费者, Producer: 生产者, 负责消息投递状态的管理,producer统计. Topic: 负责管理 Producer&amp;amp;Subscription, 以及消息的存储 Subscription: 负责管理一组consumer. 支持 Exclusive/Failover/Shared 三种订阅模型, 每个订阅有自己的cursor和Dispatcher. Dispatcher: 负责消息的分发以及消费者的管理[添加、删除] ManagedCursor: cursor管理 ManagedLedger: 负责数据的存储, 主要是 消息数据 和 cursor数据  流程   消息的生产/消费 参照 生产流程分析 和 消费流程分析；这里简单描述:
-Producer send message -&amp;gt; Network -&amp;gt; Netty Server -&amp;gt; Topic -&amp;gt; Subscription -&amp;gt; Dispacher -&amp;gt; Consumer -&amp;gt; Netty Server -&amp;gt; Network -&amp;gt; Consumer   消息redelivery
-后面补充！
-  消息去重</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Broker Producer Proto</title>
-      <link>https://xujianhai666.github.io/post/pulsar-broker-producer-proto/</link>
-      <pubDate>Sun, 03 Mar 2019 18:35:39 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-broker-producer-proto/</guid>
-      <description>Debug 1.环境准备: 参照 之前的方式
-2.terminal req:
- 先发送produce请求 bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar1&amp;rdquo; bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar2&amp;rdquo;  服务端的交互 通过之前的调试方法, producer 和 broker 之间的交互协议:
-CONNECT PARTITIONED_METADATA LOOKUP CONNECT PRODUCER SEND CLOSE_PRODUCER   Connect: lookup服务 进行权限校验
-  PARTITIONED_METADATA: lookup服务获取topic的partition数量, zk查找 /admin/partitioned-topics/namespace/domain/topicName.
-  LOOKUP: 获取topicName的broker地址
-  CONNECT: producer连接 进行权限校验
-  PRODUCER: 检查topic的权限
-  SEND: 发送消息
-Producer#publishMessage -&amp;gt; PersistentTopic#publishMessage -&amp;gt; ManagedLedgerImpl#asyncAddEntry -&amp;gt; OpAddEntry#initiate -&amp;gt; LedgerHandle#asyncAddEntry[bookkeeper] -&amp;gt; OpAddEntry#addComplete -&amp;gt; EntryCache#insert + PersistentTopic#addComplete[flush response] + ManagedLedgerImpl#notifyCursors[唤醒等待的读] -&amp;gt; ManagedCursorImpl#notifyEntriesAvailable -&amp;gt; ManagedLedgerImpl#asyncReadEntries -&amp;gt; 参照consumer   CLOSE_PRODUCER: 通知broker关闭该producer</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Client Producer</title>
-      <link>https://xujianhai666.github.io/post/pulsar-client-producer/</link>
-      <pubDate>Sun, 03 Mar 2019 14:43:01 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-client-producer/</guid>
-      <description>这篇文章会对 producer 进行分析.
-入口 这里通过org.apache.pulsar.client.tutorial.SampleProducer#main进行分析.
-producer client impl 主要有 ProducerImpl 和 PartitionedProducerImpl 两种,
- ProducerImpl  实例化后, 会创建连接, 触发CONNECT、PRODUCER command 简单的直接发送消息   PartitionedProducerImpl  实例化的时候, 遍历partition实例化producer, 并监听partition变化. 发送消息时, 通过partition router选择指定的producer进行发送    初始化 先弄清几个概念, broker有两种角色, 如下
- 充当Lookup服务的broker topic owner broker    在充当Lookup服务的broker, 可以通过提供 域名 + http服务 实现元数据的管理, 也可以通过 broker的二进制协议实现, 无论是 http协议服务, 还是二进制协议服务, 都只是服务的交互方式, 真正的元数据是存在zk中的
-  topic owner broker 只做一件事情, 就是负责处理topic生产的消息, 进行消息的存储和分发.
-  所以, producer创建的时候, 先连接到Lookup服务, 通过Lookup服务查询到topic的owner broker, 然后连接到 topic owner broker进行消息的发送.</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Function</title>
-      <link>https://xujianhai666.github.io/post/pulsar-function/</link>
-      <pubDate>Sun, 03 Mar 2019 10:07:06 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-function/</guid>
-      <description>不赘述, 有空补</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Proxy</title>
-      <link>https://xujianhai666.github.io/post/pulsar-proxy/</link>
-      <pubDate>Sun, 03 Mar 2019 10:06:30 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-proxy/</guid>
-      <description>proxy的作用  The Pulsar proxy is an optional gateway that you can run in front of the brokers in a Pulsar cluster. We recommend running a Pulsar proxy in cases when direction connections between clients and Pulsar brokers are either infeasible, undesirable, or both, for example when running Pulsar in a cloud environment or on Kubernetes or an analogous platform.
- 根据官方的描述, proxy可以更好的解耦client和broker.
-proxy impl  主要的类:   ProxyConnection: 处理proxy server的请求, ProxyConnectionPool: 后端broker client的连接池, LookupProxyHandler频繁使用 LookupProxyHandler: 负责 namespace topic的查找工作 DirectProxyHandler: broker client的处理器, 内部类 ProxyBackendHandler 负责协议相关 BrokerDiscoveryProvider: 负责从 zk上获取 topic metadata  消息收发流程  总结如下图:</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Cleint Consumer</title>
-      <link>https://xujianhai666.github.io/post/pulsar-client-consumer/</link>
-      <pubDate>Sun, 03 Mar 2019 09:59:33 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-client-consumer/</guid>
-      <description>这篇文章会对 consumer 进行分析.
-入口 这里通过org.apache.pulsar.client.tutorial.SampleConsumer#main进行分析.
-consumer 实现 通过debug分析可以发现, consumer底层只有 ConsumerImpl、ZeroQueueConsumerImpl、 MultiTopicsConsumerImpl 和 PatternMultiTopicsConsumerImpl 四种. 其中, ConsumerImpl是基础的实现, 其他是基于ConsumerImpl进行的封装和组合处理. consumer和broker之间的协议交互通过 ClientCnx 进行处理, 协议分析参照链接.
-这里针对四种consumer实现的差异进行说明:
- ConsumerImpl  实例化最后, 会调用方法grabCnx, 触发了连接的初始化工作: 创建连接, 发送 CONNECT command消息, 发送SUBSCRIBE command消息, 发送Flow command消息, 最终实现注册和服务端消息的推送. 服务端推送的消息会放到 incomingMessages 队列. 消息通过显式的调用 internalReceive() 从incomingMessages队列中取消息进行消费.   ZeroQueueConsumerImpl  继承ConsumerImpl进行实现, 但是重写了方法 canEnqueueMessage() 和 internalReceive() 以及其他方法 (其他的过于琐碎,不进行讨论) 重写 internalReceive(), 每次调用会清空 incomingMessages, 没有及时处理的消息就没有了. 然后主动Flow command 请求一条消息, 等待获取消息进行处理 重写 canEnqueueMessage(), 当 listener 方式处理消息, 直接回调, 那么, 消息就不会丢失   MultiTopicsConsumerImpl  多个consumer的集合.</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Broker Consumer Proto</title>
-      <link>https://xujianhai666.github.io/post/pulsar-broker-consumer-proto/</link>
-      <pubDate>Sat, 02 Mar 2019 21:40:57 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-broker-consumer-proto/</guid>
-      <description>Debug 1.环境准备: 在 org.apache.pulsar.common.api.PulsarDecoder#channelRead 中对每一个 case 打点, 启动debug.
-2.terminal req:
- 先发送produce请求, 积累数据, 同时避免 consumer污染debug流程 bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar1&amp;rdquo; bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar2&amp;rdquo; 发送consume请求, 关注调试 bin/pulsar-client consume my-topic -t Shared -s demo-sub2 -n 0  服务端的交互 经过debug, 发现consumer主要通过一下几个流程:
-CONNECT PARTITIONED_METADATA LOOKUP CONNECT SUBSCRIBE FLOW ACK CLOASE_CONSUMER 通过代码, 进行分析如下: (ps: 箭头表示调用关系)
-1.CONNECT: lookup服务连接, 进行权限校验
-2.PARTITIONED_METADATA: 获取topic的partition数量
-3.CONNECT: consumer连接, 进行权限校验
-4.LOOKUP: 获取topicName的broker地址
-5.SUBSCRIBE: 订阅主题
-ServerCnx#handleSubscribe -&amp;gt; PersistentTopic#subscribe -&amp;gt; PersistentSubscription#addConsumer -&amp;gt; PersistentDispatcherMultipleConsumers#addConsumer 6.</description>
-    </item>
-    
-    <item>
-      <title>Pulsar Debug</title>
-      <link>https://xujianhai666.github.io/post/pulsar-debug/</link>
-      <pubDate>Sat, 02 Mar 2019 17:22:50 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-debug/</guid>
-      <description> 首先, 在 ~/.m2/settings.xml中添加远程仓库配置:   &amp;lt;repositories&amp;gt; ... &amp;lt;repository&amp;gt; &amp;lt;id&amp;gt;central&amp;lt;/id&amp;gt; &amp;lt;layout&amp;gt;default&amp;lt;/layout&amp;gt; &amp;lt;url&amp;gt;https://repo1.maven.org/maven2&amp;lt;/url&amp;gt; &amp;lt;/repository&amp;gt; &amp;lt;repository&amp;gt; &amp;lt;snapshots&amp;gt; &amp;lt;enabled&amp;gt;false&amp;lt;/enabled&amp;gt; &amp;lt;/snapshots&amp;gt; &amp;lt;id&amp;gt;bintray-yahoo-maven&amp;lt;/id&amp;gt; &amp;lt;name&amp;gt;bintray&amp;lt;/name&amp;gt; &amp;lt;url&amp;gt;https://yahoo.bintray.com/maven&amp;lt;/url&amp;gt; &amp;lt;/repository&amp;gt; .... &amp;lt;/repositories&amp;gt; 这里使用Intellij进行调试. 相关配置:   启动类: org.apache.pulsar.PulsarStandaloneStarter 启动参数: &amp;ndash;config conf/standalone.conf &amp;ndash;no-functions-worker   intellij 启动成功后, 本地使用 consumer&amp;amp;producer测试.
-  启动consumer: bin/pulsar-client consume my-topic -t Shared -s demo-sub2 -n 1
-  启动produer: bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar&amp;rdquo; producer启动成功后, consumer控制面上会有 消息提示.
------ got message ----- hello-pulsar     </description>
-    </item>
-    
-    <item>
-      <title>Pulsar Intro</title>
-      <link>https://xujianhai666.github.io/post/pulsar-intro/</link>
-      <pubDate>Sat, 02 Mar 2019 17:06:25 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/post/pulsar-intro/</guid>
-      <description>pulsar是 yahoo开发并开源的 分布式 pub-sub消息. 相比于 kafka/rocketmq, 最大的差异就是 存储上的不同. kafka 和 rocketmq 存储在 本地机器上, pulsar却是存储在 bookkeeper, 一种容错、低延迟、容错的存储服务, 专门为 append-only 类型进行优化. 这样的做法，可以实现存储层和计算层隔离, Broker 动态变化不依赖于数据的迁移，方便了扩容缩容.
-pulsar实现上的主要特点:
- 消息内容的数据写入到 bookkeeper. 封装的数据结构: ManagedLedgerImpl 消费的cursor 写入到 bookkeeper. 封装的数据结构: ManagedCursorImpl 消费的订阅关系 维护在 zk中. 封装的数据结构: MetaStoreImplZookeeper consumer类型: Exclusive/Failover 主要处理逻辑封装在 AbstractDispatcherSingleActiveConsumer, Shared 封装逻辑主要在 PersistentDispatcherMultipleConsumers. 支持partitioned topic 基于Netty的网络处理逻辑.  </description>
-    </item>
-    
-    <item>
-      <title>About</title>
-      <link>https://xujianhai666.github.io/about/</link>
-      <pubDate>Sat, 02 Mar 2019 13:25:34 +0800</pubDate>
-      
-      <guid>https://xujianhai666.github.io/about/</guid>
-      <description>Zero.xu
-简介  Java &amp;amp; Golang &amp;amp; infrastructure enginner 分布式任务调度, API-Gateway, DRC, Spring boot based frame, IM  经历  饿了么 框架工具部 头条 IM-Cloud 社交 头条 ies业务架构  </description>
     </item>
     
   </channel>

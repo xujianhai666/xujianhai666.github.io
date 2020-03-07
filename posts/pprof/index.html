@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="总述 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
+经常使用:  总入口 http://$host:$port/debug/pprof 查看goroutine信息: http://$host:$port/debug/pprof/goroutine?debug=1 查看内存使用 go tool pprof -inuse_space http://$host:$port/debug/pprof/heap go tool pprof web http://10.110.160.41:9314/debug/pprof/heap 查看cpu使用 go tool pprof http://$host:$port/debug/pprof/profile  除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔
+其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:
+ top N: 查看排名前N个的函数 web: 进入web页面进行控制  pprof 还可以使用ui： go tool pprof -http :9090 http://$host:$port/debug/pprof/heap 指定代码路径, 可以查看相关代码: go tool pprof -call_tree -source_path ~/go/pkg/mod http://localhost:9301/debug/pprof/profile 指定采样间隔 go tool pprof &amp;ndash;seconds 25 http://localhost:9090/debug/pprof/profile cpu采样中, 常用的命令: top -cum top 20 -cum list funcname: 显示函数信息 web: 浏览器观察" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai666.github.io/posts/pprof/" />
+
+
+    <title>
+        
+            Pprof :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Pprof">
+<meta itemprop="description" content="总述 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
+经常使用:  总入口 http://$host:$port/debug/pprof 查看goroutine信息: http://$host:$port/debug/pprof/goroutine?debug=1 查看内存使用 go tool pprof -inuse_space http://$host:$port/debug/pprof/heap go tool pprof web http://10.110.160.41:9314/debug/pprof/heap 查看cpu使用 go tool pprof http://$host:$port/debug/pprof/profile  除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔
+其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:
+ top N: 查看排名前N个的函数 web: 进入web页面进行控制  pprof 还可以使用ui： go tool pprof -http :9090 http://$host:$port/debug/pprof/heap 指定代码路径, 可以查看相关代码: go tool pprof -call_tree -source_path ~/go/pkg/mod http://localhost:9301/debug/pprof/profile 指定采样间隔 go tool pprof &ndash;seconds 25 http://localhost:9090/debug/pprof/profile cpu采样中, 常用的命令: top -cum top 20 -cum list funcname: 显示函数信息 web: 浏览器观察">
+<meta itemprop="datePublished" content="2019-06-23T19:22:23&#43;08:00" />
+<meta itemprop="dateModified" content="2019-06-23T19:22:23&#43;08:00" />
+<meta itemprop="wordCount" content="117">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Pprof"/>
+<meta name="twitter:description" content="总述 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
+经常使用:  总入口 http://$host:$port/debug/pprof 查看goroutine信息: http://$host:$port/debug/pprof/goroutine?debug=1 查看内存使用 go tool pprof -inuse_space http://$host:$port/debug/pprof/heap go tool pprof web http://10.110.160.41:9314/debug/pprof/heap 查看cpu使用 go tool pprof http://$host:$port/debug/pprof/profile  除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔
+其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:
+ top N: 查看排名前N个的函数 web: 进入web页面进行控制  pprof 还可以使用ui： go tool pprof -http :9090 http://$host:$port/debug/pprof/heap 指定代码路径, 可以查看相关代码: go tool pprof -call_tree -source_path ~/go/pkg/mod http://localhost:9301/debug/pprof/profile 指定采样间隔 go tool pprof &ndash;seconds 25 http://localhost:9090/debug/pprof/profile cpu采样中, 常用的命令: top -cum top 20 -cum list funcname: 显示函数信息 web: 浏览器观察"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-06-23 19:22:23 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>One minute
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai666.github.io/posts/pprof/">Pprof</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="总述">总述</h2>
+<p>在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题.
+pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof</p>
+<h2 id="经常使用">经常使用:</h2>
+<ol>
+<li>总入口
+http://$host:$port/debug/pprof</li>
+<li>查看goroutine信息:
+http://$host:$port/debug/pprof/goroutine?debug=1</li>
+<li>查看内存使用
+go tool pprof -inuse_space http://$host:$port/debug/pprof/heap
+go tool pprof web http://10.110.160.41:9314/debug/pprof/heap</li>
+<li>查看cpu使用
+go tool pprof http://$host:$port/debug/pprof/profile</li>
+</ol>
+<p>除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔</p>
+<p>其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:</p>
+<ul>
+<li>top N: 查看排名前N个的函数</li>
+<li>web: 进入web页面进行控制</li>
+</ul>
+<p>pprof 还可以使用ui：
+go tool pprof -http :9090 http://$host:$port/debug/pprof/heap
+指定代码路径, 可以查看相关代码:
+go tool pprof -call_tree -source_path ~/go/pkg/mod  http://localhost:9301/debug/pprof/profile
+指定采样间隔
+go tool pprof &ndash;seconds 25 http://localhost:9090/debug/pprof/profile
+cpu采样中, 常用的命令:
+top -cum
+top 20 -cum
+list funcname: 显示函数信息
+web: 浏览器观察</p>
+<p>pprof很好用, 但是也存在缺点: 不是很直观, 调用关系一般都比较深, 可以使用火焰图.</p>
+<pre><code>go-torch -u http://$host:$port -t 30
+</code></pre><p>运行命令后会生成一个 svg 图片, 然后点击打开就可以了</p>
+<h2 id="常见的detection">常见的detection:</h2>
+<ul>
+<li>goroutine 跑飞了</li>
+<li>heap跑飞了</li>
+<li>cpu利用率过高</li>
+</ul>
+<h2 id="参考">参考</h2>
+<ol>
+<li><a href="https://golang.org/pkg/runtime/pprof/">runtime/pprof</a></li>
+<li><a href="https://github.com/google/pprof/blob/master/doc/README.md">google官方文档</a></li>
+<li><a href="https://github.com/google/pprof">google官方工具</a></li>
+<li><a href="https://golang.org/doc/diagnostics.html#profiling">profiling官方文档</a></li>
+<li><a href="https://github.com/gperftools/gperftools">gperftool工具</a></li>
+<li><a href="https://blog.golang.org/profiling-go-programs">官方pprof示例使用blog</a></li>
+<li><a href="http://www.brendangregg.com/flamegraphs.html">frame graph</a></li>
+</ol>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>117 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-06-23 19:22 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai666.github.io/posts/http/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Http</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai666.github.io/posts/fasthttp/">
+                                <span class="button__text">Fasthttp</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="初始化根据平台的不同而不同, 这里参考 adm64 的汇编. 入口参考 runtime#asm_amd64.s, _rt0_amd64(SB)、main(SB)、_rt0_amd64_lib(SB) 分别对应了 内部链接、外部连接以及共享库的三种不同的启动方式. 但是, 最终都会调用 rt0_go.
+TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack MOVQ DI, AX // argc MOVQ SI, BX // argv SUBQ $(4*8&#43;7), SP // 2args 2auto ANDQ $~15, SP MOVQ AX, 16(SP) MOVQ BX, 24(SP) // create istack out of the given (operating system) stack. // _cgo_init may update stackguard. MOVQ $runtime·g0(SB), DI LEAQ (-64*1024&#43;104)(SP), BX MOVQ BX, g_stackguard0(DI) MOVQ BX, g_stackguard1(DI) MOVQ BX, (g_stack&#43;stack_lo)(DI) MOVQ SP, (g_stack&#43;stack_hi)(DI) ." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai666.github.io/posts/golang-init/" />
+
+
+    <title>
+        
+            Golang Init :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Golang Init">
+<meta itemprop="description" content="初始化根据平台的不同而不同, 这里参考 adm64 的汇编. 入口参考 runtime#asm_amd64.s, _rt0_amd64(SB)、main(SB)、_rt0_amd64_lib(SB) 分别对应了 内部链接、外部连接以及共享库的三种不同的启动方式. 但是, 最终都会调用 rt0_go.
+TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack MOVQ DI, AX // argc MOVQ SI, BX // argv SUBQ $(4*8&#43;7), SP // 2args 2auto ANDQ $~15, SP MOVQ AX, 16(SP) MOVQ BX, 24(SP) // create istack out of the given (operating system) stack. // _cgo_init may update stackguard. MOVQ $runtime·g0(SB), DI LEAQ (-64*1024&#43;104)(SP), BX MOVQ BX, g_stackguard0(DI) MOVQ BX, g_stackguard1(DI) MOVQ BX, (g_stack&#43;stack_lo)(DI) MOVQ SP, (g_stack&#43;stack_hi)(DI) .">
+<meta itemprop="datePublished" content="2019-04-21T12:04:00&#43;08:00" />
+<meta itemprop="dateModified" content="2019-04-21T12:04:00&#43;08:00" />
+<meta itemprop="wordCount" content="286">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Golang Init"/>
+<meta name="twitter:description" content="初始化根据平台的不同而不同, 这里参考 adm64 的汇编. 入口参考 runtime#asm_amd64.s, _rt0_amd64(SB)、main(SB)、_rt0_amd64_lib(SB) 分别对应了 内部链接、外部连接以及共享库的三种不同的启动方式. 但是, 最终都会调用 rt0_go.
+TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack MOVQ DI, AX // argc MOVQ SI, BX // argv SUBQ $(4*8&#43;7), SP // 2args 2auto ANDQ $~15, SP MOVQ AX, 16(SP) MOVQ BX, 24(SP) // create istack out of the given (operating system) stack. // _cgo_init may update stackguard. MOVQ $runtime·g0(SB), DI LEAQ (-64*1024&#43;104)(SP), BX MOVQ BX, g_stackguard0(DI) MOVQ BX, g_stackguard1(DI) MOVQ BX, (g_stack&#43;stack_lo)(DI) MOVQ SP, (g_stack&#43;stack_hi)(DI) ."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-04-21 12:04:00 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai666.github.io/posts/golang-init/">Golang Init</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>初始化根据平台的不同而不同, 这里参考 adm64 的汇编.
+入口参考 runtime#asm_amd64.s, _rt0_amd64(SB)、main(SB)、_rt0_amd64_lib(SB) 分别对应了 内部链接、外部连接以及共享库的三种不同的启动方式. 但是, 最终都会调用 rt0_go.</p>
+<pre><code>TEXT runtime·rt0_go(SB),NOSPLIT,$0
+    // copy arguments forward on an even stack
+    MOVQ    DI, AX      // argc
+    MOVQ    SI, BX      // argv
+    SUBQ    $(4*8+7), SP        // 2args 2auto
+    ANDQ    $~15, SP
+    MOVQ    AX, 16(SP)
+    MOVQ    BX, 24(SP)
+    
+    // create istack out of the given (operating system) stack.
+    // _cgo_init may update stackguard.
+    MOVQ    $runtime·g0(SB), DI
+    LEAQ    (-64*1024+104)(SP), BX
+    MOVQ    BX, g_stackguard0(DI)
+    MOVQ    BX, g_stackguard1(DI)
+    MOVQ    BX, (g_stack+stack_lo)(DI)
+    MOVQ    SP, (g_stack+stack_hi)(DI)
+
+    .... 
+ok:
+    // set the per-goroutine and per-mach &quot;registers&quot;
+    get_tls(BX)
+    LEAQ    runtime·g0(SB), CX
+    MOVQ    CX, g(BX)
+    LEAQ    runtime·m0(SB), AX
+
+    // save m-&gt;g0 = g0
+    MOVQ    CX, m_g0(AX)
+    // save m0 to g0-&gt;m
+    MOVQ    AX, g_m(CX)
+
+    CLD             // convention is D is always left cleared
+    CALL    runtime·check(SB)
+
+    MOVL    16(SP), AX      // copy argc
+    MOVL    AX, 0(SP)
+    MOVQ    24(SP), AX      // copy argv
+    MOVQ    AX, 8(SP)
+    CALL    runtime·args(SB)
+    CALL    runtime·osinit(SB)
+    CALL    runtime·schedinit(SB)
+
+    // create a new goroutine to start program
+    MOVQ    $runtime·mainPC(SB), AX     // entry
+    PUSHQ   AX
+    PUSHQ   $0          // arg size
+    CALL    runtime·newproc(SB)
+    POPQ    AX
+    POPQ    AX
+
+    // start this M
+    CALL    runtime·mstart(SB)
+
+    CALL    runtime·abort(SB)   // mstart should never return
+    RET
+
+    // Prevent dead-code elimination of debugCallV1, which is
+    // intended to be called by debuggers.
+    MOVQ    $runtime·debugCallV1(SB), AX
+    RET
+
+DATA    runtime·mainPC+0(SB)/8,$runtime·main(SB) // runtime·mainPC指向了 runtime.main, 也就是第一个goroutine
+</code></pre><p>主要执行了下面几件事情:</p>
+<pre><code>CALL    runtime·args(SB)   // 命令行参数传递, 参考 runtime1.go  
+CALL    runtime·osinit(SB) // 平台相关, 获取cpu数目, physPageSize, 参考os_freebsd.go 
+CALL    runtime·schedinit(SB) // 负责了 栈 、内存分配和垃圾回收、 并发等的初始化
+MOVQ    $runtime·mainPC(SB), AX // 指出了第一只goroutine 
+CALL    runtime·newproc(SB) // 启动新的goroutine 
+CALL    runtime·mstart(SB) // schedule: 发现可运行的goroutine并进行执行, 循环永远不返回 
+</code></pre>
+<p>这里面, 重点是 mstart, 通过后面的 <a href="https://xujianhai666.github.io/post/golang-sch">golang调度器分析</a>可以知道, schedule是通过自旋线程来避免频繁的线程切换的, 并保证至少一个自旋线程-&gt;意味着至少有一个空闲线程可以用来处理任务, 初始化的时候, 只有一个线程, 当准备进行goroutine执行的时候, 就会创建新的线程. 参看方法 #resetspinning-&gt;#wakep-&gt;#startm, 通过代码发现, 想要仅仅创建自旋m的话, 还需要有p. 创建m的方法参看 #newm</p>
+<p>这里面, newproc 也是golang内部创建 goroutine的函数入口.</p>
+<p>第一个执行的goroutine:
+runtime#main, 负责了 runtime_init、gcenable、用户main函数入口. 其中  runtime_init 通过看连接可以知道, 实际上是启动了新的goroutine进行 forcegchelper, 通过定时器触发gc操作. gcenable 和gc有关, 启动新的goroutine进行bgsweep</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>286 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-04-21 12:04 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai666.github.io/posts/golang-mod/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Golang Mod</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai666.github.io/posts/golang-channel/">
+                                <span class="button__text">Golang Channel</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

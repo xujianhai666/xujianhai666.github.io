@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="最近学习 kafka-connect 的设计和实现. 其中设计到 group member protocol 的内容. 这里展开学习.
+kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以及 ConsumerCoordinator 的实现.
+整体生命流程: 找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. ConsumerCoordinator子类 从上面的流程中可以知道, 继承 AbstractCoordinator 的子类, 需要实现 onJoinPrepare、metadata、onLeavePrepare、performAssignment、onJoinComplete
+ onJoinPrepare: 在 eager 模式下, 上次分配的内容全部 revoked; 在 COOPERATIVE 模式下, 只撤回不在定于的 topic 的 partition. metadata: sendJoinGroupRequest使用的数据信息, 用于后面的分配." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai666.github.io/posts/kafka-group-codereview/" />
+
+
+    <title>
+        
+            Kafka Group Codereview :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Kafka Group Codereview">
+<meta itemprop="description" content="最近学习 kafka-connect 的设计和实现. 其中设计到 group member protocol 的内容. 这里展开学习.
+kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以及 ConsumerCoordinator 的实现.
+整体生命流程: 找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. ConsumerCoordinator子类 从上面的流程中可以知道, 继承 AbstractCoordinator 的子类, 需要实现 onJoinPrepare、metadata、onLeavePrepare、performAssignment、onJoinComplete
+ onJoinPrepare: 在 eager 模式下, 上次分配的内容全部 revoked; 在 COOPERATIVE 模式下, 只撤回不在定于的 topic 的 partition. metadata: sendJoinGroupRequest使用的数据信息, 用于后面的分配.">
+<meta itemprop="datePublished" content="2019-11-09T21:52:25&#43;08:00" />
+<meta itemprop="dateModified" content="2019-11-09T21:52:25&#43;08:00" />
+<meta itemprop="wordCount" content="108">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Kafka Group Codereview"/>
+<meta name="twitter:description" content="最近学习 kafka-connect 的设计和实现. 其中设计到 group member protocol 的内容. 这里展开学习.
+kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以及 ConsumerCoordinator 的实现.
+整体生命流程: 找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. ConsumerCoordinator子类 从上面的流程中可以知道, 继承 AbstractCoordinator 的子类, 需要实现 onJoinPrepare、metadata、onLeavePrepare、performAssignment、onJoinComplete
+ onJoinPrepare: 在 eager 模式下, 上次分配的内容全部 revoked; 在 COOPERATIVE 模式下, 只撤回不在定于的 topic 的 partition. metadata: sendJoinGroupRequest使用的数据信息, 用于后面的分配."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-11-09 21:52:25 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>One minute
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai666.github.io/posts/kafka-group-codereview/">Kafka Group Codereview</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>最近学习 kafka-connect 的设计和实现. 其中设计到 group member protocol 的内容. 这里展开学习.</p>
+<h2 id="kafka-group-member-协议">kafka group member 协议</h2>
+<p>主要参考 AbstractCoordinator 的实现流程 以及 ConsumerCoordinator 的实现.</p>
+<h3 id="整体生命流程">整体生命流程:</h3>
+<pre><code>找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 
+</code></pre><h3 id="consumercoordinator子类">ConsumerCoordinator子类</h3>
+<p>从上面的流程中可以知道, 继承 AbstractCoordinator 的子类, 需要实现 onJoinPrepare、metadata、onLeavePrepare、performAssignment、onJoinComplete</p>
+<ul>
+<li>onJoinPrepare: 在 eager 模式下, 上次分配的内容全部 revoked; 在 COOPERATIVE 模式下, 只撤回不在定于的 topic 的 partition.</li>
+<li>metadata: sendJoinGroupRequest使用的数据信息, 用于后面的分配. 会提交上次分配的 assignemnt.</li>
+<li>performAssignment: 执行分配</li>
+<li>onJoinComplete: 回调assigner处理分配结果</li>
+</ul>
+<h3 id="学习">学习</h3>
+<ol>
+<li>
+<p>注意, 在配置的时候, 每个source集群需要配置一个不一样的 groupId.
+kafkaConsumer 支持 正则表达式订阅, 并且动态更新元数据, 保证及时订阅到 新增的 topic.</p>
+</li>
+<li>
+<p>poll 调用的时候 会执行 join group 流程. 通过不断调用 cleints.poll 就可以保证自己在 group 里面. 通过配置 <code>max.poll.interval.ms</code> 避免假死过程中持续的心跳导致 partition 持有问题的活锁.</p>
+</li>
+</ol>
+<p>partition &lt; consumers 会发生什么呢?</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>108 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-11-09 21:52 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai666.github.io/posts/kafka-controller-redesign/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Kafka Controller Redesign</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai666.github.io/posts/kafka-group-kip/">
+                                <span class="button__text">Kafka Group Kip</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="因为做IM的缘故, 需要使用Queue进行削谷填峰, 这里对比市面上不同的queue, 从不同角度观察Queue.
+feature 对比 Kafka/RocketMQ/qmq/pulsar, 不考虑consumer/producer 客户端上的特性, 针对broker实现上对比
+   Type/feature kafka rocketmq qmq pulsar     delay message false true true design   consume mode group 广播/集群 广播/group 广播/group   ack mode acc acc acc/One acc/One   ordered message partition queue queue sub-topic   history msg local local backup offload   高可用 partition rebalance Master/Slave Master/Slave bookkeeper &#43; broker leader base zk   transaction true true false false    从定位上来说, kafka是实时流, rocketmq、qmq、pulsar 是MQ, pulsar 比较特殊, 很多feature和常规的MQ不一样, 但是实现了feature的效果, 比如, 在 消息消费模式中, pulsar 本身支持 Shared/Exclusive/Failover, 其中, Shared 和 广播模式一致, 除此之外, pulsar还支持 sub topic 模式, 将topic路由成多个 sub topic, 结合 Exclusive/Failover, 实现 group 模式." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai666.github.io/posts/mq-overall/" />
+
+
+    <title>
+        
+            Mq Overall :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Mq Overall">
+<meta itemprop="description" content="因为做IM的缘故, 需要使用Queue进行削谷填峰, 这里对比市面上不同的queue, 从不同角度观察Queue.
+feature 对比 Kafka/RocketMQ/qmq/pulsar, 不考虑consumer/producer 客户端上的特性, 针对broker实现上对比
+   Type/feature kafka rocketmq qmq pulsar     delay message false true true design   consume mode group 广播/集群 广播/group 广播/group   ack mode acc acc acc/One acc/One   ordered message partition queue queue sub-topic   history msg local local backup offload   高可用 partition rebalance Master/Slave Master/Slave bookkeeper &#43; broker leader base zk   transaction true true false false    从定位上来说, kafka是实时流, rocketmq、qmq、pulsar 是MQ, pulsar 比较特殊, 很多feature和常规的MQ不一样, 但是实现了feature的效果, 比如, 在 消息消费模式中, pulsar 本身支持 Shared/Exclusive/Failover, 其中, Shared 和 广播模式一致, 除此之外, pulsar还支持 sub topic 模式, 将topic路由成多个 sub topic, 结合 Exclusive/Failover, 实现 group 模式.">
+<meta itemprop="datePublished" content="2019-03-24T00:08:23&#43;08:00" />
+<meta itemprop="dateModified" content="2019-03-24T00:08:23&#43;08:00" />
+<meta itemprop="wordCount" content="306">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Mq Overall"/>
+<meta name="twitter:description" content="因为做IM的缘故, 需要使用Queue进行削谷填峰, 这里对比市面上不同的queue, 从不同角度观察Queue.
+feature 对比 Kafka/RocketMQ/qmq/pulsar, 不考虑consumer/producer 客户端上的特性, 针对broker实现上对比
+   Type/feature kafka rocketmq qmq pulsar     delay message false true true design   consume mode group 广播/集群 广播/group 广播/group   ack mode acc acc acc/One acc/One   ordered message partition queue queue sub-topic   history msg local local backup offload   高可用 partition rebalance Master/Slave Master/Slave bookkeeper &#43; broker leader base zk   transaction true true false false    从定位上来说, kafka是实时流, rocketmq、qmq、pulsar 是MQ, pulsar 比较特殊, 很多feature和常规的MQ不一样, 但是实现了feature的效果, 比如, 在 消息消费模式中, pulsar 本身支持 Shared/Exclusive/Failover, 其中, Shared 和 广播模式一致, 除此之外, pulsar还支持 sub topic 模式, 将topic路由成多个 sub topic, 结合 Exclusive/Failover, 实现 group 模式."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-03-24 00:08:23 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai666.github.io/posts/mq-overall/">Mq Overall</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>因为做IM的缘故, 需要使用Queue进行削谷填峰, 这里对比市面上不同的queue, 从不同角度观察Queue.</p>
+<h2 id="feature">feature</h2>
+<p>对比 Kafka/RocketMQ/qmq/pulsar, 不考虑consumer/producer 客户端上的特性, 针对broker实现上对比</p>
+<table>
+<thead>
+<tr>
+<th align="center">Type/feature</th>
+<th align="center">kafka</th>
+<th align="center">rocketmq</th>
+<th align="center">qmq</th>
+<th align="center">pulsar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">delay message</td>
+<td align="center">false</td>
+<td align="center">true</td>
+<td align="center">true</td>
+<td align="center">design</td>
+</tr>
+<tr>
+<td align="center">consume mode</td>
+<td align="center">group</td>
+<td align="center">广播/集群</td>
+<td align="center">广播/group</td>
+<td align="center">广播/group</td>
+</tr>
+<tr>
+<td align="center">ack mode</td>
+<td align="center">acc</td>
+<td align="center">acc</td>
+<td align="center">acc/One</td>
+<td align="center">acc/One</td>
+</tr>
+<tr>
+<td align="center">ordered message</td>
+<td align="center">partition</td>
+<td align="center">queue</td>
+<td align="center">queue</td>
+<td align="center">sub-topic</td>
+</tr>
+<tr>
+<td align="center">history msg</td>
+<td align="center">local</td>
+<td align="center">local</td>
+<td align="center">backup</td>
+<td align="center">offload</td>
+</tr>
+<tr>
+<td align="center">高可用</td>
+<td align="center">partition rebalance</td>
+<td align="center">Master/Slave</td>
+<td align="center">Master/Slave</td>
+<td align="center">bookkeeper + broker leader base zk</td>
+</tr>
+<tr>
+<td align="center">transaction</td>
+<td align="center">true</td>
+<td align="center">true</td>
+<td align="center">false</td>
+<td align="center">false</td>
+</tr>
+</tbody>
+</table>
+<p>从定位上来说, kafka是实时流, rocketmq、qmq、pulsar 是MQ, pulsar 比较特殊, 很多feature和常规的MQ不一样, 但是实现了feature的效果, 比如, 在 消息消费模式中, pulsar 本身支持 Shared/Exclusive/Failover, 其中, Shared 和 广播模式一致, 除此之外, pulsar还支持 sub topic 模式, 将topic路由成多个 sub topic, 结合 Exclusive/Failover, 实现 group 模式.</p>
+<h2 id="基本思想">基本思想</h2>
+<ul>
+<li>kafka:
+<ul>
+<li>提供topic、partition视图, 一个topic由多个partition组成</li>
+<li>broker上, 每个partition对应一个存储文件, 每个partition独立分散在不同的broker上, 每个broker上有多个partition存储</li>
+<li>producer通过partition策略, 指定消息分发给topic下具体的某个partition, 然后发送给partition的leader broker.</li>
+<li>consumer消费的时候, 以consumer group的方式进行订阅, broker会先执行join流程, 早期是broker内部分配, v2的版本通过client计算, consumer获取订阅的partition 列表和相应的broker地址, 连接broker地址进行pull方式消息拉取</li>
+</ul>
+</li>
+<li>Rocketmq
+<ul>
+<li>提供 topic、queue视图, 一个topic有多个queue组成</li>
+<li>broker上, 所有的topic/queue都写入一个 commit log文件, 通过线程异步的从commit log文件读取构建每个queue的consumer queue文件 + time index 文件.</li>
+<li>producer通过selector策略, 确定发送给topic的一个queue, 然后发送给queue的broker</li>
+<li>consumer以consumer group方式进行订阅, 从name server获取topic的路由信息,  值得注意的是, 订阅关系queue的分配是在consumer端维护的, consumer获取到要消费的queue, consumer会连接到broker上进行消息的拉取</li>
+</ul>
+</li>
+<li>pulsar
+<ul>
+<li>提供topic、subTopic视图, 一个topic由多个subTopic组成</li>
+<li>broker上, broker负责处理消息的&quot;存储&rdquo;(依赖bookkeeper实现)和分发, broker承担着类似代理的角色.</li>
+<li>producer通过 partition router选择指定broker发送</li>
+<li>consumer获取partition的元数据信息 ??????</li>
+</ul>
+</li>
+<li>qmq
+<ul>
+<li>类似Rocketmq, 提供 topic、queue视图, 一个topic有多个queue组成,</li>
+<li>类似Rocketmq, 所有的topic/queue消息存储在一个commit log, 异构构建consumer queue.</li>
+<li>producer ????</li>
+<li>consumer ????</li>
+</ul>
+</li>
+</ul>
+<h2 id="组件设计">组件设计</h2>
+<ul>
+<li>Kafka:
+<ul>
+<li>zookeeper: 存储元数据</li>
+<li>kafka controller: 监听zk的变化, 处理 分区/副本状态, 每个kafka集群使用一个kafka controller.</li>
+<li>group coordinator: 管理 consumer group状态, 比如offset管理和consumer rebalance, 每个consumer group有一个group coordinator.</li>
+<li>broker: 提供文件存储</li>
+</ul>
+</li>
+<li>Rocketmq:
+<ul>
+<li>namesrv负责元数据的存储, 只有简单的文件/内存实现, 不依赖zk</li>
+<li>filter: 提供消息过滤服务</li>
+<li>broker: 提供文件存储</li>
+</ul>
+</li>
+<li>pulsar:
+<ul>
+<li>zookeeper: 存储元数据</li>
+</ul>
+<ul>
+<li>bookkeeper: 负责存储消息、offset</li>
+<li>broker: broker和bookkeeper交互, 实现 消息+offset的存储</li>
+<li>存储的实现上, 依赖bookkeeper, bookkeeper能够高效的实现追加写, broker需要维护bookkeeper的topic和bookkeeper bookie的ledger信息, 映射维护在zk中.</li>
+<li>function: 轻量的计算引擎</li>
+</ul>
+</li>
+<li>qmq:
+<ul>
+<li>metaserver提供元数据存储, 依赖mysql</li>
+<li>delay-server: 基于时间轮提供了定时任务</li>
+</ul>
+</li>
+</ul>
+<h2 id="扩容">扩容</h2>
+<p>在扩容方式中, 有两种, 希望增加consumer的消费能力需要扩容 和 降低单个broker的负载需要扩容.</p>
+<h3 id="consumer扩容">consumer扩容</h3>
+<p>业务执行过程中, 单个consumer的执行能力是有上限的, 除了优化单个consumer的下游耗时, 比如rpc调用、本地计算等, 还有细化consumer的消费粒度, 比如partition级别的consumer, 通过并行partition的消费, 提升consumer的消费能力. 但是, partition consumer的消费能力也是有上限的, 这里分开讨论下.</p>
+<ul>
+<li>在kafka中, consumer最细的粒度是 partition级别的, 如果需要增加consumer的消费能力, 最终只能够扩容partition, 但是过多的partition, 在consumer发布中, 会导致频繁的rebalance.</li>
+<li>在Rocketmq, consumer最细的粒度queue, 如果需要增加consumer的消费能力, 只需要 producer用新的queueId向新的broker列表发送消息就可以. consumer端只需要连上新的broker即可, 发布过程无影响.</li>
+<li>在pulsar中, consumer最细的粒度是宿便 topic, 如果需要增加consumer的消费能力, 只需要添加更多的sub topic, 没有类似kafka的副作用</li>
+<li>qmq中, 模式偏向Rocketmq, 也是异步构建consumer queue, 所以, 增加consumer的消费能力, 也需要添加更多的queue. 没有类似kafkade 副作用</li>
+</ul>
+<h3 id="broker扩容">broker扩容</h3>
+<p>在线上运行时, 会有很多topic/partition, 导致读写文件的OS Cache的红利降低, 这个时候, 需要扩容 broker, 降低单个broker的负载.</p>
+<ul>
+<li>
+<p>Kafka: 纯粹的添加broker到Kafka集群并不会引起broker的负载降低, 还需要配合脚本 kafka-reassign-partitions.sh</p>
+</li>
+<li>
+<p>Rocketmq: 官方没有提供很好的方式, 可以参照<a href="https://yq.aliyun.com/articles/636883">文章</a>, 需要自己改造</p>
+</li>
+<li>
+<p>pulsar: 因为存储和分发分离的缘故, 所以只需要修改broker和topic的映射关系, 参见<a href="https://pulsar.apache.org/docs/en/administration-load-distribution/#load-distribution-across-pulsar-brokers">文章</a></p>
+</li>
+<li>
+<p>qmq: qmq 使用range映射逻辑queue到物理queue的映射, 扩容中, 添加broker后, 还需要修改逻辑queue的映射, 之后qmq会完成整个流程. qmq扩容的实现中, 通过版本号区分不同时候的topic/queue -&gt; broker的映射, 并且, 为了保证消息的顺序新, 提出了控制消息的想法, consumer在消费到控制消息之后, 取出里面的版本号, 拉取相应版本的映射关系, 再进行消费.</p>
+</li>
+</ul>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>306 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-03-24 00:08 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai666.github.io/posts/qmq-overall/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Qmq Overall</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai666.github.io/posts/qmq-consumer/">
+                                <span class="button__text">Qmq Consumer</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="源代码参考: sync/cond.go 数据结构:
+type Cond struct { noCopy noCopy // L is held while observing or changing the condition  L Locker notify notifyList checker copyChecker } 重点关注下 notifyList 的实现.
+notifyList 实现原理 数据结构 需要注意的是, 这里的notifyList最终的实现其实是 sema.go 中 notifyList.
+type notifyList struct { // wait is the ticket number of the next waiter. It is atomically  // incremented outside the lock.  wait uint32 // notify is the ticket number of the next waiter to be notified." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai666.github.io/posts/golang-condition/" />
+
+
+    <title>
+        
+            Golang Condition :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Golang Condition">
+<meta itemprop="description" content="源代码参考: sync/cond.go 数据结构:
+type Cond struct { noCopy noCopy // L is held while observing or changing the condition  L Locker notify notifyList checker copyChecker } 重点关注下 notifyList 的实现.
+notifyList 实现原理 数据结构 需要注意的是, 这里的notifyList最终的实现其实是 sema.go 中 notifyList.
+type notifyList struct { // wait is the ticket number of the next waiter. It is atomically  // incremented outside the lock.  wait uint32 // notify is the ticket number of the next waiter to be notified.">
+<meta itemprop="datePublished" content="2019-05-15T21:58:55&#43;08:00" />
+<meta itemprop="dateModified" content="2019-05-15T21:58:55&#43;08:00" />
+<meta itemprop="wordCount" content="574">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Golang Condition"/>
+<meta name="twitter:description" content="源代码参考: sync/cond.go 数据结构:
+type Cond struct { noCopy noCopy // L is held while observing or changing the condition  L Locker notify notifyList checker copyChecker } 重点关注下 notifyList 的实现.
+notifyList 实现原理 数据结构 需要注意的是, 这里的notifyList最终的实现其实是 sema.go 中 notifyList.
+type notifyList struct { // wait is the ticket number of the next waiter. It is atomically  // incremented outside the lock.  wait uint32 // notify is the ticket number of the next waiter to be notified."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-05-15 21:58:55 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai666.github.io/posts/golang-condition/">Golang Condition</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>源代码参考: sync/cond.go
+数据结构:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cond.go" data-lang="cond.go"><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Cond</span> <span style="color:#66d9ef">struct</span> {
+    <span style="color:#a6e22e">noCopy</span> <span style="color:#a6e22e">noCopy</span>
+
+    <span style="color:#75715e">// L is held while observing or changing the condition
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">L</span> <span style="color:#a6e22e">Locker</span>
+
+    <span style="color:#a6e22e">notify</span>  <span style="color:#a6e22e">notifyList</span>
+    <span style="color:#a6e22e">checker</span> <span style="color:#a6e22e">copyChecker</span>
+}
+</code></pre></div><p>重点关注下 notifyList 的实现.</p>
+<h2 id="notifylist-实现原理">notifyList 实现原理</h2>
+<h3 id="数据结构">数据结构</h3>
+<p>需要注意的是, 这里的notifyList最终的实现其实是 sema.go 中 notifyList.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sema.go" data-lang="sema.go"><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">notifyList</span> <span style="color:#66d9ef">struct</span> {
+    <span style="color:#75715e">// wait is the ticket number of the next waiter. It is atomically
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// incremented outside the lock.
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">wait</span> <span style="color:#66d9ef">uint32</span>
+
+    <span style="color:#75715e">// notify is the ticket number of the next waiter to be notified. It can
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// be read outside the lock, but is only written to with lock held.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Both wait &amp; notify can wrap around, and such cases will be correctly
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// handled as long as their &#34;unwrapped&#34; difference is bounded by 2^31.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// For this not to be the case, we&#39;d need to have 2^31+ goroutines
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// blocked on the same condvar, which is currently not possible.
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">notify</span> <span style="color:#66d9ef">uint32</span>
+
+    <span style="color:#75715e">// List of parked waiters.
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">lock</span> <span style="color:#a6e22e">mutex</span>
+    <span style="color:#a6e22e">head</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sudog</span>
+    <span style="color:#a6e22e">tail</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sudog</span>
+}
+</code></pre></div><p>通过注释, 我们能够发现, notifyList 有一个ticket概念, 本质上就是一个 自增id, waiter表示下一个要分配的ticket, notify 则指向下一个需要被通知的waiter, 需要注意的是, notify之前的ticket都是已经被通知过的, 所以, 可以通过比较大小避免无效的通知. 甚至, 可以比较wait和notify的大小, 判断是否需要notify(相等的情况下, 表示自从上次notify之后, 没有waiter). head/tail则是 sudog(就是等待的goroutine的表示, 通过双链实现), 那么, 等待/通知的本质上就是挂起/唤醒goroutine.</p>
+<p>通过下面的流程看下 notifyList 的实现方式.</p>
+<ol>
+<li>notifyListAdd: 将等待着分配一个wait id.</li>
+<li>notifyListWait: 获取sudog, 进行实例化, 添加到 notifyList上面. 挂起当前goroutine. (如果开启了pprof, 会进行block time的采样. releatime-to, 唤醒的时候会设置releaseTime为cputicks())</li>
+<li>notifyListNotifyAll: 修改notify, 循环双链通知等待的goroutine.</li>
+<li>notifyListNotifyOne: 双重检查, 寻找对应的goroutine进行唤醒(注意goroutine的挂起和分配wait顺序不是一致的, goroutine的挂起并不是按照wait排序的, 所以找到wait对应的goroutine需要一次遍历)</li>
+</ol>
+<h3 id="notifylist使用">notifyList使用</h3>
+<p>在cond中, 常用的函数的实现如下:</p>
+<ol>
+<li>Wait: 调用 runtime_notifyListAdd + runtime_notifyListWait, 分配wait ticket 并挂起当前goroutine, 实现中细化锁的粒度. 在被唤醒后, 这里会归还 sudog.</li>
+<li>Signal: 调用 runtime_notifyListNotifyOne 唤醒下一个goroutine</li>
+<li>Broadcast: 调用runtime_notifyListNotifyAll, 唤醒所有等待的goroutine</li>
+</ol>
+<h3 id="有意思的地方">有意思的地方</h3>
+<ol>
+<li>acquireSudog避免循环调用的方式很有意思. 通过获取m实现. 细节需要在深入</li>
+<li>acquireSudog: 从队列的sudoCache中获取一个sudog, 相当于一个 分配行为,
+acquireSudog在当前q没有sudog的时候, 会去central cache(sched对象的cache)拿一个. 如果还是没有,  就直接分配一个新的. 在归还的时候, 也就是releaseSudog, 会判断是否满了, 满的情况下会讲一半sudog迁移到 central上 (sched对象).</li>
+<li>sudog 专门为 sema做了适配, 添加了 ticket 字段, 用来 notifyListNotifyOne 判断当前goroutine是否是需要唤醒的那个.</li>
+</ol>
+<h2 id="内部mutex">内部mutex</h2>
+<p>在实现condition语义的时候, 在wait方法的调用开始的地方, 会先尝试拿到锁. 这里的锁是内部的mutex.
+sema.go中定义了mutex. 数据结构如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-runtime2.go" data-lang="runtime2.go"><span style="color:#75715e">// Mutual exclusion locks.  In the uncontended case,
+</span><span style="color:#75715e"></span><span style="color:#75715e">// as fast as spin locks (just a few user-level instructions),
+</span><span style="color:#75715e"></span><span style="color:#75715e">// but on the contention path they sleep in the kernel.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// A zeroed Mutex is unlocked (no need to initialize each lock).
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">mutex</span> <span style="color:#66d9ef">struct</span> {
+    <span style="color:#75715e">// Futex-based impl treats it as uint32 key,
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// while sema-based impl as M* waitm.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Used to be a union, but unions break precise GC.
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">key</span> <span style="color:#66d9ef">uintptr</span>
+}
+</code></pre></div><p>通过注释可以知道, 在未冲突的情况下, 只是用户级别的指令: 自旋. 在冲突的情况下, 会在内核中睡眠.
+执行加锁、释放的逻辑参照 lock_sema.go, mutex使用key有下面几个状态:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lock_sema.go" data-lang="lock_sema.go"><span style="color:#66d9ef">const</span> (
+    <span style="color:#a6e22e">locked</span> <span style="color:#66d9ef">uintptr</span> = <span style="color:#ae81ff">1</span>
+
+    <span style="color:#a6e22e">active_spin</span>     = <span style="color:#ae81ff">4</span>
+    <span style="color:#a6e22e">active_spin_cnt</span> = <span style="color:#ae81ff">30</span>
+    <span style="color:#a6e22e">passive_spin</span>    = <span style="color:#ae81ff">1</span>
+)
+</code></pre></div><h3 id="常用函数如下">常用函数如下:</h3>
+<ol>
+<li>lock: 如果cas成功, 就直接返回; 实例化系统的semaphore, 循环判断当前锁是否被释放, 释放的情况下, 尝试cas加锁; 循环的次数, 会先 采用空循环的策略(procyild), 乐观策略; 仍然失败的情况下, 会采用释放线程的cpu控制权(osyield); 还是失败, 是多个线程抢占, 尝试M排队, 使用 nextwaitm记录上一个排队的m的值, 使用key字段传递semaphore语义, 让unlock的时候通知释放key, 同时将下一个等待的m放入key信息中.</li>
+<li>unlock: lock状态下会通过cas将状态重置为 unlock. 非lock状态, 有其他线程排队, 通知其他m.
+其中, semacreate是平台相关的, ; atomic.Casuintptr 方法是映射到汇编方法执行的.</li>
+</ol>
+<h3 id="yield">yield</h3>
+<ol>
+<li>procyield</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yield.c" data-lang="yield.c"><span style="color:#75715e">#</span><span style="color:#75715e">if defined (__i386__) || defined (__x86_64__)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">include</span> <span style="color:#75715e">&lt;xmmintrin.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">/* Spin wait.  */</span>
+
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">runtime_procyield</span> (uint32 cnt)
+{
+  <span style="color:#66d9ef">volatile</span> uint32 i;
+
+  <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> cnt; <span style="color:#f92672">+</span><span style="color:#f92672">+</span>i)
+    {
+<span style="color:#75715e">#</span><span style="color:#75715e">if defined (__i386__) || defined (__x86_64__)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>      _mm_pause ();
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    }
+}
+</code></pre></div><p>参照<a href="https://stackoverflow.com/questions/7371869/minimum-time-a-thread-can-pause-in-linux">stackOverflow</a>上的回答, _mm_pause 本质上就是一个 pause汇编指令. pause汇编指令参考 <a href="https://software.intel.com/sites/default/files/managed/39/c5/325462-sdm-vol-1-2abcd-3abcd.pdf">linux manual page</a> 的 11.4.4.4, 按照文章的说法, 用来提升 Intel Xeon 处理器性能， 以及减少 Pentium 4 的能量损耗.</p>
+<ol start="2">
+<li>osyield</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yield.c" data-lang="yield.c"><span style="color:#75715e">/* Ask the OS to reschedule this thread.  */</span>
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">runtime_osyield</span>(<span style="color:#66d9ef">void</span>)
+  __attribute__ ((no_split_stack));
+
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">runtime_osyield</span> (<span style="color:#66d9ef">void</span>)
+{
+  sched_yield ();
+}
+</code></pre></div><p>sched_yield参照[linux manual page]](<a href="http://www.man7.org/linux/man-pages/man2/sched_yield.2.html)">http://www.man7.org/linux/man-pages/man2/sched_yield.2.html)</a>. 按照描述, 调用sched_yield之后, 会放弃cpu, 当前线程会被移动到静态优先级的队列的末尾. 需要注意的, 如果当前线程是唯一一个在最高优先级列表的, 那么, 在调用sched_yield()之后, 仍然会运行。</p>
+<h2 id="sema">sema</h2>
+<p>lock的时候使用 semasleep, unlock的时候使用 semawakeup 通知其他m. 这里使用的是操作系统的 semasleep(-1) 和 semawakeup. 这里使用 mOS.waitsema 的指针 作为 semaphore字段.</p>
+<h3 id="平台创建">平台创建</h3>
+<ol>
+<li>semaphore
+这里以 solaris平台为例子. 方法如下:</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-os_solaris.go" data-lang="os_solaris.go"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">semacreate</span>(<span style="color:#a6e22e">mp</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">m</span>) {
+    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">mp</span>.<span style="color:#a6e22e">mos</span>.<span style="color:#a6e22e">waitsema</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+        <span style="color:#66d9ef">return</span>
+    }
+
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">sem</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">semt</span>
+
+    <span style="color:#75715e">// Call libc&#39;s malloc rather than malloc. This will
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// allocate space on the C heap. We can&#39;t call malloc
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// here because it could cause a deadlock.
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">sem</span> = (<span style="color:#f92672">*</span><span style="color:#a6e22e">semt</span>)(<span style="color:#a6e22e">libc_malloc</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#f92672">*</span><span style="color:#a6e22e">sem</span>)))
+    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sem_init</span>(<span style="color:#a6e22e">sem</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+        <span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;sem_init&#34;</span>)
+    }
+    <span style="color:#a6e22e">mp</span>.<span style="color:#a6e22e">mos</span>.<span style="color:#a6e22e">waitsema</span> = uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">sem</span>))
+}
+</code></pre></div><p>这里，先是堆上创建创建了对象, 然后实例化semaphore对象. sem_init参照<a href="http://www.man7.org/linux/man-pages/man3/sem_init.3.html">linux manual</a></p>
+<h2 id="参考">参考:</h2>
+<ol>
+<li><a href="http://www.man7.org/linux/man-pages/man3/sem_init.3.html">sema init</a></li>
+<li><a href="http://man7.org/linux/man-pages/man3/sem_wait.3.html">sema wait</a></li>
+<li><a href="http://www.man7.org/linux/man-pages/man3/sem_post.3.html">sem_post</a></li>
+</ol>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>574 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-05-15 21:58 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai666.github.io/posts/golang-rwmutex/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Golang Rwmutex</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai666.github.io/posts/golang-mutex/">
+                                <span class="button__text">Golang Mutex</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

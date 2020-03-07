@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="基本概念 在pulsar中, 为了支持多租户, 有 tenant和namespace 概念. tenant和租户相关, 一个tenant一般是一个 team. namespace 可以区别不同的项目, 一个项目可以有多个topic. 在实现的过程中, 为了更好的支持资源调度的概念, 使用 NamespaceBundles 对象, NamespaceBundles 中有多个 NamespaceBundle, 根据负载, NamespaceBundle 会进行迁移和split. topic在资源上跟着bundle走. 查看NamespaceBundles定义:
+public class NamespaceBundles { private final NamespaceName nsname; private final ArrayList&amp;lt;NamespaceBundle&amp;gt; bundles; private final NamespaceBundleFactory factory; private final long version; protected final long[] partitions; public static final Long FULL_LOWER_BOUND = 0x00000000L; public static final Long FULL_UPPER_BOUND = 0xffffffffL; private final NamespaceBundle fullBundle; 每个bundle负责一段range. 一开始的时候, 只有一个bound, range是 [0x00000000L,0xffffffffL], 后面随着负载过高, 会进行split, 拆分成多个bundle, 每个bundle由一个broker负责, 一个broker可能负责多个bundle." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai666.github.io/posts/pulsar-bundle/" />
+
+
+    <title>
+        
+            Pulsar Bundle :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Pulsar Bundle">
+<meta itemprop="description" content="基本概念 在pulsar中, 为了支持多租户, 有 tenant和namespace 概念. tenant和租户相关, 一个tenant一般是一个 team. namespace 可以区别不同的项目, 一个项目可以有多个topic. 在实现的过程中, 为了更好的支持资源调度的概念, 使用 NamespaceBundles 对象, NamespaceBundles 中有多个 NamespaceBundle, 根据负载, NamespaceBundle 会进行迁移和split. topic在资源上跟着bundle走. 查看NamespaceBundles定义:
+public class NamespaceBundles { private final NamespaceName nsname; private final ArrayList&lt;NamespaceBundle&gt; bundles; private final NamespaceBundleFactory factory; private final long version; protected final long[] partitions; public static final Long FULL_LOWER_BOUND = 0x00000000L; public static final Long FULL_UPPER_BOUND = 0xffffffffL; private final NamespaceBundle fullBundle; 每个bundle负责一段range. 一开始的时候, 只有一个bound, range是 [0x00000000L,0xffffffffL], 后面随着负载过高, 会进行split, 拆分成多个bundle, 每个bundle由一个broker负责, 一个broker可能负责多个bundle.">
+<meta itemprop="datePublished" content="2019-03-29T23:11:49&#43;08:00" />
+<meta itemprop="dateModified" content="2019-03-29T23:11:49&#43;08:00" />
+<meta itemprop="wordCount" content="720">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Pulsar Bundle"/>
+<meta name="twitter:description" content="基本概念 在pulsar中, 为了支持多租户, 有 tenant和namespace 概念. tenant和租户相关, 一个tenant一般是一个 team. namespace 可以区别不同的项目, 一个项目可以有多个topic. 在实现的过程中, 为了更好的支持资源调度的概念, 使用 NamespaceBundles 对象, NamespaceBundles 中有多个 NamespaceBundle, 根据负载, NamespaceBundle 会进行迁移和split. topic在资源上跟着bundle走. 查看NamespaceBundles定义:
+public class NamespaceBundles { private final NamespaceName nsname; private final ArrayList&lt;NamespaceBundle&gt; bundles; private final NamespaceBundleFactory factory; private final long version; protected final long[] partitions; public static final Long FULL_LOWER_BOUND = 0x00000000L; public static final Long FULL_UPPER_BOUND = 0xffffffffL; private final NamespaceBundle fullBundle; 每个bundle负责一段range. 一开始的时候, 只有一个bound, range是 [0x00000000L,0xffffffffL], 后面随着负载过高, 会进行split, 拆分成多个bundle, 每个bundle由一个broker负责, 一个broker可能负责多个bundle."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-03-29 23:11:49 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>4 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai666.github.io/posts/pulsar-bundle/">Pulsar Bundle</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="基本概念">基本概念</h2>
+<p>在pulsar中, 为了支持多租户, 有 tenant和namespace 概念. tenant和租户相关, 一个tenant一般是一个 team. namespace 可以区别不同的项目, 一个项目可以有多个topic.
+在实现的过程中, 为了更好的支持资源调度的概念, 使用 NamespaceBundles 对象, NamespaceBundles 中有多个 NamespaceBundle, 根据负载, NamespaceBundle 会进行迁移和split. topic在资源上跟着bundle走.
+查看NamespaceBundles定义:</p>
+<pre><code>public class NamespaceBundles {
+    private final NamespaceName nsname;
+    private final ArrayList&lt;NamespaceBundle&gt; bundles;
+    private final NamespaceBundleFactory factory;
+    private final long version;
+
+    protected final long[] partitions;
+
+    public static final Long FULL_LOWER_BOUND = 0x00000000L;
+    public static final Long FULL_UPPER_BOUND = 0xffffffffL;
+    private final NamespaceBundle fullBundle;
+</code></pre><p>每个bundle负责一段range. 一开始的时候, 只有一个bound, range是 [0x00000000L,0xffffffffL], 后面随着负载过高, 会进行split, 拆分成多个bundle, 每个bundle由一个broker负责, 一个broker可能负责多个bundle. 当topic创建的时候, 会根据算法选择 bundle, 落地到bundle所在的broker上,<br>
+那么, 使用range有什么好处呢?
+通过bundle抽象topic的资源概念, 可以更好的进行调度. 使用range的方式, 更容易扩容. 但是, 目前的实现上,没办法缩容.</p>
+<p>分析NamespaceBundles的代码的时候, 重点关注下面几个流程:</p>
+<h2 id="bundle元数据">bundle元数据</h2>
+<p>元数据存储在zk上, path: /namespace/NamespaceName/lowKey_highKey, 存储的value对象是 NamespaceEphemeralData, 也就是broker的信息.</p>
+<h2 id="bundle创建">bundle创建</h2>
+<p>刚创建服务的时候, 调用NamespaceService#registerBootstrapNamespaces, 会先注册 heartbeatNamespace, 在尝试注册其他Namespace, 每次获取到namespace 的 own, 就需要加载namespace下所有的topic.<br>
+一个Namespace只有一个owner</p>
+<h2 id="bundle-split">bundle split</h2>
+<p>split流程参考 NamespaceService#splitAndOwnBundle 的注释</p>
+<pre><code>/**
+     * 1. split the given bundle into two bundles 2. assign ownership of both the bundles to current broker 3. update
+     * policies with newly created bundles into LocalZK 4. disable original bundle and refresh the cache.
+     *
+     * It will call splitAndOwnBundleOnceAndRetry to do the real retry work, which will retry &quot;retryTimes&quot;.
+*/
+</code></pre><p>split的调用路径:</p>
+<ol>
+<li>手动触发split
+admin url path:/{tenant}/{namespace}/{bundle}/split
+调用路径:</li>
+</ol>
+<pre><code>Namespaces#splitNamespaceBundle
+-&gt; NamespaceBase#internalSplitNamespaceBundle -&gt; NamespaceService#splitAndOwnBundle -&gt; #splitAndOwnBundleOnceAndRetry 
+</code></pre><p>实现上, 就是将 新分裂的 NamespaceBundle 分派给 当前的broker.</p>
+<h2 id="选主">选主</h2>
+<p>整个服务只有一个leader broker, 所有tenant只有一个leaderBroker.</p>
+<p>pulsar broker启动的时候, 会先竞争 namespace owner, 竞选通过zk临时节点路径 /loadbalance/leader 实现. 竞争成功/失败则获取成功之后, 记录leader broker信息, 触发监听器, 进行 LoadManager#doLoadShedding 和 LoadManager#writeResourceQuotasToZooKeeper, 实现负载动态迁移.
+启动参照 PulsarService#start,</p>
+<pre><code>public void start() throws PulsarServerException {
+    ...
+    this.loadManager.set(LoadManager.create(this));
+    startLeaderElectionService();
+    ....
+}
+</code></pre><p>竞选参照 PulsarService#startLeaderElectionService 和 LeaderElectionService#start.<br>
+其中, 选主后使用的功能:</p>
+<ul>
+<li>LoadManager#doLoadShedding: 找到高负载的broker, 将broker中的bundle迁移到 Namespace中其他的broker, 然后 http服务调用 admin路径 {tenant}/{namespace}/{bundle}/unload  实现.</li>
+<li>LoadManager#writeResourceQuotasToZooKeeper: 将 namespace bundle的resource quotas写入到ZooKeeper路径: /loadbalance/resource-quota/namespace/NamespaceBundleName</li>
+</ul>
+<p>补充admin的处理:
+url路径实现是 Namespaces#unloadNamespaceBundle, 调用链</p>
+<pre><code>Namespaces#unloadNamespaceBundle -&gt; NamespaceBase#internalUnloadNamespaceBundle -&gt; NamespaceService#unloadNamespaceBundle -&gt; #unloadNamespaceBundle -&gt; OwnedBundle#handleUnloadRequest -&gt; OwnershipCache#removeOwnership
+</code></pre><p>最终通过删除zk节点 /namespace/namespaceName/lowKey_highKey 实现</p>
+<p>补充 admin broker是怎么选取出来的呢?
+就是当前broker的地址.</p>
+<p>补充 resource-quota 是怎么计算出来的呢?
+计算的触发流程:</p>
+<pre><code>ZooKeeperChildrenCache#reloadCache/ZooKeeperDataCache#reloadCache -&gt; SimpleLoadManangerImpl#onUpdate -&gt; #updateRanking -&gt; #updateRealtimeResourceQuota
+</code></pre><p>计算的算法参考:
+SimpleLoadManangerImpl#updateRealtimeResourceQuota</p>
+<h2 id="bundle迁移">bundle迁移</h2>
+<p>参照选主流程: LoadManager#doLoadShedding, 计算高负载的时候, 只会删除bundle的owner在zk节点上的信息.
+当bundle不存在的时候, ????</p>
+<h2 id="topic查找">topic查找</h2>
+<p>每个broker都会创建 OwnershipCache, 通过zk的交互, 获取 brokers上own的NamespaceBundle.  查看注释信息</p>
+<pre><code>/**
+ * This class provides a cache service for all the service unit ownership among the brokers. It provide a cache service
+ * as well as ZooKeeper read/write functions for a) lookup of a service unit ownership to a broker; b) take ownership of
+ * a service unit by the local broker
+ *
+ *
+ */
+</code></pre><p>在实现上, 将自己的信息注册到zk的临时节点, 当broker挂了, own的信息就没有了, 那么, bundle就可以迁移了.</p>
+<pre><code>private class OwnedServiceUnitCacheLoader implements AsyncCacheLoader&lt;String, OwnedBundle&gt; {
+
+    public OwnershipCache(PulsarService pulsar, NamespaceBundleFactory bundleFactory) {
+        this.ownerBrokerUrl = pulsar.getBrokerServiceUrl();
+        this.ownerBrokerUrlTls = pulsar.getBrokerServiceUrlTls();
+        this.selfOwnerInfo = new NamespaceEphemeralData(ownerBrokerUrl, ownerBrokerUrlTls,
+                pulsar.getWebServiceAddress(), pulsar.getWebServiceAddressTls(), false);
+        this.selfOwnerInfoDisabled = new NamespaceEphemeralData(ownerBrokerUrl, ownerBrokerUrlTls,
+                pulsar.getWebServiceAddress(), pulsar.getWebServiceAddressTls(), true);
+        this.bundleFactory = bundleFactory;
+        this.localZkCache = pulsar.getLocalZkCache();
+        this.ownershipReadOnlyCache = pulsar.getLocalZkCacheService().ownerInfoCache();
+        // ownedBundlesCache contains all namespaces that are owned by the local broker
+        this.ownedBundlesCache = Caffeine.newBuilder().executor(MoreExecutors.directExecutor())
+                .buildAsync(new OwnedServiceUnitCacheLoader());
+    }
+
+    @SuppressWarnings(&quot;deprecation&quot;)
+    @Override
+    public CompletableFuture&lt;OwnedBundle&gt; asyncLoad(String namespaceBundleZNode, Executor executor) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(&quot;Acquiring zk lock on namespace {}&quot;, namespaceBundleZNode);
+        }
+
+        byte[] znodeContent;
+        try {
+            znodeContent = jsonMapper.writeValueAsBytes(selfOwnerInfo);
+        } catch (JsonProcessingException e) {
+            // Failed to serialize to JSON
+            return FutureUtil.failedFuture(e);
+        }
+
+        CompletableFuture&lt;OwnedBundle&gt; future = new CompletableFuture&lt;&gt;();
+        ZkUtils.asyncCreateFullPathOptimistic(localZkCache.getZooKeeper(), namespaceBundleZNode, znodeContent,
+                Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, (rc, path, ctx, name) -&gt; {
+                    if (rc == KeeperException.Code.OK.intValue()) {
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug(&quot;Successfully acquired zk lock on {}&quot;, namespaceBundleZNode);
+                        }
+                        ownershipReadOnlyCache.invalidate(namespaceBundleZNode);
+                        // ??
+                        future.complete(new OwnedBundle(
+                                ServiceUnitZkUtils.suBundleFromPath(namespaceBundleZNode, bundleFactory)));
+                    } else {
+                        // Failed to acquire lock
+                        future.completeExceptionally(KeeperException.create(rc));
+                    }
+                }, null);
+
+        return future;
+    }
+}
+</code></pre><p>在上面的实现中, 有两个有趣的缓存对象:</p>
+<ul>
+<li>ownershipReadOnlyCache: 查看bundle的owner信息.</li>
+<li>ownedBundlesCache: 自己的 bundle own信息, 本地缓存.
+两个缓存都是基于zk实现的, ownershipReadOnlyCache 是普通的实现, ownedBundlesCache做了定制化, 在asyncLoad函数中, 用自己的broker信息创建临时节点, 实现namespace self owned 的功能.</li>
+</ul>
+<h2 id="topic的创建落地broker">topic的创建、落地broker</h2>
+<ul>
+<li>topic创建的时候是不会绑定到NamespaceBundle上的,  会在zk上存储 /admin/partitioned-topics/namespace/domain/topicName -&gt; partitions 的json数据.</li>
+<li>在Lookup交互协议的时候, 尝试获取 topic 的 own broker 地址的时候, 如果topic没有 owner broker, 会进行选举最低负载的broker. 方法可以参看
+NamespaceService#findBrokerServiceUrl 和 NamespaceService#searchForCandidateBroker.</li>
+</ul>
+<p>在方法 NamespaceService#findBrokerServiceUrl 上, 会先选择topic要分配的bundle. 分配算法如下:</p>
+<pre><code>// topic的hash算法在初始化NamespaceService的时候确定的, 目前是写死的crc32.
+public NamespaceService(PulsarService pulsar) {
+    this.pulsar = pulsar;
+    host = pulsar.getAdvertisedAddress();
+    this.config = pulsar.getConfiguration();
+    this.loadManager = pulsar.getLoadManager();
+    ServiceUnitZkUtils.initZK(pulsar.getLocalZkCache().getZooKeeper(), pulsar.getBrokerServiceUrl());
+    this.bundleFactory = new NamespaceBundleFactory(pulsar, Hashing.crc32()); // 这里竟然分配了
+    this.ownershipCache = new OwnershipCache(pulsar, bundleFactory);
+    this.namespaceClients = new ConcurrentOpenHashMap&lt;&gt;();
+}
+
+// 分配Bundle的算法 
+protected NamespaceBundle getBundle(long hash) {
+    int idx = Arrays.binarySearch(partitions, hash);
+    int lowerIdx = idx &lt; 0 ? -(idx + 2) : idx;
+    return bundles.get(lowerIdx);
+}
+</code></pre><p>在方法 NamespaceService#searchForCandidateBroker 上, 会先选择 candidateBroker， 然后将结果返回.
+candidateBroker的选择有如下几种:</p>
+<ol>
+<li>Heartbeat or SLAMonitor namespace, 直接获取信息中broker地址</li>
+<li>(!this.loadManager.get().isCentralized() || pulsar.getLeaderElectionService().isLeader()); 会选择最低负载的broker.</li>
+<li>如果2不满足, 也就是 this.loadManager.get().isCentralized() &amp;&amp;!pulsar.getLeaderElectionService().isLeader(), 如果是 authoritative mode, 就选择当前的broker, 不然选取 leader broker.</li>
+<li>如果是 选择了当前的broker, 会尝试通过zookkeeper进行own bundle. 成功own的情况下, 会获取Namespace下所有的topic, 过滤获取 当前bundle的所有topic, 在本地创建信息, 建立ManagedLedger信息.</li>
+<li>如果没有选择当前的broker, 就会通过 zk 获取响应的broker信息. done</li>
+</ol>
+<h2 id="broker挂了">broker挂了</h2>
+<p>前面说到, bundle 是在一个broker, broker通过注册临时节点, 通知了其他broker. 所以, 当broker挂掉的时候, 临时节点就会注销, 那么可以根据这个实现 bundle迁移, 但是, 是怎么实现的呢?</p>
+<h3 id="broker怎么办">broker怎么办?</h3>
+<p>producer/consumer启动的时候, 有两种方式连接到 LOOKUP 服务, 一种是直连到 pulsar broker, 另一种是连接到 http服务上, 如果是前面一种方式, broker挂了, 整个服务就不可用了, 而且如果使用第一种方式, 一开始创建的所有topic的bundle都会在一个broker上.  如果是http服务, 那么, 如果服务后面有多个broker, 一个broker挂了的情况, 后面的topic请求过来的时候, 根据topic创建的流程走, 会落在当前的broker上.</p>
+<h2 id="faq">faq</h2>
+<p>一个问题, authoritative 改怎么设置呢? loadManager.get().isCentralized()? 为什么这么设计?</p>
+<h2 id="总结">总结</h2>
+<ol>
+<li>整个服务只有一个 leader broker, 负责进行资源统计、bundle迁移.</li>
+<li>NamespaceBundle对资源进行了抽象, NamespaceBundle负责多个topic, 一个Namespace下有多个NamespaceBundle</li>
+<li>topic创建的时候, 会按照字符串hash + 取余的操作将topic放在一个NamespaceBundle中,方便后面资源调度</li>
+<li>bundle没有merge操作</li>
+<li>broker如果挂了, bundle会由当前Lookup服务的broker负责当前bundle</li>
+</ol>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>720 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-03-29 23:11 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai666.github.io/posts/pulsar-lookup/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Pulsar Lookup</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai666.github.io/posts/redis-overall/">
+                                <span class="button__text">Redis Overall</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

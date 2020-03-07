@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="除了mutex, rwmutex也会经常被使用.
+数据结构 type RWMutex struct { w Mutex // held if there are pending writers  writerSem uint32 // semaphore for writers to wait for completing readers  readerSem uint32 // semaphore for readers to wait for completing writers  readerCount int32 // number of pending readers  readerWait int32 // number of departing readers } RWMutex中使用 Mutex 来实现writer 排队, 只有一个writer操作. 使用 writerSem 用来 readers通知 正在阻塞的 writer. readerSem 用来 reader/writer Unlock/RUnlock 的时候释放阻塞的reader." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai666.github.io/posts/golang-rwmutex/" />
+
+
+    <title>
+        
+            Golang Rwmutex :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Golang Rwmutex">
+<meta itemprop="description" content="除了mutex, rwmutex也会经常被使用.
+数据结构 type RWMutex struct { w Mutex // held if there are pending writers  writerSem uint32 // semaphore for writers to wait for completing readers  readerSem uint32 // semaphore for readers to wait for completing writers  readerCount int32 // number of pending readers  readerWait int32 // number of departing readers } RWMutex中使用 Mutex 来实现writer 排队, 只有一个writer操作. 使用 writerSem 用来 readers通知 正在阻塞的 writer. readerSem 用来 reader/writer Unlock/RUnlock 的时候释放阻塞的reader.">
+<meta itemprop="datePublished" content="2019-05-18T21:53:50&#43;08:00" />
+<meta itemprop="dateModified" content="2019-05-18T21:53:50&#43;08:00" />
+<meta itemprop="wordCount" content="199">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Golang Rwmutex"/>
+<meta name="twitter:description" content="除了mutex, rwmutex也会经常被使用.
+数据结构 type RWMutex struct { w Mutex // held if there are pending writers  writerSem uint32 // semaphore for writers to wait for completing readers  readerSem uint32 // semaphore for readers to wait for completing writers  readerCount int32 // number of pending readers  readerWait int32 // number of departing readers } RWMutex中使用 Mutex 来实现writer 排队, 只有一个writer操作. 使用 writerSem 用来 readers通知 正在阻塞的 writer. readerSem 用来 reader/writer Unlock/RUnlock 的时候释放阻塞的reader."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-05-18 21:53:50 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>One minute
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai666.github.io/posts/golang-rwmutex/">Golang Rwmutex</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>除了mutex, rwmutex也会经常被使用.</p>
+<h2 id="数据结构">数据结构</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rwmutex.go" data-lang="rwmutex.go"><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">RWMutex</span> <span style="color:#66d9ef">struct</span> {
+    <span style="color:#a6e22e">w</span>           <span style="color:#a6e22e">Mutex</span>  <span style="color:#75715e">// held if there are pending writers
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">writerSem</span>   <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// semaphore for writers to wait for completing readers
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">readerSem</span>   <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// semaphore for readers to wait for completing writers
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">readerCount</span> <span style="color:#66d9ef">int32</span>  <span style="color:#75715e">// number of pending readers
+</span><span style="color:#75715e"></span>    <span style="color:#a6e22e">readerWait</span>  <span style="color:#66d9ef">int32</span>  <span style="color:#75715e">// number of departing readers
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>RWMutex中使用 Mutex 来实现writer 排队, 只有一个writer操作. 使用 writerSem 用来 readers通知 正在阻塞的 writer. readerSem 用来 reader/writer Unlock/RUnlock 的时候释放阻塞的reader. readerCount 用来区别 当前是reader还是writer占用锁. readerWait表示writer前面还有等待的reader数量(这样, reader在释放锁的时候, 就可以通过判断 readerWait是否有writer以及是否需要通知writer).</p>
+<p>关键方法实现:
+1.RLock: 读者计数加1, 没有写的情况下，直接成功返回. 有写入的情况下, 放入 readerSem 的goroutine队列, 挂在semaRoot的平衡树上, 在writer释放锁的时候, 会进行遍历释放 readerSem 上阻塞的goroutine. 其中, writer的判断是通过 readerWait实现的, readerWait 在writer lock的时候会减去最大的reader数量, 这样, 如果reader cas +1小于0, 表示有writer.
+2.RUnlock: 注意, RUnlock一个未被加锁的rw, 是抛出异常. 如果是writer 等待了, 就进行唤醒
+3.Lock: 每次只有一个writer并发操作, 只有写锁被释放了, 才有其他goroutine获取写锁, 通过mutex来实现. readerCount会减去maxReader, 让其他reader知道有writer. 如果有reader在前面, 就会修改变量 readerWait 通知reader在RUnlock有writer在等待, 并放入writerSem的等待列表.
+4.Unlock: readerCount重新加上 rwmutexMaxReaders, 遍历唤醒 readerSem上阻塞的goroutine, 释放内部的mutex.</p>
+<p>状态表示:
+&hellip;.</p>
+<p>有意思的地方, RWMutex 通过 Mutex来实现 writer 的互斥操作, 但是, Mutex本身就会挂载在 semaRoot的平衡树上, RWMutex的 writerSem 也会挂载在 semaRoot的平衡树上. 感觉多了一个 sema. Mutex 可以 writerSem 公用一个吗？</p>
+<h2 id="有趣的实现">有趣的实现</h2>
+<p>RLocker将 RWMutex 转换成 别名, 还重写了方法. 通过返回的是接口, 限制了方法的使用.</p>
+<pre><code>// RLocker returns a Locker interface that implements
+// the Lock and Unlock methods by calling rw.RLock and rw.RUnlock.
+func (rw *RWMutex) RLocker() Locker {
+    return (*rlocker)(rw)
+}
+
+type rlocker RWMutex
+
+func (r *rlocker) Lock()   { (*RWMutex)(r).RLock() }
+func (r *rlocker) Unlock() { (*RWMutex)(r).RUnlock() }
+</code></pre>
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>199 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-05-18 21:53 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai666.github.io/posts/golang-wg/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Golang Wg</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai666.github.io/posts/golang-condition/">
+                                <span class="button__text">Golang Condition</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

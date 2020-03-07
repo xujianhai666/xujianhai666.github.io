@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="phxQueue的组件模块：  store service: 依赖Paxos 协议作副本同步, 实现消息存储, 通过租约保证master模型 lock service: 为scheduler 选主、consumer-queue的分配 scheduler service: 根据负载调度consumer和queue的映射关系  模型:  producer: 生产者 consumer: 消费者 store: 负责消息/cursor的存储 queue: 消息队列 paxos-group: 存储的一组集合, 集合中所有的store数据一致. 使用scheduler避免consumer的负载过高, 进行负载均衡  交互上: producer/consumer使用了rpc方式和broker进行交互, broker的消息存储使用了leveldb, 通过paxos实现内容的一致性.
+逻辑层面:  queueId 和 queue的关系比较特殊, queue是一段连续的queueId, queue之间可以进行排序 topic负责部分queue consumer层通过拉取queue实现消息的拉取  特殊的地方:  在paxos上进行了大量的优化: broker层的批提交 相比传统的mq, 添加了consumer层的scheduler: 负载调度  不足:  开源的版本没有broker负载调度模型, 避免broker负载过重, 相对pulsar欠缺. 怀疑queueId/queue模型是可以切分负载的, qmq有类似的功能. leveldb可以考虑使用rocksdb, 在review代码的时候, 发现很多针对leveldb的优化. 开源的版本没有运维的方式说明. 比如 queue的切分, 部署模型  参考文档:" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai666.github.io/posts/phx-oversall/" />
+
+
+    <title>
+        
+            Phx Oversall :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Phx Oversall">
+<meta itemprop="description" content="phxQueue的组件模块：  store service: 依赖Paxos 协议作副本同步, 实现消息存储, 通过租约保证master模型 lock service: 为scheduler 选主、consumer-queue的分配 scheduler service: 根据负载调度consumer和queue的映射关系  模型:  producer: 生产者 consumer: 消费者 store: 负责消息/cursor的存储 queue: 消息队列 paxos-group: 存储的一组集合, 集合中所有的store数据一致. 使用scheduler避免consumer的负载过高, 进行负载均衡  交互上: producer/consumer使用了rpc方式和broker进行交互, broker的消息存储使用了leveldb, 通过paxos实现内容的一致性.
+逻辑层面:  queueId 和 queue的关系比较特殊, queue是一段连续的queueId, queue之间可以进行排序 topic负责部分queue consumer层通过拉取queue实现消息的拉取  特殊的地方:  在paxos上进行了大量的优化: broker层的批提交 相比传统的mq, 添加了consumer层的scheduler: 负载调度  不足:  开源的版本没有broker负载调度模型, 避免broker负载过重, 相对pulsar欠缺. 怀疑queueId/queue模型是可以切分负载的, qmq有类似的功能. leveldb可以考虑使用rocksdb, 在review代码的时候, 发现很多针对leveldb的优化. 开源的版本没有运维的方式说明. 比如 queue的切分, 部署模型  参考文档:">
+<meta itemprop="datePublished" content="2019-03-31T11:52:43&#43;08:00" />
+<meta itemprop="dateModified" content="2019-03-31T11:52:43&#43;08:00" />
+<meta itemprop="wordCount" content="63">
+<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+
+<meta name="twitter:title" content="Phx Oversall"/>
+<meta name="twitter:description" content="phxQueue的组件模块：  store service: 依赖Paxos 协议作副本同步, 实现消息存储, 通过租约保证master模型 lock service: 为scheduler 选主、consumer-queue的分配 scheduler service: 根据负载调度consumer和queue的映射关系  模型:  producer: 生产者 consumer: 消费者 store: 负责消息/cursor的存储 queue: 消息队列 paxos-group: 存储的一组集合, 集合中所有的store数据一致. 使用scheduler避免consumer的负载过高, 进行负载均衡  交互上: producer/consumer使用了rpc方式和broker进行交互, broker的消息存储使用了leveldb, 通过paxos实现内容的一致性.
+逻辑层面:  queueId 和 queue的关系比较特殊, queue是一段连续的queueId, queue之间可以进行排序 topic负责部分queue consumer层通过拉取queue实现消息的拉取  特殊的地方:  在paxos上进行了大量的优化: broker层的批提交 相比传统的mq, 添加了consumer层的scheduler: 负载调度  不足:  开源的版本没有broker负载调度模型, 避免broker负载过重, 相对pulsar欠缺. 怀疑queueId/queue模型是可以切分负载的, qmq有类似的功能. leveldb可以考虑使用rocksdb, 在review代码的时候, 发现很多针对leveldb的优化. 开源的版本没有运维的方式说明. 比如 queue的切分, 部署模型  参考文档:"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2019-03-31 11:52:43 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>One minute
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai666.github.io/posts/phx-oversall/">Phx Oversall</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="phxqueue的组件模块">phxQueue的组件模块：</h2>
+<ol>
+<li>store service: 依赖Paxos 协议作副本同步, 实现消息存储, 通过租约保证master模型</li>
+<li>lock service: 为scheduler 选主、consumer-queue的分配</li>
+<li>scheduler service: 根据负载调度consumer和queue的映射关系</li>
+</ol>
+<h2 id="模型">模型:</h2>
+<ul>
+<li>producer: 生产者</li>
+<li>consumer: 消费者</li>
+<li>store: 负责消息/cursor的存储</li>
+<li>queue: 消息队列</li>
+<li>paxos-group: 存储的一组集合, 集合中所有的store数据一致.</li>
+<li>使用scheduler避免consumer的负载过高, 进行负载均衡</li>
+</ul>
+<h2 id="交互上">交互上:</h2>
+<p>producer/consumer使用了rpc方式和broker进行交互, broker的消息存储使用了leveldb, 通过paxos实现内容的一致性.</p>
+<h2 id="逻辑层面">逻辑层面:</h2>
+<ol>
+<li>queueId 和 queue的关系比较特殊, queue是一段连续的queueId, queue之间可以进行排序</li>
+<li>topic负责部分queue</li>
+<li>consumer层通过拉取queue实现消息的拉取</li>
+</ol>
+<h2 id="特殊的地方">特殊的地方:</h2>
+<ol>
+<li>在paxos上进行了大量的优化: broker层的批提交</li>
+<li>相比传统的mq, 添加了consumer层的scheduler: 负载调度</li>
+</ol>
+<h2 id="不足">不足:</h2>
+<ol>
+<li>开源的版本没有broker负载调度模型, 避免broker负载过重, 相对pulsar欠缺. 怀疑queueId/queue模型是可以切分负载的, qmq有类似的功能.</li>
+<li>leveldb可以考虑使用rocksdb, 在review代码的时候, 发现很多针对leveldb的优化.</li>
+<li>开源的版本没有运维的方式说明. 比如 queue的切分, 部署模型</li>
+</ol>
+<p>参考文档:</p>
+<ol>
+<li><a href="https://github.com/Tencent/phxqueue">https://github.com/Tencent/phxqueue</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1005954">https://cloud.tencent.com/developer/article/1005954</a></li>
+<li><a href="https://myslide.cn/slides/1588">https://myslide.cn/slides/1588</a></li>
+</ol>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>63 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-03-31 11:52 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai666.github.io/posts/kafka-config-online/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Kafka Config Online</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai666.github.io/posts/pulsar-compact/">
+                                <span class="button__text">Pulsar Compact</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
