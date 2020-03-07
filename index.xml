@@ -6,10 +6,23 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sat, 07 Mar 2020 09:35:43 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 07 Mar 2020 20:04:32 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>GOMAXPROCS</title>
+      <link>https://xujianhai.fun/posts/max_proc/</link>
+      <pubDate>Sat, 07 Mar 2020 20:04:32 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/max_proc/</guid>
+      <description>这个是年前的一个案例, 通过团队成员解决, 因为比较经典, 还是写下blog进行记录.
+ 背景 随着业务接入, 服务的集群cpu逐渐上涨到 40%, 有时候流量一段时间上涨, 就会触发cpu 80% 报警, 常规情况下一般是简单扩容就好了, 但是本着cpu优化的角度, 开始进行了profile.
+因为我们的实现基于go的, 直接用 go pprof 进行cpu 分析 就可以了. 结果发现, runtime.findrunnable 的cpu占比比较高, 通过搜索发现, 可能是因为 cpu设置的问题. 于是进行了环境变量的打印, golang默认的 cpu 是获取物理机的cpu: 128, 但是我们的服务是部署在 k8s 上的, cpu 的数量应该是通过 MY_CPU_LIMIT 获取所在容器的cpu:16, 中间差了7倍的数量
+但是为什么 cpu 数量设置的不正确会影响 cpu 利用率呢？
+这个需要讲到 GOMAXPROCS 的参数了, 这个参数规定了 P 的最大数量, 默认取值是 cpu数量, 通过设置 最大并行度(GOMAXPROCS) 为 cpu 数量, 可以充分利用每个cpu, 避免线程切换间的代价. 如果说将 GOMAXPROCS 设置成了128, 首先并行执行go代码的线程数膨胀, 但是由于 k8s 容器对于cpu的约束，导致只有 16个cpu 运行 128个线程 (至少128个, 因为系统调用的线程是不受 GOMAXPROCS 约束的)</description>
+    </item>
     
     <item>
       <title>Rocketmq Heartbeat Timeout</title>
@@ -126,20 +139,6 @@ https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configu
 生命周期:
 流程: ConnectStandalone#main -&amp;gt; StandaloneHerder#putConnectorConfig -&amp;gt; StandaloneHerder#startConnector -&amp;gt; 启动 connector + 启动 task 启动 connector: Worker#startConnector -&amp;gt; WorkerConnector#start (管理connector的生命周期) -&amp;gt; Connector#start 启动task: Worer#startTask -&amp;gt; WorkerTask#run...execute (executorService执行) StatusBackingStore: MemoryStatusBackingStore MemoryConfigBackingStore: MemoryConfigBackingStore standalone的依赖 XXXBackingStore 都是 memory 的实现, 不赘述.
 学习 kafka-connect 很喜欢用 callback 参数, 将结果callback 出去, 一定程度上能够增强 并发度</description>
-    </item>
-    
-    <item>
-      <title>Kafka Connect Design Kip</title>
-      <link>https://xujianhai.fun/posts/kafka-connect-design-kip/</link>
-      <pubDate>Sat, 02 Nov 2019 23:31:22 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka-connect-design-kip/</guid>
-      <description>早期的设计 最早的设计可以看: KIP-26 - Add Kafka Connect framework for data import/export,
-通过kip, 可以发现, connect设计的目标是 导入和导出数据. 设计目标:
- 只聚焦数据处理 并行度的支持. 能够支持大量数据的拷贝 尽可能提供 准确一次的分发. 管理元数据 设计良好的connector api. 易于扩展 流式和批处理的支持 Strandalone 和 集群的支持  为什么是基于 kafka 构建一套connect, 而不是其他框架呢?
- kafka 本身就有并行度的概念 kafka 本身良好的 容错能力, 使得编码简单 kafka 提供了 准确一次、最多一次、最少一次  除此之外, 其他的框架 本身也是从一个具体的case进行 泛化, 不能很好的利用kafka本身的优势。 学习成本和复杂度很高. 部分依赖于 yarn, 对于大集群是好处, 但是应该是 利用而不是依赖. 最后, 其他框架的技术栈 和 kafka 不匹配.
-那么, 为什么 kafka-connect 和 kafka 放在一起呢?
- 文档入口友好度 生态化.</description>
     </item>
     
   </channel>

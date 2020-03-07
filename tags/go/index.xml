@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>go on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/go/</link>
+    <description>Recent content in go on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 07 Mar 2020 20:04:32 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/go/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>GOMAXPROCS</title>
+      <link>https://xujianhai.fun/posts/max_proc/</link>
+      <pubDate>Sat, 07 Mar 2020 20:04:32 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/max_proc/</guid>
+      <description>这个是年前的一个案例, 通过团队成员解决, 因为比较经典, 还是写下blog进行记录.
+ 背景 随着业务接入, 服务的集群cpu逐渐上涨到 40%, 有时候流量一段时间上涨, 就会触发cpu 80% 报警, 常规情况下一般是简单扩容就好了, 但是本着cpu优化的角度, 开始进行了profile.
+因为我们的实现基于go的, 直接用 go pprof 进行cpu 分析 就可以了. 结果发现, runtime.findrunnable 的cpu占比比较高, 通过搜索发现, 可能是因为 cpu设置的问题. 于是进行了环境变量的打印, golang默认的 cpu 是获取物理机的cpu: 128, 但是我们的服务是部署在 k8s 上的, cpu 的数量应该是通过 MY_CPU_LIMIT 获取所在容器的cpu:16, 中间差了7倍的数量
+但是为什么 cpu 数量设置的不正确会影响 cpu 利用率呢？
+这个需要讲到 GOMAXPROCS 的参数了, 这个参数规定了 P 的最大数量, 默认取值是 cpu数量, 通过设置 最大并行度(GOMAXPROCS) 为 cpu 数量, 可以充分利用每个cpu, 避免线程切换间的代价. 如果说将 GOMAXPROCS 设置成了128, 首先并行执行go代码的线程数膨胀, 但是由于 k8s 容器对于cpu的约束，导致只有 16个cpu 运行 128个线程 (至少128个, 因为系统调用的线程是不受 GOMAXPROCS 约束的)</description>
+    </item>
+    
+  </channel>
+</rss>
