@@ -38,8 +38,8 @@
 排查 通过关键字匹配, 发现这个是 rocektmq-golang-sdk 的一处错误打印, 是心跳命令请求broker超时的场景下打印的
 既然是请求rocketmq超时了, 直接登录到线上rocketmq broker查看负载, 但是通过top执行发现cpu和内存占比都比较正常, 同时 netstat -anp | grep pid 扫描的socket的数量也只有几千个,没有异常点.
 没有线索的情况下, 我们继续排查日志内容, 通过 tailf broker.log 一段时间后, 发现有一些类似 &ldquo;event queue size 10000 enough, so drop this event CLOSE&rdquo; 和 &ldquo;event queue size 10000 enough, so drop this event CONNECT&rdquo; 的日志, 同样进行关键字匹配, 发现这段逻辑是 rocketmq 对event的抽象处理, event比如: CONNECT/CLOSE/IDLE/EXCEPTION, 以 CLOSE 为例, 当rocketmq netty server 监听到 主动关闭或者被动关闭 连接的时候, 会实例化一个 CLOSE 类型的 event信息 投递到了 eventQueue, 这个 eventQueue 大小是 1w, 当大小大于 1w 的时候, 就会投递失败 (这里有个坑), eventQueue 投递后的消息是由一个单线程异步处理的, 线程会回调根据注册的listener进行回调, 这一块逻辑参考 NettyRemotingServer#channelInactive、NettyRemotingAbstract#putNettyEvent 和 NettyRemotingAbstract#run, 注册的回调逻辑实现在 ClientHousekeepingService#onChannelClose, 回调都做了什么事情呢?">
-<meta itemprop="datePublished" content="2020-03-06T21:48:49&#43;08:00" />
-<meta itemprop="dateModified" content="2020-03-06T21:48:49&#43;08:00" />
+<meta itemprop="datePublished" content="2020-03-07T09:35:43&#43;08:00" />
+<meta itemprop="dateModified" content="2020-03-07T09:35:43&#43;08:00" />
 <meta itemprop="wordCount" content="362">
 <meta itemprop="image" content="https://xujianhai666.github.io/"/>
 
@@ -58,7 +58,7 @@
 
 
 
-    <meta property="article:published_time" content="2020-03-06 21:48:49 &#43;0800 CST" />
+    <meta property="article:published_time" content="2020-03-07 09:35:43 &#43;0800 CST" />
 
 
 
