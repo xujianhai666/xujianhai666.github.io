@@ -10,7 +10,7 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack M
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
-<link rel="canonical" href="http://xujianhai.fun/posts/golang-init/" />
+<link rel="canonical" href="https://xujianhai.fun/posts/golang-init/" />
 
 
     <title>
@@ -26,7 +26,7 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack M
 
 
 
-<link rel="stylesheet" href="http://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
 
 
 
@@ -37,12 +37,12 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack M
 <meta itemprop="datePublished" content="2019-04-21T12:04:00&#43;08:00" />
 <meta itemprop="dateModified" content="2019-04-21T12:04:00&#43;08:00" />
 <meta itemprop="wordCount" content="286">
-<meta itemprop="image" content="http://xujianhai.fun/"/>
+<meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
 
 <meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:image" content="http://xujianhai.fun/"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
 
 <meta name="twitter:title" content="Golang Init"/>
 <meta name="twitter:description" content="初始化根据平台的不同而不同, 这里参考 adm64 的汇编. 入口参考 runtime#asm_amd64.s, _rt0_amd64(SB)、main(SB)、_rt0_amd64_lib(SB) 分别对应了 内部链接、外部连接以及共享库的三种不同的启动方式. 但是, 最终都会调用 rt0_go.
@@ -67,7 +67,7 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack M
         <div class="container">
             <header class="header">
     <span class="header__inner">
-        <a href="http://xujianhai.fun/" style="text-decoration: none;">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
     <div class="logo">
         
             <span class="logo__mark">></span>
@@ -85,7 +85,7 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack M
         <span class="header__right">
             
                 <nav class="menu">
-    <ul class="menu__inner"><li><a href="http://xujianhai.fun/about/">About</a></li><li><a href="http://xujianhai.fun/posts/">Posts</a></li>
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
     </ul>
 </nav>
 
@@ -122,7 +122,7 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0 // copy arguments forward on an even stack M
 
         <article>
             <h1 class="post-title">
-                <a href="http://xujianhai.fun/posts/golang-init/">Golang Init</a>
+                <a href="https://xujianhai.fun/posts/golang-init/">Golang Init</a>
             </h1>
 
             
@@ -200,7 +200,7 @@ MOVQ    $runtime·mainPC(SB), AX // 指出了第一只goroutine
 CALL    runtime·newproc(SB) // 启动新的goroutine 
 CALL    runtime·mstart(SB) // schedule: 发现可运行的goroutine并进行执行, 循环永远不返回 
 </code></pre>
-<p>这里面, 重点是 mstart, 通过后面的 <a href="http://xujianhai.fun/post/golang-sch">golang调度器分析</a>可以知道, schedule是通过自旋线程来避免频繁的线程切换的, 并保证至少一个自旋线程-&gt;意味着至少有一个空闲线程可以用来处理任务, 初始化的时候, 只有一个线程, 当准备进行goroutine执行的时候, 就会创建新的线程. 参看方法 #resetspinning-&gt;#wakep-&gt;#startm, 通过代码发现, 想要仅仅创建自旋m的话, 还需要有p. 创建m的方法参看 #newm</p>
+<p>这里面, 重点是 mstart, 通过后面的 <a href="https://xujianhai.fun/post/golang-sch">golang调度器分析</a>可以知道, schedule是通过自旋线程来避免频繁的线程切换的, 并保证至少一个自旋线程-&gt;意味着至少有一个空闲线程可以用来处理任务, 初始化的时候, 只有一个线程, 当准备进行goroutine执行的时候, 就会创建新的线程. 参看方法 #resetspinning-&gt;#wakep-&gt;#startm, 通过代码发现, 想要仅仅创建自旋m的话, 还需要有p. 创建m的方法参看 #newm</p>
 <p>这里面, newproc 也是golang内部创建 goroutine的函数入口.</p>
 <p>第一个执行的goroutine:
 runtime#main, 负责了 runtime_init、gcenable、用户main函数入口. 其中  runtime_init 通过看连接可以知道, 实际上是启动了新的goroutine进行 forcegchelper, 通过定时器触发gc操作. gcenable 和gc有关, 启动新的goroutine进行bgsweep</p>
@@ -227,7 +227,7 @@ runtime#main, 负责了 runtime_init、gcenable、用户main函数入口. 其中
                 <div class="pagination__buttons">
                     
                         <span class="button previous">
-                            <a href="http://xujianhai.fun/posts/golang-mod/">
+                            <a href="https://xujianhai.fun/posts/golang-mod/">
                                 <span class="button__icon">←</span>
                                 <span class="button__text">Golang Mod</span>
                             </a>
@@ -236,7 +236,7 @@ runtime#main, 负责了 runtime_init、gcenable、用户main函数入口. 其中
 
                     
                         <span class="button next">
-                            <a href="http://xujianhai.fun/posts/golang-channel/">
+                            <a href="https://xujianhai.fun/posts/golang-channel/">
                                 <span class="button__text">Golang Channel</span>
                                 <span class="button__icon">→</span>
                             </a>
@@ -257,10 +257,10 @@ runtime#main, 负责了 runtime_init、gcenable、用户main函数入口. 其中
         <div class="footer__content">
             <span>&copy; 2020</span>
             
-                <span><a href="http://xujianhai.fun/">Zero xu</a></span>
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
             
             <span></span>
-            <span> <a href="http://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
         </div>
     </div>
     <div class="footer__inner">
@@ -279,7 +279,7 @@ runtime#main, 负责了 runtime_init、gcenable、用户main函数入口. 其中
 
 
 
-<script type="text/javascript" src="http://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
 
 
 

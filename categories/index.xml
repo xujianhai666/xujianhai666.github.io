@@ -2,21 +2,21 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Categories on zero.xu blog</title>
-    <link>http://xujianhai.fun/categories/</link>
+    <link>https://xujianhai.fun/categories/</link>
     <description>Recent content in Categories on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Sun, 03 Mar 2019 19:46:10 +0800</lastBuildDate>
     
-	<atom:link href="http://xujianhai.fun/categories/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://xujianhai.fun/categories/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>pulsar</title>
-      <link>http://xujianhai.fun/categories/pulsar/</link>
+      <link>https://xujianhai.fun/categories/pulsar/</link>
       <pubDate>Sun, 03 Mar 2019 19:46:10 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/categories/pulsar/</guid>
+      <guid>https://xujianhai.fun/categories/pulsar/</guid>
       <description></description>
     </item>
     

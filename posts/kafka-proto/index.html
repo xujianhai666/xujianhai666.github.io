@@ -17,7 +17,7 @@ broker接受到请求后, 处理流程:
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
-<link rel="canonical" href="http://xujianhai.fun/posts/kafka-proto/" />
+<link rel="canonical" href="https://xujianhai.fun/posts/kafka-proto/" />
 
 
     <title>
@@ -33,7 +33,7 @@ broker接受到请求后, 处理流程:
 
 
 
-<link rel="stylesheet" href="http://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
 
 
 
@@ -51,12 +51,12 @@ broker接受到请求后, 处理流程:
 <meta itemprop="datePublished" content="2019-03-09T21:56:40&#43;08:00" />
 <meta itemprop="dateModified" content="2019-03-09T21:56:40&#43;08:00" />
 <meta itemprop="wordCount" content="214">
-<meta itemprop="image" content="http://xujianhai.fun/"/>
+<meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
 
 <meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:image" content="http://xujianhai.fun/"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
 
 <meta name="twitter:title" content="Kafka Proto"/>
 <meta name="twitter:description" content="debug方式启动服务端后, 通过在 KafkaApis#handle 设置断点, 可以发现启动过程中, broker 接受了三个请求:
@@ -88,7 +88,7 @@ broker接受到请求后, 处理流程:
         <div class="container">
             <header class="header">
     <span class="header__inner">
-        <a href="http://xujianhai.fun/" style="text-decoration: none;">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
     <div class="logo">
         
             <span class="logo__mark">></span>
@@ -106,7 +106,7 @@ broker接受到请求后, 处理流程:
         <span class="header__right">
             
                 <nav class="menu">
-    <ul class="menu__inner"><li><a href="http://xujianhai.fun/about/">About</a></li><li><a href="http://xujianhai.fun/posts/">Posts</a></li>
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
     </ul>
 </nav>
 
@@ -143,13 +143,13 @@ broker接受到请求后, 处理流程:
 
         <article>
             <h1 class="post-title">
-                <a href="http://xujianhai.fun/posts/kafka-proto/">Kafka Proto</a>
+                <a href="https://xujianhai.fun/posts/kafka-proto/">Kafka Proto</a>
             </h1>
 
             
 
             <div class="post-content">
-                <p><a href="http://xujianhai.fun/post/kafka-debbug">debug方式</a>启动服务端后, 通过在 KafkaApis#handle 设置断点, 可以发现启动过程中, broker 接受了三个请求:</p>
+                <p><a href="https://xujianhai.fun/post/kafka-debbug">debug方式</a>启动服务端后, 通过在 KafkaApis#handle 设置断点, 可以发现启动过程中, broker 接受了三个请求:</p>
 <pre><code>UpdateMetadata -&gt; LeaderAndIsr -&gt; UpdateMetadata
 </code></pre><p>但是, 后来通过调试分析发现, 只有当存在topic的时候, broker才会接收到三个请求, 没有topic的情况下, 其实, broker只会接受到一个请求.</p>
 <h2 id="没有topic的处理">没有topic的处理</h2>
@@ -179,7 +179,7 @@ broker接受到请求后, 处理流程:
 <pre><code>KafkaController#startup -&gt; Startup#process -&gt; KafkaController#elect -&gt;KafkaController#onControllerFailover -&gt; ReplicaStateMachine#startup -&gt; #handleStateChanges -&gt; #doHandleStateChanges +  ControllerBrokerRequestBatch#sendRequestsToBrokers -&gt; #sendRequestsToBrokers
 </code></pre><p>简述: 启动的时候, ReplicaStateMachine 在发送完 LeaderAndIsr 的请求, 再继续发送 UpdateMetadata 请求.</p>
 <h2 id="总结">总结</h2>
-<p>仔细观察发现: 其实, 无论有没有topic, 整体的流程是一样的. 只是 <a href="http://xujianhai.fun/post/kafka-replica">ReplicaStateMachine</a> 会处理topic存在的情况.</p>
+<p>仔细观察发现: 其实, 无论有没有topic, 整体的流程是一样的. 只是 <a href="https://xujianhai.fun/post/kafka-replica">ReplicaStateMachine</a> 会处理topic存在的情况.</p>
 <h2 id="faq">faq:</h2>
 <ol>
 <li>为什么有topic的时候, 会多出来两个请求?</li>
@@ -244,7 +244,7 @@ broker接受到请求后, 处理流程:
                 <div class="pagination__buttons">
                     
                         <span class="button previous">
-                            <a href="http://xujianhai.fun/posts/rocketmq-debug/">
+                            <a href="https://xujianhai.fun/posts/rocketmq-debug/">
                                 <span class="button__icon">←</span>
                                 <span class="button__text">Rocketmq Debug</span>
                             </a>
@@ -253,7 +253,7 @@ broker接受到请求后, 处理流程:
 
                     
                         <span class="button next">
-                            <a href="http://xujianhai.fun/posts/kafka-debug/">
+                            <a href="https://xujianhai.fun/posts/kafka-debug/">
                                 <span class="button__text">Kafka Debug</span>
                                 <span class="button__icon">→</span>
                             </a>
@@ -274,10 +274,10 @@ broker接受到请求后, 处理流程:
         <div class="footer__content">
             <span>&copy; 2020</span>
             
-                <span><a href="http://xujianhai.fun/">Zero xu</a></span>
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
             
             <span></span>
-            <span> <a href="http://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
         </div>
     </div>
     <div class="footer__inner">
@@ -296,7 +296,7 @@ broker接受到请求后, 处理流程:
 
 
 
-<script type="text/javascript" src="http://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
 
 
 

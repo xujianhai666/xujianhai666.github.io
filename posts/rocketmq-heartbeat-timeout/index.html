@@ -12,7 +12,7 @@
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
-<link rel="canonical" href="http://xujianhai.fun/posts/rocketmq-heartbeat-timeout/" />
+<link rel="canonical" href="https://xujianhai.fun/posts/rocketmq-heartbeat-timeout/" />
 
 
     <title>
@@ -28,7 +28,7 @@
 
 
 
-<link rel="stylesheet" href="http://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
 
 
 
@@ -41,12 +41,12 @@
 <meta itemprop="datePublished" content="2020-03-07T09:35:43&#43;08:00" />
 <meta itemprop="dateModified" content="2020-03-07T09:35:43&#43;08:00" />
 <meta itemprop="wordCount" content="362">
-<meta itemprop="image" content="http://xujianhai.fun/"/>
+<meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
 
 <meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:image" content="http://xujianhai.fun/"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
 
 <meta name="twitter:title" content="Rocketmq Heartbeat Timeout"/>
 <meta name="twitter:description" content="背景 最近线上发现了一些报警: &ldquo;send heart beat to broker add: xxx error: request timeout&rdquo;, 同时伴随着服务重启, 会出现consumer 流量短时间降低, 同时 consumer的连接创建也很缓慢
@@ -73,7 +73,7 @@
         <div class="container">
             <header class="header">
     <span class="header__inner">
-        <a href="http://xujianhai.fun/" style="text-decoration: none;">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
     <div class="logo">
         
             <span class="logo__mark">></span>
@@ -91,7 +91,7 @@
         <span class="header__right">
             
                 <nav class="menu">
-    <ul class="menu__inner"><li><a href="http://xujianhai.fun/about/">About</a></li><li><a href="http://xujianhai.fun/posts/">Posts</a></li>
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
     </ul>
 </nav>
 
@@ -128,7 +128,7 @@
 
         <article>
             <h1 class="post-title">
-                <a href="http://xujianhai.fun/posts/rocketmq-heartbeat-timeout/">Rocketmq Heartbeat Timeout</a>
+                <a href="https://xujianhai.fun/posts/rocketmq-heartbeat-timeout/">Rocketmq Heartbeat Timeout</a>
             </h1>
 
             
@@ -138,7 +138,7 @@
 <p>最近线上发现了一些报警: &ldquo;send heart beat to broker add: xxx error: request timeout&rdquo;, 同时伴随着服务重启, 会出现consumer 流量短时间降低, 同时 consumer的连接创建也很缓慢</p>
 <h2 id="排查">排查</h2>
 <p>通过关键字匹配, 发现这个是 rocektmq-golang-sdk 的一处错误打印, 是心跳命令请求broker超时的场景下打印的</p>
-<p><img src="http://xujianhai.fun/rocketmq-sync-timeout.png" alt="rocketmq-sync-timeout" title="rocketmq-sync-timeout"></p>
+<p><img src="https://xujianhai.fun/rocketmq-sync-timeout.png" alt="rocketmq-sync-timeout" title="rocketmq-sync-timeout"></p>
 <p>既然是请求rocketmq超时了, 直接登录到线上rocketmq broker查看负载, 但是通过top执行发现cpu和内存占比都比较正常, 同时 <code>netstat -anp | grep pid</code> 扫描的socket的数量也只有几千个,没有异常点.</p>
 <p>没有线索的情况下, 我们继续排查日志内容, 通过 <code>tailf broker.log</code> 一段时间后, 发现有一些类似 &ldquo;event queue size 10000 enough, so drop this event CLOSE&rdquo; 和 &ldquo;event queue size 10000 enough, so drop this event CONNECT&rdquo; 的日志, 同样进行关键字匹配, 发现这段逻辑是 rocketmq 对event的抽象处理, event比如: CONNECT/CLOSE/IDLE/EXCEPTION, 以 CLOSE 为例, 当rocketmq  netty server 监听到 主动关闭或者被动关闭 连接的时候, 会实例化一个 CLOSE 类型的 event信息 投递到了 eventQueue, 这个 eventQueue 大小是 1w, 当大小大于 1w 的时候, 就会投递失败 (这里有个坑), eventQueue 投递后的消息是由一个单线程异步处理的, 线程会回调根据注册的listener进行回调, 这一块逻辑参考 NettyRemotingServer#channelInactive、NettyRemotingAbstract#putNettyEvent 和  NettyRemotingAbstract#run, 注册的回调逻辑实现在 ClientHousekeepingService#onChannelClose, 回调都做了什么事情呢?</p>
 <ol>
@@ -147,15 +147,15 @@
 <li>从filter注册信息中删除这个地址的注册</li>
 </ol>
 <p>如下图
-<img src="http://xujianhai.fun/rocketmq-server-channel-close.png" alt="rocketmq-server-channel-close" title="rocketmq-server-channel-close.png"></p>
+<img src="https://xujianhai.fun/rocketmq-server-channel-close.png" alt="rocketmq-server-channel-close" title="rocketmq-server-channel-close.png"></p>
 <p>因此, eventQueue 出现丢弃 event 的情况 是一个问题, 但是和我们的心跳超时并没有太紧密的关联, 并且 event的处理逻辑范围太广, 线索失去了踪迹.</p>
 <p>回到rocketmq本身的心跳实现, rocketmq的心跳处理过程也很简单, 就是简单的内存注册, 也没有复杂的实现, 所以心跳处理应该非常快, 不应该存在处理耗时长的情况, 并且, 结合rocketmq processor的实现方式和配置参数, rocektmq heartbeat 的 线程池队列有 5w大小, 难道我们的心跳qps 已经这么高了? 通过内部注入的客户端打点发现, 我们心跳的qps成功 1.8k, 失败 2.8k, 加起来连 5k qps 也不到, 所以 远远低于线程池queue的配置, 那么, 只剩下一个假设了, 心跳处理的很慢, 但是为什么呢?</p>
 <p>处理慢的情况, 要么是存在锁竞争, 要么是实现逻辑问题. 因为通过代码查看并没有明显的锁竞争行为, 因此使用火焰图进行了cpu profile: <code>./profiler.sh -d 60 -f profile.svg  pid</code>. 因为是线上场景, 不适合使用 lightweight-java-profiler，这里我们采用了 async-profiler. 火焰图结果如下</p>
-<p><img src="http://xujianhai.fun/rocketmq-timeout-profile.png" alt="rocketmq-timeout-profile" title="rocketmq-timeout-profile.png"></p>
+<p><img src="https://xujianhai.fun/rocketmq-timeout-profile.png" alt="rocketmq-timeout-profile" title="rocketmq-timeout-profile.png"></p>
 <p>显然, ProducerManager 在 idle 和 closeEvent 分别触发的 doChannelCloseEvent 占用耗时过长，打开存在问题的函数如下</p>
-<p><img src="http://xujianhai.fun/rocketmq-producer-close.png" alt="rocketmq-producer-close" title="rocketmq-producer-close.png"></p>
+<p><img src="https://xujianhai.fun/rocketmq-producer-close.png" alt="rocketmq-producer-close" title="rocketmq-producer-close.png"></p>
 <p>根据代码的实现, 我们怀疑 for循环遍历 groupChannelTable 耗时长, 如果是这种场景, 那么, groupChannelTable 应该很大. 为了佐证我们的猜想, 进行了jmap内存分析: <code>jmap -dump:format=b,file=filename pid</code>, 通过小伙伴 jvisualvm 的分析, 发现 groupChannelTable 的key非常多, 如下图, 将近 140w</p>
-<p><img src="http://xujianhai.fun/rocketmq-timeout-mapkey.png" alt="rocketmq-timeout-mapkey" title="rocketmq-timeout-mapkey"></p>
+<p><img src="https://xujianhai.fun/rocketmq-timeout-mapkey.png" alt="rocketmq-timeout-mapkey" title="rocketmq-timeout-mapkey"></p>
 <p>根据目前debug的证据: groupChannelTable key太多, for 循环遍历耗时长, 导致处理 doChannelCloseEvent 处理耗时长. 但是这个跟心跳处理又有什么关系呢? 心跳逻辑的实现中, 存在doChannelCloseEvent#add的操作, 根据 ConcurrentHashMap 的内部实现注释, 迭代和add是存在锁竞争操作的, 注释如下:</p>
 <pre><code>/**
  * TreeNodes used at the heads of bins. TreeBins do not hold user
@@ -168,7 +168,7 @@ static final class TreeBin&lt;K,V&gt; extends Node&lt;K,V&gt; {
 </code></pre><p>那么基本上可以破案了. groupChannelTable key 太多, 迭代时间长, TreeBin 在读写操作上存在锁竞争, 导致心跳超时. 至此, 心跳超时、eventqueue丢弃、cpu profile、heap dump 的内容串联起来了</p>
 <h2 id="解决方案">解决方案</h2>
 <p>根据分析的内容, 问题出现在了 groupChannelTable 的遍历问题上, 那么, 是否可以 减少 groupChannelTable 的key数量呢? 根据 groupChannelTable的定义, key 是 producer client传递的group, 这个group是 transactional 场景中使用的, 参考: <a href="https://rocketmq.apache.org/docs/core-concept/">https://rocketmq.apache.org/docs/core-concept/</a> . 那么, 如果我们让 业务方的客户端 尽量复用 group, 比如说让业务的一个服务中的producer 都是用服务的名字作为group, 那么, 就能大大减少 groupChannelTable 的大小, 并且避免 groupChannelTable 此前的恶性循环 (每次遍历耗时很长, 耗时长又导致关闭缓慢, 进而导致groupChannelTable变大, 因为关闭过程中可能又有新的连接). 确定这个解决方案后, 迅速coding、测试环境部署、上线. 上线后不久 错误日志开始跌0, 同时 超时的qps 也降低到了0, 重新cpu profile得到火焰图也正常了, 如下</p>
-<p><img src="http://xujianhai.fun/rocketmq-timeout-normal.png" alt="rocketmq-timeout-normal" title="rocketmq-timeout-normal.png"></p>
+<p><img src="https://xujianhai.fun/rocketmq-timeout-normal.png" alt="rocketmq-timeout-normal" title="rocketmq-timeout-normal.png"></p>
 <h2 id="后记">后记</h2>
 <ol>
 <li>
@@ -204,7 +204,7 @@ static final class TreeBin&lt;K,V&gt; extends Node&lt;K,V&gt; {
 
                     
                         <span class="button next">
-                            <a href="http://xujianhai.fun/posts/protobuf/">
+                            <a href="https://xujianhai.fun/posts/protobuf/">
                                 <span class="button__text">Protobuf</span>
                                 <span class="button__icon">→</span>
                             </a>
@@ -225,10 +225,10 @@ static final class TreeBin&lt;K,V&gt; extends Node&lt;K,V&gt; {
         <div class="footer__content">
             <span>&copy; 2020</span>
             
-                <span><a href="http://xujianhai.fun/">Zero xu</a></span>
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
             
             <span></span>
-            <span> <a href="http://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
         </div>
     </div>
     <div class="footer__inner">
@@ -247,7 +247,7 @@ static final class TreeBin&lt;K,V&gt; extends Node&lt;K,V&gt; {
 
 
 
-<script type="text/javascript" src="http://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
 
 
 

@@ -2,21 +2,21 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>pulsar on zero.xu blog</title>
-    <link>http://xujianhai.fun/categories/pulsar/</link>
+    <link>https://xujianhai.fun/categories/pulsar/</link>
     <description>Recent content in pulsar on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Sun, 03 Mar 2019 19:46:10 +0800</lastBuildDate>
     
-	<atom:link href="http://xujianhai.fun/categories/pulsar/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://xujianhai.fun/categories/pulsar/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Pulsar Broker</title>
-      <link>http://xujianhai.fun/posts/pulsar-broker/</link>
+      <link>https://xujianhai.fun/posts/pulsar-broker/</link>
       <pubDate>Sun, 03 Mar 2019 19:46:10 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-broker/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-broker/</guid>
       <description>这里分析Broker的主要实现.
 impl  基于Netty实现网络层, ServerCnx.java 是网络层和Broker交互的媒介 Consumer: 消费者, Producer: 生产者, 负责消息投递状态的管理,producer统计. Topic: 负责管理 Producer&amp;amp;Subscription, 以及消息的存储 Subscription: 负责管理一组consumer. 支持 Exclusive/Failover/Shared 三种订阅模型, 每个订阅有自己的cursor和Dispatcher. Dispatcher: 负责消息的分发以及消费者的管理[添加、删除] ManagedCursor: cursor管理 ManagedLedger: 负责数据的存储, 主要是 消息数据 和 cursor数据  流程   消息的生产/消费 参照 生产流程分析 和 消费流程分析；这里简单描述:
 Producer send message -&amp;gt; Network -&amp;gt; Netty Server -&amp;gt; Topic -&amp;gt; Subscription -&amp;gt; Dispacher -&amp;gt; Consumer -&amp;gt; Netty Server -&amp;gt; Network -&amp;gt; Consumer   消息redelivery
@@ -26,10 +26,10 @@ Producer send message -&amp;gt; Network -&amp;gt; Netty Server -&amp;gt; Topic -
     
     <item>
       <title>Pulsar Broker Producer Proto</title>
-      <link>http://xujianhai.fun/posts/pulsar-broker-producer-proto/</link>
+      <link>https://xujianhai.fun/posts/pulsar-broker-producer-proto/</link>
       <pubDate>Sun, 03 Mar 2019 18:35:39 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-broker-producer-proto/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-broker-producer-proto/</guid>
       <description>Debug 1.环境准备: 参照 之前的方式
 2.terminal req:
  先发送produce请求 bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar1&amp;rdquo; bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar2&amp;rdquo;  服务端的交互 通过之前的调试方法, producer 和 broker 之间的交互协议:
@@ -44,10 +44,10 @@ Producer#publishMessage -&amp;gt; PersistentTopic#publishMessage -&amp;gt; Manag
     
     <item>
       <title>Pulsar Client Producer</title>
-      <link>http://xujianhai.fun/posts/pulsar-client-producer/</link>
+      <link>https://xujianhai.fun/posts/pulsar-client-producer/</link>
       <pubDate>Sun, 03 Mar 2019 14:43:01 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-client-producer/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-client-producer/</guid>
       <description>这篇文章会对 producer 进行分析.
 入口 这里通过org.apache.pulsar.client.tutorial.SampleProducer#main进行分析.
 producer client impl 主要有 ProducerImpl 和 PartitionedProducerImpl 两种,
@@ -59,19 +59,19 @@ producer client impl 主要有 ProducerImpl 和 PartitionedProducerImpl 两种,
     
     <item>
       <title>Pulsar Function</title>
-      <link>http://xujianhai.fun/posts/pulsar-function/</link>
+      <link>https://xujianhai.fun/posts/pulsar-function/</link>
       <pubDate>Sun, 03 Mar 2019 10:07:06 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-function/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-function/</guid>
       <description>不赘述, 有空补</description>
     </item>
     
     <item>
       <title>Pulsar Proxy</title>
-      <link>http://xujianhai.fun/posts/pulsar-proxy/</link>
+      <link>https://xujianhai.fun/posts/pulsar-proxy/</link>
       <pubDate>Sun, 03 Mar 2019 10:06:30 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-proxy/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-proxy/</guid>
       <description>proxy的作用  The Pulsar proxy is an optional gateway that you can run in front of the brokers in a Pulsar cluster. We recommend running a Pulsar proxy in cases when direction connections between clients and Pulsar brokers are either infeasible, undesirable, or both, for example when running Pulsar in a cloud environment or on Kubernetes or an analogous platform.
  根据官方的描述, proxy可以更好的解耦client和broker.
 proxy impl  主要的类:   ProxyConnection: 处理proxy server的请求, ProxyConnectionPool: 后端broker client的连接池, LookupProxyHandler频繁使用 LookupProxyHandler: 负责 namespace topic的查找工作 DirectProxyHandler: broker client的处理器, 内部类 ProxyBackendHandler 负责协议相关 BrokerDiscoveryProvider: 负责从 zk上获取 topic metadata  消息收发流程  总结如下图:</description>
@@ -79,10 +79,10 @@ proxy impl  主要的类:   ProxyConnection: 处理proxy server的请求, ProxyC
     
     <item>
       <title>Pulsar Cleint Consumer</title>
-      <link>http://xujianhai.fun/posts/pulsar-client-consumer/</link>
+      <link>https://xujianhai.fun/posts/pulsar-client-consumer/</link>
       <pubDate>Sun, 03 Mar 2019 09:59:33 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-client-consumer/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-client-consumer/</guid>
       <description>这篇文章会对 consumer 进行分析.
 入口 这里通过org.apache.pulsar.client.tutorial.SampleConsumer#main进行分析.
 consumer 实现 通过debug分析可以发现, consumer底层只有 ConsumerImpl、ZeroQueueConsumerImpl、 MultiTopicsConsumerImpl 和 PatternMultiTopicsConsumerImpl 四种. 其中, ConsumerImpl是基础的实现, 其他是基于ConsumerImpl进行的封装和组合处理. consumer和broker之间的协议交互通过 ClientCnx 进行处理, 协议分析参照链接.
@@ -92,10 +92,10 @@ consumer 实现 通过debug分析可以发现, consumer底层只有 ConsumerImpl
     
     <item>
       <title>Pulsar Broker Consumer Proto</title>
-      <link>http://xujianhai.fun/posts/pulsar-broker-consumer-proto/</link>
+      <link>https://xujianhai.fun/posts/pulsar-broker-consumer-proto/</link>
       <pubDate>Sat, 02 Mar 2019 21:40:57 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-broker-consumer-proto/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-broker-consumer-proto/</guid>
       <description>Debug 1.环境准备: 在 org.apache.pulsar.common.api.PulsarDecoder#channelRead 中对每一个 case 打点, 启动debug.
 2.terminal req:
  先发送produce请求, 积累数据, 同时避免 consumer污染debug流程 bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar1&amp;rdquo; bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar2&amp;rdquo; 发送consume请求, 关注调试 bin/pulsar-client consume my-topic -t Shared -s demo-sub2 -n 0  服务端的交互 经过debug, 发现consumer主要通过一下几个流程:
@@ -110,10 +110,10 @@ ServerCnx#handleSubscribe -&amp;gt; PersistentTopic#subscribe -&amp;gt; Persiste
     
     <item>
       <title>Pulsar Debug</title>
-      <link>http://xujianhai.fun/posts/pulsar-debug/</link>
+      <link>https://xujianhai.fun/posts/pulsar-debug/</link>
       <pubDate>Sat, 02 Mar 2019 17:22:50 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-debug/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-debug/</guid>
       <description> 首先, 在 ~/.m2/settings.xml中添加远程仓库配置:   &amp;lt;repositories&amp;gt; ... &amp;lt;repository&amp;gt; &amp;lt;id&amp;gt;central&amp;lt;/id&amp;gt; &amp;lt;layout&amp;gt;default&amp;lt;/layout&amp;gt; &amp;lt;url&amp;gt;https://repo1.maven.org/maven2&amp;lt;/url&amp;gt; &amp;lt;/repository&amp;gt; &amp;lt;repository&amp;gt; &amp;lt;snapshots&amp;gt; &amp;lt;enabled&amp;gt;false&amp;lt;/enabled&amp;gt; &amp;lt;/snapshots&amp;gt; &amp;lt;id&amp;gt;bintray-yahoo-maven&amp;lt;/id&amp;gt; &amp;lt;name&amp;gt;bintray&amp;lt;/name&amp;gt; &amp;lt;url&amp;gt;https://yahoo.bintray.com/maven&amp;lt;/url&amp;gt; &amp;lt;/repository&amp;gt; .... &amp;lt;/repositories&amp;gt; 这里使用Intellij进行调试. 相关配置:   启动类: org.apache.pulsar.PulsarStandaloneStarter 启动参数: &amp;ndash;config conf/standalone.conf &amp;ndash;no-functions-worker   intellij 启动成功后, 本地使用 consumer&amp;amp;producer测试.
   启动consumer: bin/pulsar-client consume my-topic -t Shared -s demo-sub2 -n 1
   启动produer: bin/pulsar-client produce my-topic &amp;ndash;messages &amp;ldquo;hello-pulsar&amp;rdquo; producer启动成功后, consumer控制面上会有 消息提示.
@@ -122,10 +122,10 @@ ServerCnx#handleSubscribe -&amp;gt; PersistentTopic#subscribe -&amp;gt; Persiste
     
     <item>
       <title>Pulsar Intro</title>
-      <link>http://xujianhai.fun/posts/pulsar-intro/</link>
+      <link>https://xujianhai.fun/posts/pulsar-intro/</link>
       <pubDate>Sat, 02 Mar 2019 17:06:25 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/pulsar-intro/</guid>
+      <guid>https://xujianhai.fun/posts/pulsar-intro/</guid>
       <description>pulsar是 yahoo开发并开源的 分布式 pub-sub消息. 相比于 kafka/rocketmq, 最大的差异就是 存储上的不同. kafka 和 rocketmq 存储在 本地机器上, pulsar却是存储在 bookkeeper, 一种容错、低延迟、容错的存储服务, 专门为 append-only 类型进行优化. 这样的做法，可以实现存储层和计算层隔离, Broker 动态变化不依赖于数据的迁移，方便了扩容缩容.
 pulsar实现上的主要特点:
  消息内容的数据写入到 bookkeeper. 封装的数据结构: ManagedLedgerImpl 消费的cursor 写入到 bookkeeper. 封装的数据结构: ManagedCursorImpl 消费的订阅关系 维护在 zk中. 封装的数据结构: MetaStoreImplZookeeper consumer类型: Exclusive/Failover 主要处理逻辑封装在 AbstractDispatcherSingleActiveConsumer, Shared 封装逻辑主要在 PersistentDispatcherMultipleConsumers. 支持partitioned topic 基于Netty的网络处理逻辑.  </description>

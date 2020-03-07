@@ -14,7 +14,7 @@ public class NSQHandler extends SimpleChannelInboundHandler&amp;lt;NSQFrame&amp;
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
-<link rel="canonical" href="http://xujianhai.fun/posts/tmq-oom/" />
+<link rel="canonical" href="https://xujianhai.fun/posts/tmq-oom/" />
 
 
     <title>
@@ -30,7 +30,7 @@ public class NSQHandler extends SimpleChannelInboundHandler&amp;lt;NSQFrame&amp;
 
 
 
-<link rel="stylesheet" href="http://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
 
 
 
@@ -45,12 +45,12 @@ public class NSQHandler extends SimpleChannelInboundHandler&lt;NSQFrame&gt; { ."
 <meta itemprop="datePublished" content="2019-04-13T14:10:45&#43;08:00" />
 <meta itemprop="dateModified" content="2019-04-13T14:10:45&#43;08:00" />
 <meta itemprop="wordCount" content="200">
-<meta itemprop="image" content="http://xujianhai.fun/"/>
+<meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
 
 <meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:image" content="http://xujianhai.fun/"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
 
 <meta name="twitter:title" content="Tmq Oom"/>
 <meta name="twitter:description" content="周末上午, 突然接到业务方反馈 nsq-consumer 发生了 netty 内存泄露. 通过heap dump文件分析文件, 发下了大内存占用. 如下图
@@ -79,7 +79,7 @@ public class NSQHandler extends SimpleChannelInboundHandler&lt;NSQFrame&gt; { ."
         <div class="container">
             <header class="header">
     <span class="header__inner">
-        <a href="http://xujianhai.fun/" style="text-decoration: none;">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
     <div class="logo">
         
             <span class="logo__mark">></span>
@@ -97,7 +97,7 @@ public class NSQHandler extends SimpleChannelInboundHandler&lt;NSQFrame&gt; { ."
         <span class="header__right">
             
                 <nav class="menu">
-    <ul class="menu__inner"><li><a href="http://xujianhai.fun/about/">About</a></li><li><a href="http://xujianhai.fun/posts/">Posts</a></li>
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
     </ul>
 </nav>
 
@@ -134,16 +134,16 @@ public class NSQHandler extends SimpleChannelInboundHandler&lt;NSQFrame&gt; { ."
 
         <article>
             <h1 class="post-title">
-                <a href="http://xujianhai.fun/posts/tmq-oom/">Tmq Oom</a>
+                <a href="https://xujianhai.fun/posts/tmq-oom/">Tmq Oom</a>
             </h1>
 
             
 
             <div class="post-content">
                 <p>周末上午, 突然接到业务方反馈 nsq-consumer 发生了 netty 内存泄露. 通过heap dump文件分析文件, 发下了大内存占用. 如下图</p>
-<p><img src="http://xujianhai.fun/oom-ana.png" alt="oom-ana" title="oom-ana">
+<p><img src="https://xujianhai.fun/oom-ana.png" alt="oom-ana" title="oom-ana">
 overall  界面</p>
-<p><img src="http://xujianhai.fun/oom-list.png" alt="oom-list" title="oom-list">
+<p><img src="https://xujianhai.fun/oom-list.png" alt="oom-list" title="oom-list">
 object-list 界面</p>
 <p>通过点击 &ldquo;overall  界面&rdquo; 图的list object功能, 会进入 &ldquo;object-list 界面&rdquo;, 可以发现 nsqj 的内存占用最高, 问题定位到了, 那么, nsqj 线程是做什么的呢? nsqj实例化如下:</p>
 <pre><code>public AbstractNSQClient(BootstrapConfig config, String topic, String channel, int rdy,
@@ -206,7 +206,7 @@ review代码如下:</p>
                 <div class="pagination__buttons">
                     
                         <span class="button previous">
-                            <a href="http://xujianhai.fun/posts/golang-sch/">
+                            <a href="https://xujianhai.fun/posts/golang-sch/">
                                 <span class="button__icon">←</span>
                                 <span class="button__text">Golang Sch</span>
                             </a>
@@ -215,7 +215,7 @@ review代码如下:</p>
 
                     
                         <span class="button next">
-                            <a href="http://xujianhai.fun/posts/rust_learn/">
+                            <a href="https://xujianhai.fun/posts/rust_learn/">
                                 <span class="button__text">Rust_learn</span>
                                 <span class="button__icon">→</span>
                             </a>
@@ -236,10 +236,10 @@ review代码如下:</p>
         <div class="footer__content">
             <span>&copy; 2020</span>
             
-                <span><a href="http://xujianhai.fun/">Zero xu</a></span>
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
             
             <span></span>
-            <span> <a href="http://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
         </div>
     </div>
     <div class="footer__inner">
@@ -258,7 +258,7 @@ review代码如下:</p>
 
 
 
-<script type="text/javascript" src="http://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
 
 
 

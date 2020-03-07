@@ -2,21 +2,21 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>zero.xu blog</title>
-    <link>http://xujianhai.fun/</link>
+    <link>https://xujianhai.fun/</link>
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Sat, 07 Mar 2020 09:35:43 +0800</lastBuildDate>
     
-	<atom:link href="http://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Rocketmq Heartbeat Timeout</title>
-      <link>http://xujianhai.fun/posts/rocketmq-heartbeat-timeout/</link>
+      <link>https://xujianhai.fun/posts/rocketmq-heartbeat-timeout/</link>
       <pubDate>Sat, 07 Mar 2020 09:35:43 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/rocketmq-heartbeat-timeout/</guid>
+      <guid>https://xujianhai.fun/posts/rocketmq-heartbeat-timeout/</guid>
       <description>背景 最近线上发现了一些报警: &amp;ldquo;send heart beat to broker add: xxx error: request timeout&amp;rdquo;, 同时伴随着服务重启, 会出现consumer 流量短时间降低, 同时 consumer的连接创建也很缓慢
 排查 通过关键字匹配, 发现这个是 rocektmq-golang-sdk 的一处错误打印, 是心跳命令请求broker超时的场景下打印的
 既然是请求rocketmq超时了, 直接登录到线上rocketmq broker查看负载, 但是通过top执行发现cpu和内存占比都比较正常, 同时 netstat -anp | grep pid 扫描的socket的数量也只有几千个,没有异常点.
@@ -25,10 +25,10 @@
     
     <item>
       <title>Protobuf</title>
-      <link>http://xujianhai.fun/posts/protobuf/</link>
+      <link>https://xujianhai.fun/posts/protobuf/</link>
       <pubDate>Sat, 11 Jan 2020 15:16:40 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/protobuf/</guid>
+      <guid>https://xujianhai.fun/posts/protobuf/</guid>
       <description>gogo-protobuf 扩展了 protobuf 的使用姿势, 不仅添加了丰富的插件: string/euqla/marshal/unmarshal, 性能上还进行了优化. gogo-protobuf 的插件体系相对于原生的protobuf-go的插件实现(虽然只有一个grpc), 不仅丰富, 而且支持开关. 开关是借助于 描述符中extension 实现的.
 gogo-protobuf 因为支持的插件体系比较多, 为此, 将插件分成了几种启用级别, 对外是不同的使用入口. 比如 protoc-gen-gogofast、protoc-gen-gogofaster、protoc-gen-gogoslick. 除了通过不同的入口, 还可以通过不同proto文件的参数定制, 比如 option (gogoproto.gostring_all) = true; 实现给每个message添加string的方法.
 补充:  extension  extension 是 proto2 中支持的语法, 在新的pb文件中, 使用了 Any 进行了替代. 更多关于extension可以参考: https://developers.google.com/protocol-buffers/docs/proto#extensions, Any可以参照 https://developers.google.com/protocol-buffers/docs/proto3#any . 但是在 gogo的使用实现中, 还是用 extend 机制, proto2 用extend, proto3 使用本地登记的方式
@@ -40,19 +40,19 @@ protoc插件  protoc是支持插件的, 比如gogo-out其实就是去找gogo的�
     
     <item>
       <title>Kip 2018 12</title>
-      <link>http://xujianhai.fun/posts/kip-2018-12/</link>
+      <link>https://xujianhai.fun/posts/kip-2018-12/</link>
       <pubDate>Wed, 11 Dec 2019 19:49:58 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/kip-2018-12/</guid>
+      <guid>https://xujianhai.fun/posts/kip-2018-12/</guid>
       <description> reassignment 限流   摘要: 对 reassignment 的 replication 进行限流, 避免全局限流的导致isr落后的partition 的无法追上。这里的限流是动态的. 以前的通用的限流不进行废弃, 因为存在无isr而且 follower 用光带宽的时候, 这个限制还是需要的。新增加了两个配置: leader.reassignment.throttled.rate 和 follower.reassignment.throttled.rate, 前者是 leader broker 统一限流, 但是因为kafka reassignment 的 partition follower 可以有很多个, leader限流的话需要计算每个followerd的比例, 所以添加了 follower限流 kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-542%3A+Partition+Reassignment+Throttling  replication quota   摘要: client 的限流是通过延迟实现的, replica原来也有类似的限流 replica.fetch.max.bytes , 不过是 partition 级别的。新的方案, 添加了 LeaderQuotaRate 和 FollowerQuotaRate. kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-73+Replication+Quotas  </description>
     </item>
     
     <item>
       <title>Rocketmq Admin</title>
-      <link>http://xujianhai.fun/posts/rocketmq-admin/</link>
+      <link>https://xujianhai.fun/posts/rocketmq-admin/</link>
       <pubDate>Sun, 17 Nov 2019 21:50:30 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/rocketmq-admin/</guid>
+      <guid>https://xujianhai.fun/posts/rocketmq-admin/</guid>
       <description>查看消费进度:
 sh mqadmin consumerProgress -g $groupName -n ${ip:port} 查看客户端的连接信息
 sh mqadmin consumerConnection -g $group -n ${ip:port} 查看topic状态
@@ -63,10 +63,10 @@ sh mqadmin updateTopic -t $topic -n ${ip:port} -c $cluster -r 1 -w 1 -o true </d
     
     <item>
       <title>Kafka Controller Redesign</title>
-      <link>http://xujianhai.fun/posts/kafka-controller-redesign/</link>
+      <link>https://xujianhai.fun/posts/kafka-controller-redesign/</link>
       <pubDate>Sun, 10 Nov 2019 11:10:24 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/kafka-controller-redesign/</guid>
+      <guid>https://xujianhai.fun/posts/kafka-controller-redesign/</guid>
       <description>最近学习 kafka 相关的kip, 发现了一个 kafka controller redesign 的设计的文章, 这里叙述一下:
   kip: https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#
   kip: https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Redesign
@@ -76,10 +76,10 @@ sh mqadmin updateTopic -t $topic -n ${ip:port} -c $cluster -r 1 -w 1 -o true </d
     
     <item>
       <title>Kafka Group Codereview</title>
-      <link>http://xujianhai.fun/posts/kafka-group-codereview/</link>
+      <link>https://xujianhai.fun/posts/kafka-group-codereview/</link>
       <pubDate>Sat, 09 Nov 2019 21:52:25 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/kafka-group-codereview/</guid>
+      <guid>https://xujianhai.fun/posts/kafka-group-codereview/</guid>
       <description>最近学习 kafka-connect 的设计和实现. 其中设计到 group member protocol 的内容. 这里展开学习.
 kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以及 ConsumerCoordinator 的实现.
 整体生命流程: 找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. ConsumerCoordinator子类 从上面的流程中可以知道, 继承 AbstractCoordinator 的子类, 需要实现 onJoinPrepare、metadata、onLeavePrepare、performAssignment、onJoinComplete
@@ -88,10 +88,10 @@ kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以�
     
     <item>
       <title>Kafka Group Kip</title>
-      <link>http://xujianhai.fun/posts/kafka-group-kip/</link>
+      <link>https://xujianhai.fun/posts/kafka-group-kip/</link>
       <pubDate>Thu, 07 Nov 2019 09:54:35 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/kafka-group-kip/</guid>
+      <guid>https://xujianhai.fun/posts/kafka-group-kip/</guid>
       <description>这里主要讨论 kafka group 相关的协议: rebalance, partition 等
 https://cwiki.apache.org/confluence/display/KAFKA/KIP-480%3A+Sticky+Partitioner
 https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A+Kafka+Consumer+Incremental+Rebalance+Protocol
@@ -107,19 +107,19 @@ https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configu
     
     <item>
       <title>Kafka Mirror Review</title>
-      <link>http://xujianhai.fun/posts/kafka-mirror-review/</link>
+      <link>https://xujianhai.fun/posts/kafka-mirror-review/</link>
       <pubDate>Sat, 02 Nov 2019 23:33:49 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/kafka-mirror-review/</guid>
+      <guid>https://xujianhai.fun/posts/kafka-mirror-review/</guid>
       <description></description>
     </item>
     
     <item>
       <title>Kafka Connect Codereview</title>
-      <link>http://xujianhai.fun/posts/kafka-connect-codereview/</link>
+      <link>https://xujianhai.fun/posts/kafka-connect-codereview/</link>
       <pubDate>Sat, 02 Nov 2019 23:32:49 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/kafka-connect-codereview/</guid>
+      <guid>https://xujianhai.fun/posts/kafka-connect-codereview/</guid>
       <description>kafka 支持两种模式: standalone 和 distributed. 分开来讲.
 组件 kafka-connect 主要的组件如下
  Herder: 管理 worker、statusBackingStore、configBackingStore、offsetBackingStore. Connect: kafka-connect 组件的生命周期的管理 statusBackingStore: task/worker 状态变化, 都需要调用这个 offsetBackingStore: 管理offset configBackingStore: 管理配置 ConfigProvider: 管理配置信息  standalone standalone 的实现比较简单, 这里简单说下 生命周期.
@@ -130,10 +130,10 @@ https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configu
     
     <item>
       <title>Kafka Connect Design Kip</title>
-      <link>http://xujianhai.fun/posts/kafka-connect-design-kip/</link>
+      <link>https://xujianhai.fun/posts/kafka-connect-design-kip/</link>
       <pubDate>Sat, 02 Nov 2019 23:31:22 +0800</pubDate>
       
-      <guid>http://xujianhai.fun/posts/kafka-connect-design-kip/</guid>
+      <guid>https://xujianhai.fun/posts/kafka-connect-design-kip/</guid>
       <description>早期的设计 最早的设计可以看: KIP-26 - Add Kafka Connect framework for data import/export,
 通过kip, 可以发现, connect设计的目标是 导入和导出数据. 设计目标:
  只聚焦数据处理 并行度的支持. 能够支持大量数据的拷贝 尽可能提供 准确一次的分发. 管理元数据 设计良好的connector api. 易于扩展 流式和批处理的支持 Strandalone 和 集群的支持  为什么是基于 kafka 构建一套connect, 而不是其他框架呢?
