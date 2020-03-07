@@ -16,7 +16,7 @@ printf &amp;quot;%x\n&amp;quot; 5816 16b8 jstack 5608 | grep 16b8 &amp;quot;kafk
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
-<link rel="canonical" href="https://xujianhai666.github.io/posts/perf-rafka/" />
+<link rel="canonical" href="http://xujianhai.fun/posts/perf-rafka/" />
 
 
     <title>
@@ -32,7 +32,7 @@ printf &amp;quot;%x\n&amp;quot; 5816 16b8 jstack 5608 | grep 16b8 &amp;quot;kafk
 
 
 
-<link rel="stylesheet" href="https://xujianhai666.github.io/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+<link rel="stylesheet" href="http://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
 
 
 
@@ -49,12 +49,12 @@ printf &quot;%x\n&quot; 5816 16b8 jstack 5608 | grep 16b8 &quot;kafka-request-ha
 <meta itemprop="datePublished" content="2019-03-31T18:25:36&#43;08:00" />
 <meta itemprop="dateModified" content="2019-03-31T18:25:36&#43;08:00" />
 <meta itemprop="wordCount" content="328">
-<meta itemprop="image" content="https://xujianhai666.github.io/"/>
+<meta itemprop="image" content="http://xujianhai.fun/"/>
 
 
 
 <meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:image" content="https://xujianhai666.github.io/"/>
+<meta name="twitter:image" content="http://xujianhai.fun/"/>
 
 <meta name="twitter:title" content="Perf Rafka"/>
 <meta name="twitter:description" content="因为研发rafka的需要, 进行了线上的压测, 这里记录下诊断的使用.
@@ -85,7 +85,7 @@ printf &quot;%x\n&quot; 5816 16b8 jstack 5608 | grep 16b8 &quot;kafka-request-ha
         <div class="container">
             <header class="header">
     <span class="header__inner">
-        <a href="https://xujianhai666.github.io/" style="text-decoration: none;">
+        <a href="http://xujianhai.fun/" style="text-decoration: none;">
     <div class="logo">
         
             <span class="logo__mark">></span>
@@ -103,7 +103,7 @@ printf &quot;%x\n&quot; 5816 16b8 jstack 5608 | grep 16b8 &quot;kafka-request-ha
         <span class="header__right">
             
                 <nav class="menu">
-    <ul class="menu__inner"><li><a href="https://xujianhai666.github.io/about/">About</a></li><li><a href="https://xujianhai666.github.io/posts/">Posts</a></li>
+    <ul class="menu__inner"><li><a href="http://xujianhai.fun/about/">About</a></li><li><a href="http://xujianhai.fun/posts/">Posts</a></li>
     </ul>
 </nav>
 
@@ -140,7 +140,7 @@ printf &quot;%x\n&quot; 5816 16b8 jstack 5608 | grep 16b8 &quot;kafka-request-ha
 
         <article>
             <h1 class="post-title">
-                <a href="https://xujianhai666.github.io/posts/perf-rafka/">Perf Rafka</a>
+                <a href="http://xujianhai.fun/posts/perf-rafka/">Perf Rafka</a>
             </h1>
 
             
@@ -152,10 +152,10 @@ printf &quot;%x\n&quot; 5816 16b8 jstack 5608 | grep 16b8 &quot;kafka-request-ha
 <h2 id="诊断使用">诊断使用</h2>
 <h3 id="1top">1.top</h3>
 <p>通过top看下服务的整体情况: 内存 cpu等情况</p>
-<p><img src="https://xujianhai666.github.io/rafka-top.png" alt="rafka-top/png" title=""></p>
+<p><img src="http://xujianhai.fun/rafka-top.png" alt="rafka-top/png" title=""></p>
 <h3 id="2查看是哪个线程">2.查看是哪个线程</h3>
 <p>top -Hp 5608
-<img src="https://xujianhai666.github.io/rafka-toph.png" alt="rafka-toph/png" title="">
+<img src="http://xujianhai.fun/rafka-toph.png" alt="rafka-toph/png" title="">
 转换16进制</p>
 <pre><code>printf &quot;%x\n&quot; 5816
 16b8
@@ -164,11 +164,11 @@ printf &quot;%x\n&quot; 5816 16b8 jstack 5608 | grep 16b8 &quot;kafka-request-ha
 </code></pre><p>看线程信息, 可以知道, handler线程一直忙着处理</p>
 <h3 id="3整体分布">3.整体分布</h3>
 <p>这里使用过火焰图查看性能的分布
-<img src="https://xujianhai666.github.io/rafka-falme.png" alt="rafka-falme/png" title="">
+<img src="http://xujianhai.fun/rafka-falme.png" alt="rafka-falme/png" title="">
 可以发现, 主要的性能分布在 kafka日制写入 和 rafka的rocksdb写入. 符合预期</p>
 <h3 id="4jni做了什么">4.jni做了什么</h3>
 <p>因为rafka使用了jni调用rocksdb实现了存储, 那么, jni下面做了什么呢?我们使用perf进行诊断.
-<img src="https://xujianhai666.github.io/rafka-perf.png" alt="rafka-perf/png" title=""></p>
+<img src="http://xujianhai.fun/rafka-perf.png" alt="rafka-perf/png" title=""></p>
 <h2 id="工具">工具</h2>
 <p>上面的诊断方式中, 主要使用了三个工具: 火焰图 java-profiler 和 perf</p>
 <h3 id="1火焰图可视化">1.火焰图可视化</h3>
@@ -197,7 +197,7 @@ stackcollapse-perf.pl perf.unfold &amp;&gt; perf.folded
 <h2 id="其他">其他</h2>
 <ul>
 <li>
-<p>机器配置信息参考 <a href="https://xujianhai666.github.io/post/kafka-config-online">文章</a></p>
+<p>机器配置信息参考 <a href="http://xujianhai.fun/post/kafka-config-online">文章</a></p>
 </li>
 <li>
 <p>纯kafka的压测结果: [三次压测]</p>
@@ -241,7 +241,7 @@ stackcollapse-perf.pl perf.unfold &amp;&gt; perf.folded
                 <div class="pagination__buttons">
                     
                         <span class="button previous">
-                            <a href="https://xujianhai666.github.io/posts/tidb-debug/">
+                            <a href="http://xujianhai.fun/posts/tidb-debug/">
                                 <span class="button__icon">←</span>
                                 <span class="button__text">Tidb Debug</span>
                             </a>
@@ -250,7 +250,7 @@ stackcollapse-perf.pl perf.unfold &amp;&gt; perf.folded
 
                     
                         <span class="button next">
-                            <a href="https://xujianhai666.github.io/posts/kafka-config-online/">
+                            <a href="http://xujianhai.fun/posts/kafka-config-online/">
                                 <span class="button__text">Kafka Config Online</span>
                                 <span class="button__icon">→</span>
                             </a>
@@ -271,10 +271,10 @@ stackcollapse-perf.pl perf.unfold &amp;&gt; perf.folded
         <div class="footer__content">
             <span>&copy; 2020</span>
             
-                <span><a href="https://xujianhai666.github.io/">Zero xu</a></span>
+                <span><a href="http://xujianhai.fun/">Zero xu</a></span>
             
             <span></span>
-            <span> <a href="https://xujianhai666.github.io/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+            <span> <a href="http://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
         </div>
     </div>
     <div class="footer__inner">
@@ -293,7 +293,7 @@ stackcollapse-perf.pl perf.unfold &amp;&gt; perf.folded
 
 
 
-<script type="text/javascript" src="https://xujianhai666.github.io/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+<script type="text/javascript" src="http://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
 
 
 
