@@ -6,10 +6,21 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sat, 07 Mar 2020 20:04:32 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 08 Mar 2020 12:00:05 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_article</title>
+      <link>https://xujianhai.fun/posts/rocketmq_article/</link>
+      <pubDate>Sun, 08 Mar 2020 12:00:05 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_article/</guid>
+      <description> 这里主要是收集一些比较不错的rocketmq 相关的文章
+ 使用和优化 rocketmq官方文档的优化使用: irqbalance 关闭、中断聚合、numa: 链接
+双机房 源码分析 </description>
+    </item>
     
     <item>
       <title>GOMAXPROCS</title>
@@ -125,20 +136,6 @@ https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configu
       
       <guid>https://xujianhai.fun/posts/kafka-mirror-review/</guid>
       <description></description>
-    </item>
-    
-    <item>
-      <title>Kafka Connect Codereview</title>
-      <link>https://xujianhai.fun/posts/kafka-connect-codereview/</link>
-      <pubDate>Sat, 02 Nov 2019 23:32:49 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka-connect-codereview/</guid>
-      <description>kafka 支持两种模式: standalone 和 distributed. 分开来讲.
-组件 kafka-connect 主要的组件如下
- Herder: 管理 worker、statusBackingStore、configBackingStore、offsetBackingStore. Connect: kafka-connect 组件的生命周期的管理 statusBackingStore: task/worker 状态变化, 都需要调用这个 offsetBackingStore: 管理offset configBackingStore: 管理配置 ConfigProvider: 管理配置信息  standalone standalone 的实现比较简单, 这里简单说下 生命周期.
-生命周期:
-流程: ConnectStandalone#main -&amp;gt; StandaloneHerder#putConnectorConfig -&amp;gt; StandaloneHerder#startConnector -&amp;gt; 启动 connector + 启动 task 启动 connector: Worker#startConnector -&amp;gt; WorkerConnector#start (管理connector的生命周期) -&amp;gt; Connector#start 启动task: Worer#startTask -&amp;gt; WorkerTask#run...execute (executorService执行) StatusBackingStore: MemoryStatusBackingStore MemoryConfigBackingStore: MemoryConfigBackingStore standalone的依赖 XXXBackingStore 都是 memory 的实现, 不赘述.
-学习 kafka-connect 很喜欢用 callback 参数, 将结果callback 出去, 一定程度上能够增强 并发度</description>
     </item>
     
   </channel>

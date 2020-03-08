@@ -5,8 +5,27 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Sat, 07 Mar 2020 20:04:32 +0800</lastBuildDate>
+        <lastBuildDate>Sun, 08 Mar 2020 12:00:05 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Rocketmq_article</title>
+            <link>https://xujianhai.fun/posts/rocketmq_article/</link>
+            <pubDate>Sun, 08 Mar 2020 12:00:05 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/rocketmq_article/</guid>
+            <description> 这里主要是收集一些比较不错的rocketmq 相关的文章
+ 使用和优化 rocketmq官方文档的优化使用: irqbalance 关闭、中断聚合、numa: 链接
+双机房 源码分析 </description>
+            <content type="html"><![CDATA[<blockquote>
+<p>这里主要是收集一些比较不错的rocketmq 相关的文章</p>
+</blockquote>
+<h2 id="使用和优化">使用和优化</h2>
+<p>rocketmq官方文档的优化使用: irqbalance 关闭、中断聚合、numa: <a href="http://jm.taobao.org/2017/03/23/20170323/">链接</a></p>
+<h2 id="双机房">双机房</h2>
+<h2 id="源码分析">源码分析</h2>
+]]></content>
+        </item>
         
         <item>
             <title>GOMAXPROCS</title>
