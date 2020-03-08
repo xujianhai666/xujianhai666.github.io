@@ -6,10 +6,21 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 08 Mar 2020 12:00:05 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 08 Mar 2020 15:35:05 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_subsconfig</title>
+      <link>https://xujianhai.fun/posts/rocketmq_subs/</link>
+      <pubDate>Sun, 08 Mar 2020 15:35:05 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_subs/</guid>
+      <description>最近咨询订阅配置的人比较多, 这里进行分析下.
+ 配置信息 订阅配置信息是consumer向broker消费消息的凭证, 如果broker开启了 autoCreateSubscriptionGroup=false , 那么consumer client在消费之前, 必须通过命令行或者控制台上创建订阅配置, 然后consumer client使用配置订阅的名字. 通过命令行创建的订阅如下:
+-&amp;gt; % mqadmin updateSubGroup usage: mqadmin updateSubGroup [-a &amp;lt;arg&amp;gt;] [-b &amp;lt;arg&amp;gt;] [-c &amp;lt;arg&amp;gt;] [-d &amp;lt;arg&amp;gt;] -g &amp;lt;arg&amp;gt; [-h] [-i &amp;lt;arg&amp;gt;] [-m &amp;lt;arg&amp;gt;] [-n &amp;lt;arg&amp;gt;] [-q &amp;lt;arg&amp;gt;] [-r &amp;lt;arg&amp;gt;] [-s &amp;lt;arg&amp;gt;] [-w &amp;lt;arg&amp;gt;] -a,--notifyConsumerIdsChanged &amp;lt;arg&amp;gt; notify consumerId changed -b,--brokerAddr &amp;lt;arg&amp;gt; create subscription group to which broker -c,--clusterName &amp;lt;arg&amp;gt; create subscription group to which cluster -d,--consumeBroadcastEnable &amp;lt;arg&amp;gt; broadcast -g,--groupName &amp;lt;arg&amp;gt; consumer group name -h,--help Print help -i,--brokerId &amp;lt;arg&amp;gt; consumer from which broker id -m,--consumeFromMinEnable &amp;lt;arg&amp;gt; from min offset -n,--namesrvAddr &amp;lt;arg&amp;gt; Name server address list, eg: 192.</description>
+    </item>
     
     <item>
       <title>Rocketmq_article</title>
@@ -127,15 +138,6 @@ https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configu
 在 group非常大的时候, rebalance 次数就会增加; rebalance 时间取决于最慢的consumer, group 越大, 慢consumer出现的概率就越大. 除此之外, group coordinator 可能多个 group 共享的, 所以彼此会影响. 这个提案中, 提出了 `consumer.group.max.size` 的概念, 对 server端进行了保护. 当有超过数量的member加入, 将会收到 异常. https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A+Require+member.id+for+initial+join+group+request
 之前都是 broker 在 收到 joinGroup request 的时候, 返回 uuid 给 client 作为 member.id, 在边缘case中(client不断重启加入), 可能导致内存膨胀. 这个 proposal 中, 就是需要用户手动提交 memebr.id https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A+Introduce+static+membership+protocol+to+reduce+consumer+rebalances
 为了避免rebalance导致 有状态的应用程序的数据迁移. 目前的状态 broker group status: Running -&amp;gt; member JoinGroupRequest -&amp;gt; broker group status: PREPARE_REBALANCE -&amp;gt; broker group status: COMPLETING_REBALANCE -&amp;gt; sync group request (group members) -&amp;gt; SyncGroupResponse (broker send to memebrs) 其中, 第一个加入的 member 就是 group leader.</description>
-    </item>
-    
-    <item>
-      <title>Kafka Mirror Review</title>
-      <link>https://xujianhai.fun/posts/kafka-mirror-review/</link>
-      <pubDate>Sat, 02 Nov 2019 23:33:49 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka-mirror-review/</guid>
-      <description></description>
     </item>
     
   </channel>
