@@ -6,10 +6,22 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 08 Mar 2020 15:35:05 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 08 Mar 2020 20:04:52 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_allocate</title>
+      <link>https://xujianhai.fun/posts/rocketmq_allocate/</link>
+      <pubDate>Sun, 08 Mar 2020 20:04:52 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_allocate/</guid>
+      <description>最近一年中, 经常有用户不同的服务用一个group分别订阅不同的topic, 导致部分partition不消费
+ 场景 业务反馈的时候, 通常是 监控上部分partition lag 增长, 并且queue的消费qps是0.
+通过使用 mqadmin consumerProgress 查看offset 提交的时候, 发现这个group提交了多个topic, 并且每次结果不一样
+-&amp;gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0). RocketMQLog:WARN Please initialize the logger system properly. #Topic #Broker Name #QID #Broker Offset #Consumer Offset #Client IP #Diff #LastTime %RETRY%groupA broker1 0 0 0 ip1 0 N/A topicA broker1 0 2180901 2180901 ip1 0 2020-03-08 20:10:04 topicA broker1 1 2000000 0 ip1 200000 2020-03-08 00:10:04 -&amp;gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.</description>
+    </item>
     
     <item>
       <title>Rocketmq_subsconfig</title>
@@ -119,25 +131,6 @@ sh mqadmin updateTopic -t $topic -n ${ip:port} -c $cluster -r 1 -w 1 -o true </d
 kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以及 ConsumerCoordinator 的实现.
 整体生命流程: 找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. ConsumerCoordinator子类 从上面的流程中可以知道, 继承 AbstractCoordinator 的子类, 需要实现 onJoinPrepare、metadata、onLeavePrepare、performAssignment、onJoinComplete
  onJoinPrepare: 在 eager 模式下, 上次分配的内容全部 revoked; 在 COOPERATIVE 模式下, 只撤回不在定于的 topic 的 partition. metadata: sendJoinGroupRequest使用的数据信息, 用于后面的分配.</description>
-    </item>
-    
-    <item>
-      <title>Kafka Group Kip</title>
-      <link>https://xujianhai.fun/posts/kafka-group-kip/</link>
-      <pubDate>Thu, 07 Nov 2019 09:54:35 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka-group-kip/</guid>
-      <description>这里主要讨论 kafka group 相关的协议: rebalance, partition 等
-https://cwiki.apache.org/confluence/display/KAFKA/KIP-480%3A+Sticky+Partitioner
-https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A+Kafka+Consumer+Incremental+Rebalance+Protocol
-https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A+Require+member.id+for+initial+join+group+request
-https://cwiki.apache.org/confluence/display/KAFKA/KIP-379%3A+Multiple+Consumer+Group+Management
-https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89070828
-https://cwiki.apache.org/confluence/display/KAFKA/KIP-341%3A+Update+Sticky+Assignor%27s+User+Data+Protocol
-https://cwiki.apache.org/confluence/display/KAFKA/KIP-389%3A+Introduce+a+configurable+consumer+group+size+limit
-在 group非常大的时候, rebalance 次数就会增加; rebalance 时间取决于最慢的consumer, group 越大, 慢consumer出现的概率就越大. 除此之外, group coordinator 可能多个 group 共享的, 所以彼此会影响. 这个提案中, 提出了 `consumer.group.max.size` 的概念, 对 server端进行了保护. 当有超过数量的member加入, 将会收到 异常. https://cwiki.apache.org/confluence/display/KAFKA/KIP-394%3A+Require+member.id+for+initial+join+group+request
-之前都是 broker 在 收到 joinGroup request 的时候, 返回 uuid 给 client 作为 member.id, 在边缘case中(client不断重启加入), 可能导致内存膨胀. 这个 proposal 中, 就是需要用户手动提交 memebr.id https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A+Introduce+static+membership+protocol+to+reduce+consumer+rebalances
-为了避免rebalance导致 有状态的应用程序的数据迁移. 目前的状态 broker group status: Running -&amp;gt; member JoinGroupRequest -&amp;gt; broker group status: PREPARE_REBALANCE -&amp;gt; broker group status: COMPLETING_REBALANCE -&amp;gt; sync group request (group members) -&amp;gt; SyncGroupResponse (broker send to memebrs) 其中, 第一个加入的 member 就是 group leader.</description>
     </item>
     
   </channel>

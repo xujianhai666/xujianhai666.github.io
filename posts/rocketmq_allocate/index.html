@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="最近一年中, 经常有用户不同的服务用一个group分别订阅不同的topic, 导致部分partition不消费
+ 场景 业务反馈的时候, 通常是 监控上部分partition lag 增长, 并且queue的消费qps是0.
+通过使用 mqadmin consumerProgress 查看offset 提交的时候, 发现这个group提交了多个topic, 并且每次结果不一样
+-&amp;gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0). RocketMQLog:WARN Please initialize the logger system properly. #Topic #Broker Name #QID #Broker Offset #Consumer Offset #Client IP #Diff #LastTime %RETRY%groupA broker1 0 0 0 ip1 0 N/A topicA broker1 0 2180901 2180901 ip1 0 2020-03-08 20:10:04 topicA broker1 1 2000000 0 ip1 200000 2020-03-08 00:10:04 -&amp;gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, rocketmq" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/rocketmq_allocate/" />
+
+
+    <title>
+        
+            Rocketmq_allocate :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Rocketmq_allocate">
+<meta itemprop="description" content="最近一年中, 经常有用户不同的服务用一个group分别订阅不同的topic, 导致部分partition不消费
+ 场景 业务反馈的时候, 通常是 监控上部分partition lag 增长, 并且queue的消费qps是0.
+通过使用 mqadmin consumerProgress 查看offset 提交的时候, 发现这个group提交了多个topic, 并且每次结果不一样
+-&gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0). RocketMQLog:WARN Please initialize the logger system properly. #Topic #Broker Name #QID #Broker Offset #Consumer Offset #Client IP #Diff #LastTime %RETRY%groupA broker1 0 0 0 ip1 0 N/A topicA broker1 0 2180901 2180901 ip1 0 2020-03-08 20:10:04 topicA broker1 1 2000000 0 ip1 200000 2020-03-08 00:10:04 -&gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.">
+<meta itemprop="datePublished" content="2020-03-08T20:04:52&#43;08:00" />
+<meta itemprop="dateModified" content="2020-03-08T20:04:52&#43;08:00" />
+<meta itemprop="wordCount" content="412">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="rocketmq," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Rocketmq_allocate"/>
+<meta name="twitter:description" content="最近一年中, 经常有用户不同的服务用一个group分别订阅不同的topic, 导致部分partition不消费
+ 场景 业务反馈的时候, 通常是 监控上部分partition lag 增长, 并且queue的消费qps是0.
+通过使用 mqadmin consumerProgress 查看offset 提交的时候, 发现这个group提交了多个topic, 并且每次结果不一样
+-&gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0). RocketMQLog:WARN Please initialize the logger system properly. #Topic #Broker Name #QID #Broker Offset #Consumer Offset #Client IP #Diff #LastTime %RETRY%groupA broker1 0 0 0 ip1 0 N/A topicA broker1 0 2180901 2180901 ip1 0 2020-03-08 20:10:04 topicA broker1 1 2000000 0 ip1 200000 2020-03-08 00:10:04 -&gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-03-08 20:04:52 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/rocketmq_allocate/">Rocketmq_allocate</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <blockquote>
+<p>最近一年中, 经常有用户不同的服务用一个group分别订阅不同的topic, 导致部分partition不消费</p>
+</blockquote>
+<h3 id="场景">场景</h3>
+<p>业务反馈的时候, 通常是 监控上部分partition lag 增长, 并且queue的消费qps是0.</p>
+<p>通过使用 <code>mqadmin consumerProgress</code> 查看offset 提交的时候, 发现这个group提交了多个topic, 并且每次结果不一样</p>
+<pre><code>-&gt; % mqadmin consumerProgress -g  groupA  -n $addr  -s true
+RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0).
+RocketMQLog:WARN Please initialize the logger system properly.
+#Topic        #Broker Name                      #QID  #Broker Offset        #Consumer Offset      #Client IP           #Diff                 #LastTime
+%RETRY%groupA  broker1                           0     0                     0                     ip1                  0                     N/A
+topicA         broker1                           0     2180901               2180901               ip1                  0                     2020-03-08 20:10:04
+topicA         broker1                           1     2000000               0                     ip1                  200000                2020-03-08 00:10:04
+</code></pre><pre><code>-&gt; % mqadmin consumerProgress -g  groupA  -n $addr  -s true
+RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0).
+RocketMQLog:WARN Please initialize the logger system properly.
+#Topic        #Broker Name                      #QID  #Broker Offset        #Consumer Offset      #Client IP           #Diff                 #LastTime
+%RETRY%groupA  broker1                           0     0                     0                     ip1                  0                     N/A
+topicB         broker1                           0     2172997               2172997               ip1                  0                     2020-03-08 20:10:05
+topicB         broker1                           1     1000000               0                     ip1                  10000                 2020-03-08 00:10:04
+</code></pre><p>上面可以发现, groupA 消费了 topicA、topicB, 但是都只消费了一个queue, 导致了其他queue的lag. (为了说明问题, 这里很多使用了填充, 比如 ip、groupName、topic)</p>
+<p>难道rocketmq不支持consumer client 同时订阅多个 topic?</p>
+<p>其实正常使用rocketmq的情况下, 是允许一个consumer同时订阅多个topic的, 但是需要在consumer client启动前一次性订阅完多个topic, 比如下图, 一次性订阅TopicTestA 和 TopicTestB</p>
+<p><img src="https://xujianhai.fun/rocketmq_sub_multi.png" alt="rocketmq_sub_multi" title="rocketmq_sub_multi"></p>
+<p>但是如果业务分开来分别订阅的话, 就会存在问题, 如下使用</p>
+<p><img src="https://xujianhai.fun/rocketmq_sub_a.png" alt="rocketmq_sub_a.png" title="rocketmq_sub_a.png"></p>
+<p><img src="https://xujianhai.fun/rocketmq_sub_b.png" alt="rocketmq_sub_b.png" title="rocketmq_sub_b.png"></p>
+<h3 id="原因">原因</h3>
+<p>为什么出现这样的原因?</p>
+<p>首先, 为什么每次查询的结果不一样. 这个和broker维护consumer信息的实现 以及 心跳实现有关, 关键结构如下:</p>
+<pre><code>public class ConsumerManager {
+    private final ConcurrentMap&lt;String/* Group */, ConsumerGroupInfo&gt; consumerTable =
+        new ConcurrentHashMap&lt;String, ConsumerGroupInfo&gt;(1024);
+    ......
+}
+
+public class ConsumerGroupInfo {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private final String groupName;
+    private final ConcurrentMap&lt;String/* Topic */, SubscriptionData&gt; subscriptionTable =
+        new ConcurrentHashMap&lt;String, SubscriptionData&gt;()
+    .......
+}
+</code></pre><p>重点是 SubscriptionData 的维护上, 可以发现, 本质上这是个映射的实现: group -&gt; topic -&gt; SubscriptionData. 之所以可以订阅多个topic, 是因为 ConsumerGroupInfo 内部维护了一个topic的map, 这样订阅多个topic的时候, 只需要将topic和订阅数据 存放在 ConcurrentMap 中, 这个行为是在心跳的机制中实现的</p>
+<p>但是在问题场景中, topicA 和 topicB 是分两种心跳投递的, 第一种心跳是 groupA 订阅 topicA 的心跳, 假设是服务A启动的进程; 第二种心跳是 groupA 订阅 topicB 的心跳, 假设是 服务B启动的. 因为是两次心跳逻辑, 在rocketmq中心跳中订阅数据是基于覆盖方式实现的, 关键实现如 ConsumerGroupInfo#updateSubscription:</p>
+<pre><code>public class ConsumerGroupInfo {
+    public boolean updateSubscription(final Set&lt;SubscriptionData&gt; subList) {
+        boolean updated = false;
+
+        for (SubscriptionData sub : subList) {
+            SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
+            if (old == null) {
+            	SubscriptionData prev = this.subscriptionTable.putIfAbsent(sub.getTopic(), sub);
+            	.....
+            } else if (sub.getSubVersion() &gt; old.getSubVersion()) {
+                if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
+                    log.info(&quot;subscription changed, group: {} OLD: {} NEW: {}&quot;,
+                        this.groupName,
+                        old.toString(),
+                        sub.toString()
+                    );
+                }
+
+                this.subscriptionTable.put(sub.getTopic(), sub);
+            }
+        }
+    	......
+	}
+}
+</code></pre><p>这里补充下, sub#subVersion 就是当前时间. 也就是说, 随着多次心跳, topic的 SubscriptionData 会经常变化. 在我们执行命令 <code>mqamdin consumerProgress</code>的逻辑, cosnumer 的topic消费信息会根据 订阅信息进行过滤, 因为心跳的原因, 导致每次过滤出的topic 不一样, 也就会导致我们看到的结果不一样</p>
+<p>那么, 为什么 消费存在lag呢? 这个就和 消费的rebalance 有关了.</p>
+<p>在cluster模式的消费的流程中, 需要走以下几个逻辑(不是串行的, 这里为了简单说明):</p>
+<ol>
+<li>遍历本地订阅的topic</li>
+<li>获取这个topic下所有的mq</li>
+<li>获取这个consumer group的所有consumerID</li>
+<li>根据算法, 将topic下的所有mq分配给所有consumerID</li>
+<li>当前consumer会尝试消费分配给自己的mq (如果是顺序消费, 会存在一次加锁行为, 这里不讨论)</li>
+</ol>
+<p>这里需要注意的是, 无论是 服务A 还是 服务B 的消费, 在第三步中, 获取的 consumerID 都是 两个服务总共的 consumer, 这样在执行分配的时候, topicA 和 topicB 都是基于所有的consumer进行分配的. 可是, 服务A的consumer client 并不会去消费 topicB, 这样 topicB分配给 服务A consumer client 的 mq 并不会消费, 导致了lag.</p>
+<h3 id="如何快速定位">如何快速定位</h3>
+<p>我们可以使用 <code>mqadmin consumerProgress</code> 查看这个consumer group 订阅topic的offset提交情况, 如果发现多个 topic 的提交情况, 并且并没有一次性订阅多个topic, 基本上是这种情况了</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/rocketmq">rocketmq</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>412 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-03-08 20:04 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/rocketmq_subs/">
+                                <span class="button__text">Rocketmq_subsconfig</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
