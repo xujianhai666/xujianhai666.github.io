@@ -6,10 +6,21 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 08 Mar 2020 20:04:52 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 09 Mar 2020 23:13:41 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Kip_broker</title>
+      <link>https://xujianhai.fun/posts/kip_broker/</link>
+      <pubDate>Mon, 09 Mar 2020 23:13:41 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kip_broker/</guid>
+      <description>这里主要记录kafka broker 的相关proposal
+ broker 增加配置: fetch.max.bytes, 避免部分consumer影响其他consumer.
+proposal</description>
+    </item>
     
     <item>
       <title>Rocketmq_allocate</title>
@@ -119,18 +130,6 @@ sh mqadmin updateTopic -t $topic -n ${ip:port} -c $cluster -r 1 -w 1 -o true </d
   kip: https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Redesign
   里面主要就 kafka controller 当前遇到的问题 进行了总结并提出了 部分解决方案:
  zk异步写入 控制请求和 数据请求使用优先级队列分离 使用 generation 区分 controller -&amp;gt; broker 的请求信息 清晰的代码组织: 逻辑简化收敛 使用单线程的事件处理 简化 controller 的并发实现 (1.1.0)  </description>
-    </item>
-    
-    <item>
-      <title>Kafka Group Codereview</title>
-      <link>https://xujianhai.fun/posts/kafka-group-codereview/</link>
-      <pubDate>Sat, 09 Nov 2019 21:52:25 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka-group-codereview/</guid>
-      <description>最近学习 kafka-connect 的设计和实现. 其中设计到 group member protocol 的内容. 这里展开学习.
-kafka group member 协议 主要参考 AbstractCoordinator 的实现流程 以及 ConsumerCoordinator 的实现.
-整体生命流程: 找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. ConsumerCoordinator子类 从上面的流程中可以知道, 继承 AbstractCoordinator 的子类, 需要实现 onJoinPrepare、metadata、onLeavePrepare、performAssignment、onJoinComplete
- onJoinPrepare: 在 eager 模式下, 上次分配的内容全部 revoked; 在 COOPERATIVE 模式下, 只撤回不在定于的 topic 的 partition. metadata: sendJoinGroupRequest使用的数据信息, 用于后面的分配.</description>
     </item>
     
   </channel>
