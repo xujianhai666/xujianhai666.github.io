@@ -40,7 +40,7 @@
 没有线索的情况下, 我们继续排查日志内容, 通过 tailf broker.log 一段时间后, 发现有一些类似 &ldquo;event queue size 10000 enough, so drop this event CLOSE&rdquo; 和 &ldquo;event queue size 10000 enough, so drop this event CONNECT&rdquo; 的日志, 同样进行关键字匹配, 发现这段逻辑是 rocketmq 对event的抽象处理, event比如: CONNECT/CLOSE/IDLE/EXCEPTION, 以 CLOSE 为例, 当rocketmq netty server 监听到 主动关闭或者被动关闭 连接的时候, 会实例化一个 CLOSE 类型的 event信息 投递到了 eventQueue, 这个 eventQueue 大小是 1w, 当大小大于 1w 的时候, 就会投递失败 (这里有个坑), eventQueue 投递后的消息是由一个单线程异步处理的, 线程会回调根据注册的listener进行回调, 这一块逻辑参考 NettyRemotingServer#channelInactive、NettyRemotingAbstract#putNettyEvent 和 NettyRemotingAbstract#run, 注册的回调逻辑实现在 ClientHousekeepingService#onChannelClose, 回调都做了什么事情呢?">
 <meta itemprop="datePublished" content="2020-03-07T09:35:43&#43;08:00" />
 <meta itemprop="dateModified" content="2020-03-07T09:35:43&#43;08:00" />
-<meta itemprop="wordCount" content="362">
+<meta itemprop="wordCount" content="374">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -150,11 +150,15 @@
 <img src="https://xujianhai.fun/rocketmq-server-channel-close.png" alt="rocketmq-server-channel-close" title="rocketmq-server-channel-close.png"></p>
 <p>因此, eventQueue 出现丢弃 event 的情况 是一个问题, 但是和我们的心跳超时并没有太紧密的关联, 并且 event的处理逻辑范围太广, 线索失去了踪迹.</p>
 <p>回到rocketmq本身的心跳实现, rocketmq的心跳处理过程也很简单, 就是简单的内存注册, 也没有复杂的实现, 所以心跳处理应该非常快, 不应该存在处理耗时长的情况, 并且, 结合rocketmq processor的实现方式和配置参数, rocektmq heartbeat 的 线程池队列有 5w大小, 难道我们的心跳qps 已经这么高了? 通过内部注入的客户端打点发现, 我们心跳的qps成功 1.8k, 失败 2.8k, 加起来连 5k qps 也不到, 所以 远远低于线程池queue的配置, 那么, 只剩下一个假设了, 心跳处理的很慢, 但是为什么呢?</p>
-<p>处理慢的情况, 要么是存在锁竞争, 要么是实现逻辑问题. 因为通过代码查看并没有明显的锁竞争行为, 因此使用火焰图进行了cpu profile: <code>./profiler.sh -d 60 -f profile.svg  pid</code>. 因为是线上场景, 不适合使用 lightweight-java-profiler，这里我们采用了 async-profiler. 火焰图结果如下</p>
+<p>处理慢的情况, 要么是存在锁竞争, 要么是实现逻辑问题. 因为通过代码查看并没有明显的锁竞争行为, 因此使用火焰图进行了cpu profile: <code>./profiler.sh -d 60 -f profile.svg  pid</code>. 因为是线上场景, 不适合使用 lightweight-java-profiler，这里我们采用了 async-profiler. 注意: 需要打开如下开关</p>
+<pre><code>echo 1 &gt; /proc/sys/kernel/perf_event_paranoid
+echo 0 &gt; /proc/sys/kernel/kptr_restrict
+</code></pre><p>下载路径: <a href="https://github.com/jvm-profiling-tools/async-profiler/blob/master/README.md">https://github.com/jvm-profiling-tools/async-profiler/blob/master/README.md</a></p>
+<p>火焰图结果如下</p>
 <p><img src="https://xujianhai.fun/rocketmq-timeout-profile.png" alt="rocketmq-timeout-profile" title="rocketmq-timeout-profile.png"></p>
 <p>显然, ProducerManager 在 idle 和 closeEvent 分别触发的 doChannelCloseEvent 占用耗时过长，打开存在问题的函数如下</p>
 <p><img src="https://xujianhai.fun/rocketmq-producer-close.png" alt="rocketmq-producer-close" title="rocketmq-producer-close.png"></p>
-<p>根据代码的实现, 我们怀疑 for循环遍历 groupChannelTable 耗时长, 如果是这种场景, 那么, groupChannelTable 应该很大. 为了佐证我们的猜想, 进行了jmap内存分析: <code>jmap -dump:format=b,file=filename pid</code>, 通过小伙伴 jvisualvm 的分析, 发现 groupChannelTable 的key非常多, 如下图, 将近 140w</p>
+<p>根据代码的实现, 我们怀疑 for循环遍历 groupChannelTable 耗时长, 如果是这种场景, 那么, groupChannelTable 应该很大. 为了佐证我们的猜想, 进行了jmap内存分析: <code>jmap -dump:format=b,file=filename.hprof pid</code>, 通过小伙伴 jvisualvm 的分析, 发现 groupChannelTable 的key非常多, 如下图, 将近 140w</p>
 <p><img src="https://xujianhai.fun/rocketmq-timeout-mapkey.png" alt="rocketmq-timeout-mapkey" title="rocketmq-timeout-mapkey"></p>
 <p>根据目前debug的证据: groupChannelTable key太多, for 循环遍历耗时长, 导致处理 doChannelCloseEvent 处理耗时长. 但是这个跟心跳处理又有什么关系呢? 心跳逻辑的实现中, 存在doChannelCloseEvent#add的操作, 根据 ConcurrentHashMap 的内部实现注释, 迭代和add是存在锁竞争操作的, 注释如下:</p>
 <pre><code>/**
@@ -187,7 +191,7 @@ static final class TreeBin&lt;K,V&gt; extends Node&lt;K,V&gt; {
 
         <div class="post-info">
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>362 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>374 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-03-07 09:35 &#43;0800</p>
         </div>

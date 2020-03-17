@@ -6,10 +6,22 @@
     <description>Recent content in rocketmq on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 08 Mar 2020 20:04:52 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 17 Mar 2020 18:18:05 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/rocketmq/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_msgid</title>
+      <link>https://xujianhai.fun/posts/rocketmq_msgid/</link>
+      <pubDate>Tue, 17 Mar 2020 18:18:05 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_msgid/</guid>
+      <description>最近利用 msgId 进行一些延迟实现, 结果发现, msgId 在 producer 和 consumer 两侧是不一致的.
+复现 我用producer发送一条消息如下:
+SendResult [sendStatus=SEND_OK, msgId=0AFE2AEF000018B4AAC2562A9AC70000, offsetMsgId=0AE1578800002A9F0000000C6C988CC2, messageQueue=MessageQueue [topic=test_create_topic, brokerName=sandbox_boe4, queueId=0], queueOffset=0] 需要注意的是, msgId 和 offsetMsgId 是不一样的. 在consumer侧, 我接受到的消息如下:
+Receive New Messages: [MessageExt [queueId=0, storeSize=197, queueOffset=0, sysFlag=0, bornTimestamp=1584437632711, bornHost=/10.254.42.239:49872, storeTimestamp=1584437632868, storeHost=/10.225.87.136:10911, msgId=0AE1578800002A9F0000000C6C988CC2, commitLogOffset=53361544386, bodyCRC=198614610, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message{topic=&#39;test_create_topic&#39;, flag=0, properties={MIN_OFFSET=0, MAX_OFFSET=1, KEYS=OrderID188, CONSUME_START_TIME=1584437674686, UNIQ_KEY=0AFE2AEF000018B4AAC2562A9AC70000, WAIT=true, TAGS=TagA}, body=[72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100], transactionId=&#39;null&#39;}]] consumer 收到的 msg的 msgId 和 producer的 msgId 是不一样的, 但是, producer侧的msgId 和 consumer侧的 UNIQUE_KEY 的值是一样的, producer 的 offsetMsgId 和 consumer侧的 msgId 是一致的.</description>
+    </item>
     
     <item>
       <title>Rocketmq_allocate</title>

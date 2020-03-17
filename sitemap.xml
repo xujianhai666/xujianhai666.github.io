@@ -3,6 +3,31 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xujianhai.fun/posts/</loc>
+    <lastmod>2020-03-17T18:18:05+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/rocketmq/</loc>
+    <lastmod>2020-03-17T18:18:05+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/rocketmq_msgid/</loc>
+    <lastmod>2020-03-17T18:18:05+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/</loc>
+    <lastmod>2020-03-17T18:18:05+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2020-03-17T18:18:05+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xujianhai.fun/tags/kafka/</loc>
     <lastmod>2020-03-09T23:13:41+08:00</lastmod>
   </url>
@@ -10,26 +35,6 @@
   <url>
     <loc>https://xujianhai.fun/posts/kip_broker/</loc>
     <lastmod>2020-03-09T23:13:41+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-03-09T23:13:41+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-03-09T23:13:41+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
-    <lastmod>2020-03-09T23:13:41+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/rocketmq/</loc>
-    <lastmod>2020-03-08T20:04:52+08:00</lastmod>
   </url>
   
   <url>

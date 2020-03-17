@@ -6,10 +6,22 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 09 Mar 2020 23:13:41 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 17 Mar 2020 18:18:05 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_msgid</title>
+      <link>https://xujianhai.fun/posts/rocketmq_msgid/</link>
+      <pubDate>Tue, 17 Mar 2020 18:18:05 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_msgid/</guid>
+      <description>最近利用 msgId 进行一些延迟实现, 结果发现, msgId 在 producer 和 consumer 两侧是不一致的.
+复现 我用producer发送一条消息如下:
+SendResult [sendStatus=SEND_OK, msgId=0AFE2AEF000018B4AAC2562A9AC70000, offsetMsgId=0AE1578800002A9F0000000C6C988CC2, messageQueue=MessageQueue [topic=test_create_topic, brokerName=sandbox_boe4, queueId=0], queueOffset=0] 需要注意的是, msgId 和 offsetMsgId 是不一样的. 在consumer侧, 我接受到的消息如下:
+Receive New Messages: [MessageExt [queueId=0, storeSize=197, queueOffset=0, sysFlag=0, bornTimestamp=1584437632711, bornHost=/10.254.42.239:49872, storeTimestamp=1584437632868, storeHost=/10.225.87.136:10911, msgId=0AE1578800002A9F0000000C6C988CC2, commitLogOffset=53361544386, bodyCRC=198614610, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message{topic=&#39;test_create_topic&#39;, flag=0, properties={MIN_OFFSET=0, MAX_OFFSET=1, KEYS=OrderID188, CONSUME_START_TIME=1584437674686, UNIQ_KEY=0AFE2AEF000018B4AAC2562A9AC70000, WAIT=true, TAGS=TagA}, body=[72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100], transactionId=&#39;null&#39;}]] consumer 收到的 msg的 msgId 和 producer的 msgId 是不一样的, 但是, producer侧的msgId 和 consumer侧的 UNIQUE_KEY 的值是一样的, producer 的 offsetMsgId 和 consumer侧的 msgId 是一致的.</description>
+    </item>
     
     <item>
       <title>Kip_broker</title>
@@ -117,19 +129,6 @@ sh mqadmin consumerConnection -g $group -n ${ip:port} 查看topic状态
 sh mqadmin topicStatus -t $topic -n ${ip:port} 按照时间重置offset
 sh mqadmin resetOffsetByTime -t $topic -n ${ip:port} -g $group -s $ms 创建topic
 sh mqadmin updateTopic -t $topic -n ${ip:port} -c $cluster -r 1 -w 1 -o true </description>
-    </item>
-    
-    <item>
-      <title>Kafka Controller Redesign</title>
-      <link>https://xujianhai.fun/posts/kafka-controller-redesign/</link>
-      <pubDate>Sun, 10 Nov 2019 11:10:24 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka-controller-redesign/</guid>
-      <description>最近学习 kafka 相关的kip, 发现了一个 kafka controller redesign 的设计的文章, 这里叙述一下:
-  kip: https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#
-  kip: https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Redesign
-  里面主要就 kafka controller 当前遇到的问题 进行了总结并提出了 部分解决方案:
- zk异步写入 控制请求和 数据请求使用优先级队列分离 使用 generation 区分 controller -&amp;gt; broker 的请求信息 清晰的代码组织: 逻辑简化收敛 使用单线程的事件处理 简化 controller 的并发实现 (1.1.0)  </description>
     </item>
     
   </channel>
