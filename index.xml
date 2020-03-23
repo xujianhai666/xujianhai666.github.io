@@ -6,10 +6,22 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 17 Mar 2020 18:18:05 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 23 Mar 2020 22:31:59 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_flow_control</title>
+      <link>https://xujianhai.fun/posts/rocketmq_flow_control/</link>
+      <pubDate>Mon, 23 Mar 2020 22:31:59 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_flow_control/</guid>
+      <description>背景 rocketmq推广过程中, 偶尔会遇到 [TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: 201ms, size of queue: 5389 类似的报错, 导致上游业务失败率报警以及错误日志飙升. 在相应的监控上, rocketmq 的发送qps也是非常高.
+原因 其实这个行为是 rocektmq broker 的自我保护机制, 那么什么时候会触发呢? 这个主要是在 store 进行put 消息的时候会触发. 之前讲过, 在 rocketmq 的处理机制中, netty 将读取到的消息 会封装成 RequestTask 对象提交到 executorService 的队列中, 然后等待 executorService 调度执行. 那么, 这里存在两种情况:
+  queue已经被写满了, 无法再提交新的任务, 那么会触发 RejectedExecutionException, 这个时候, rocketmq broker 会返回 RemotingSysResponseCode.SYSTEM_BUSY, 提示信息是: [OVERLOAD]. 参考: NettyRemotingAbstract#processRequestCommand
+  调度延迟的问题. 我在 11:05 提交了一个写入请求, 但是因为 写入流程耗时 增加, 导致我的请求到 11:06 才被处理, 对于实时在线业务而言, 这条消息其实早就超时了, 这种情况, rocketmq 有两套机制:</description>
+    </item>
     
     <item>
       <title>Rocketmq_msgid</title>
@@ -115,20 +127,6 @@ protoc插件  protoc是支持插件的, 比如gogo-out其实就是去找gogo的�
       
       <guid>https://xujianhai.fun/posts/kip-2018-12/</guid>
       <description> reassignment 限流   摘要: 对 reassignment 的 replication 进行限流, 避免全局限流的导致isr落后的partition 的无法追上。这里的限流是动态的. 以前的通用的限流不进行废弃, 因为存在无isr而且 follower 用光带宽的时候, 这个限制还是需要的。新增加了两个配置: leader.reassignment.throttled.rate 和 follower.reassignment.throttled.rate, 前者是 leader broker 统一限流, 但是因为kafka reassignment 的 partition follower 可以有很多个, leader限流的话需要计算每个followerd的比例, 所以添加了 follower限流 kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-542%3A+Partition+Reassignment+Throttling  replication quota   摘要: client 的限流是通过延迟实现的, replica原来也有类似的限流 replica.fetch.max.bytes , 不过是 partition 级别的。新的方案, 添加了 LeaderQuotaRate 和 FollowerQuotaRate. kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-73+Replication+Quotas  </description>
-    </item>
-    
-    <item>
-      <title>Rocketmq Admin</title>
-      <link>https://xujianhai.fun/posts/rocketmq-admin/</link>
-      <pubDate>Sun, 17 Nov 2019 21:50:30 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rocketmq-admin/</guid>
-      <description>查看消费进度:
-sh mqadmin consumerProgress -g $groupName -n ${ip:port} 查看客户端的连接信息
-sh mqadmin consumerConnection -g $group -n ${ip:port} 查看topic状态
-sh mqadmin topicStatus -t $topic -n ${ip:port} 按照时间重置offset
-sh mqadmin resetOffsetByTime -t $topic -n ${ip:port} -g $group -s $ms 创建topic
-sh mqadmin updateTopic -t $topic -n ${ip:port} -c $cluster -r 1 -w 1 -o true </description>
     </item>
     
   </channel>

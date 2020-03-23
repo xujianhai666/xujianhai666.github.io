@@ -6,10 +6,22 @@
     <description>Recent content in rocketmq on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 17 Mar 2020 18:18:05 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 23 Mar 2020 22:31:59 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/rocketmq/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_flow_control</title>
+      <link>https://xujianhai.fun/posts/rocketmq_flow_control/</link>
+      <pubDate>Mon, 23 Mar 2020 22:31:59 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_flow_control/</guid>
+      <description>背景 rocketmq推广过程中, 偶尔会遇到 [TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: 201ms, size of queue: 5389 类似的报错, 导致上游业务失败率报警以及错误日志飙升. 在相应的监控上, rocketmq 的发送qps也是非常高.
+原因 其实这个行为是 rocektmq broker 的自我保护机制, 那么什么时候会触发呢? 这个主要是在 store 进行put 消息的时候会触发. 之前讲过, 在 rocketmq 的处理机制中, netty 将读取到的消息 会封装成 RequestTask 对象提交到 executorService 的队列中, 然后等待 executorService 调度执行. 那么, 这里存在两种情况:
+  queue已经被写满了, 无法再提交新的任务, 那么会触发 RejectedExecutionException, 这个时候, rocketmq broker 会返回 RemotingSysResponseCode.SYSTEM_BUSY, 提示信息是: [OVERLOAD]. 参考: NettyRemotingAbstract#processRequestCommand
+  调度延迟的问题. 我在 11:05 提交了一个写入请求, 但是因为 写入流程耗时 增加, 导致我的请求到 11:06 才被处理, 对于实时在线业务而言, 这条消息其实早就超时了, 这种情况, rocketmq 有两套机制:</description>
+    </item>
     
     <item>
       <title>Rocketmq_msgid</title>
