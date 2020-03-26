@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="背景 最近在修rocketmq-golang-client的问题的时候, 发现在处理 PullNoNewMsg 的时候会导致 offset 被自动提交, 但是用户并没有设置自动ack, 并且也没有手动ack
+注:
+rocketmq 开源的版本并没有ack的概念
+排查 于是, 通过日志打印调试, 发现是在 rocketmq-client-go 拉取消息处理 primitive.PullNoNewMsg 的状态的时候, 直接将 result.NextBeginOffset 替换为 request.nextOffset, 并且还 更新了本地offsetStore的offset 信息, 因为 rocektmq-client-go 是 周期性提交offset, 所以导致了 offset被ack 了
+解决 在rocketmq-client-go的内部开发版本中, 直接将 offset 的本地存储更新给注释掉就可以了, 因为内部开发中, 是异步处理处理消息的, 并且offset的提交不需要满足递增的特性 (考虑到很多场景中可能存在 offset被移动到 更小的情况)
+在开源的版本中, 对齐java的实现, 判断 processQueue是否有消息, 如果没有消息, 在更新本地offsetStore, 避免提交了 正在消费的消息
+更多的理解 乘这次机会, 重新梳理了 rocketmq 在 pullMessage 的响应逻辑的处理. 根据客户端处理的逻辑, 区分如下 (不涉及到transaction)
+1.NO_NEW_MSG
+当broker返回 ResponseCode.PULL_NOT_FOUND 的时候, 客户端会转义成 PullStatus.NO_NEW_MSG, 会执行如下操作:" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, rocketmq" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/rocketmq_nomessage/" />
+
+
+    <title>
+        
+            Rocketmq_nomessage :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Rocketmq_nomessage">
+<meta itemprop="description" content="背景 最近在修rocketmq-golang-client的问题的时候, 发现在处理 PullNoNewMsg 的时候会导致 offset 被自动提交, 但是用户并没有设置自动ack, 并且也没有手动ack
+注:
+rocketmq 开源的版本并没有ack的概念
+排查 于是, 通过日志打印调试, 发现是在 rocketmq-client-go 拉取消息处理 primitive.PullNoNewMsg 的状态的时候, 直接将 result.NextBeginOffset 替换为 request.nextOffset, 并且还 更新了本地offsetStore的offset 信息, 因为 rocektmq-client-go 是 周期性提交offset, 所以导致了 offset被ack 了
+解决 在rocketmq-client-go的内部开发版本中, 直接将 offset 的本地存储更新给注释掉就可以了, 因为内部开发中, 是异步处理处理消息的, 并且offset的提交不需要满足递增的特性 (考虑到很多场景中可能存在 offset被移动到 更小的情况)
+在开源的版本中, 对齐java的实现, 判断 processQueue是否有消息, 如果没有消息, 在更新本地offsetStore, 避免提交了 正在消费的消息
+更多的理解 乘这次机会, 重新梳理了 rocketmq 在 pullMessage 的响应逻辑的处理. 根据客户端处理的逻辑, 区分如下 (不涉及到transaction)
+1.NO_NEW_MSG
+当broker返回 ResponseCode.PULL_NOT_FOUND 的时候, 客户端会转义成 PullStatus.NO_NEW_MSG, 会执行如下操作:">
+<meta itemprop="datePublished" content="2020-03-26T23:33:04&#43;08:00" />
+<meta itemprop="dateModified" content="2020-03-26T23:33:04&#43;08:00" />
+<meta itemprop="wordCount" content="237">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="rocketmq," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Rocketmq_nomessage"/>
+<meta name="twitter:description" content="背景 最近在修rocketmq-golang-client的问题的时候, 发现在处理 PullNoNewMsg 的时候会导致 offset 被自动提交, 但是用户并没有设置自动ack, 并且也没有手动ack
+注:
+rocketmq 开源的版本并没有ack的概念
+排查 于是, 通过日志打印调试, 发现是在 rocketmq-client-go 拉取消息处理 primitive.PullNoNewMsg 的状态的时候, 直接将 result.NextBeginOffset 替换为 request.nextOffset, 并且还 更新了本地offsetStore的offset 信息, 因为 rocektmq-client-go 是 周期性提交offset, 所以导致了 offset被ack 了
+解决 在rocketmq-client-go的内部开发版本中, 直接将 offset 的本地存储更新给注释掉就可以了, 因为内部开发中, 是异步处理处理消息的, 并且offset的提交不需要满足递增的特性 (考虑到很多场景中可能存在 offset被移动到 更小的情况)
+在开源的版本中, 对齐java的实现, 判断 processQueue是否有消息, 如果没有消息, 在更新本地offsetStore, 避免提交了 正在消费的消息
+更多的理解 乘这次机会, 重新梳理了 rocketmq 在 pullMessage 的响应逻辑的处理. 根据客户端处理的逻辑, 区分如下 (不涉及到transaction)
+1.NO_NEW_MSG
+当broker返回 ResponseCode.PULL_NOT_FOUND 的时候, 客户端会转义成 PullStatus.NO_NEW_MSG, 会执行如下操作:"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-03-26 23:33:04 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/rocketmq_nomessage/">Rocketmq_nomessage</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="背景">背景</h2>
+<p>最近在修rocketmq-golang-client的问题的时候, 发现在处理 PullNoNewMsg 的时候会导致 offset 被自动提交, 但是用户并没有设置自动ack, 并且也没有手动ack</p>
+<p><strong>注:</strong></p>
+<p>rocketmq 开源的版本并没有ack的概念</p>
+<h2 id="排查">排查</h2>
+<p>于是, 通过日志打印调试, 发现是在 rocketmq-client-go 拉取消息处理 <code>primitive.PullNoNewMsg</code> 的状态的时候, 直接将 result.NextBeginOffset 替换为 request.nextOffset, 并且还 更新了本地offsetStore的offset 信息, 因为 rocektmq-client-go 是 周期性提交offset, 所以导致了 offset被ack 了</p>
+<h2 id="解决">解决</h2>
+<p>在rocketmq-client-go的内部开发版本中, 直接将 offset 的本地存储更新给注释掉就可以了, 因为内部开发中, 是异步处理处理消息的, 并且offset的提交不需要满足递增的特性 (考虑到很多场景中可能存在 offset被移动到 更小的情况)</p>
+<p>在开源的版本中, 对齐java的实现, 判断 processQueue是否有消息, 如果没有消息, 在更新本地offsetStore, 避免提交了 正在消费的消息</p>
+<h2 id="更多的理解">更多的理解</h2>
+<p>乘这次机会, 重新梳理了 rocketmq 在 pullMessage 的响应逻辑的处理. 根据客户端处理的逻辑, 区分如下 (不涉及到transaction)</p>
+<p><strong>1.NO_NEW_MSG</strong></p>
+<p>当broker返回 <code>ResponseCode.PULL_NOT_FOUND</code> 的时候, 客户端会转义成 <code>PullStatus.NO_NEW_MSG</code>, 会执行如下操作:</p>
+<ol>
+<li>设置下次pullMessage的request的nextOffset 为 <code>pullResult.getNextBeginOffset()</code></li>
+<li>如果这个queue本地的processQueue没有消息, 就更新本地offsetStore的offset到nextOffset, 这个会通过定期提交offset最终提交到 broker的记录中</li>
+<li>重新调度拉取消息</li>
+</ol>
+<p>那么, broker 什么时候会返回 <code>PULL_NOT_FOUND</code> 呢？</p>
+<ol>
+<li>NO_MESSAGE_IN_QUEUE: queue没有数据, 可能是确实没有数据写入, 也可能是被删除了, 没数据写入的场景下会返回 <code>PULL_NOT_FOUND</code>, nextoffset=0, client的操作没有任何意义(甚至重新调度的时间也是可以延迟的). 如果是删除的场景, 会返回 <code>PULL_OFFSET_MOVED</code>, 客户端转义成 <code>OFFSET_ILLEGAL</code>, 具体操作参考下面的分析  (对应broker内部 NO_MESSAGE_IN_QUEUE)</li>
+<li>在读取consumer queue file 时候失败了, 一般是文件出问题了, 直接跳转到下一个文件 (broker内部 OFFSET_FOUND_NULL)</li>
+<li>consumer queue已经读取完毕了 (broker内部OFFSET_OVERFLOW_ONE)</li>
+</ol>
+<p><strong>2.NO_MATCHED_MSG</strong></p>
+<p>当broker返回 <code>PULL_RETRY_IMMEDIATELY</code>, 客户端会转义成 <code>NO_MATCHED_MSG</code>, 执行如下操作:</p>
+<ol>
+<li>重置 pullRequest#nextOffset 为 pullResult#nextBeginOffset</li>
+<li>如果queue对应的processQueue没有消息, 则重置offset</li>
+<li>重新调度拉取消息</li>
+</ol>
+<p>那么, broker 什么时候会返回 <code>PULL_RETRY_IMMEDIATELY</code> 呢？</p>
+<ol>
+<li>从 从节点 读取消息但是 BrokerConfig().isSlaveReadEnable() 不允许 从读取</li>
+<li>一轮拉取行为中, 第一次从 commitlog 没有读取到消息, 并且随后也都没有读取到消息. 这种情况下,是 consumer queue的消息已经是过期的了, 下次拉取的offset 就是 当前offset + 拉取数量的offset. (对应 MESSAGE_WAS_REMOVING)</li>
+<li>consumer queue 的tag过滤不满足 或者 类过滤不满足 (对应NO_MATCHED_MESSAGE)</li>
+</ol>
+<p><strong>3.OFFSET_ILLEGAL</strong></p>
+<p>当broker返回 <code>PULL_OFFSET_MOVED</code>, client会转义成 <code>OFFSET_ILLEGAL</code>, 并执行如下操作:</p>
+<ol>
+<li>更新 processQueue 的 nextOffset 字段为 <code>pullResult.getNextBeginOffset()</code>, 并设置 <code>dropped=true</code>, 丢弃这个queue</li>
+<li>10s 后执行: 更新offsetStore的queue对应的offset并持久化到 broker, 然后从 本地删除 messageQueue (等待下次rebalance之后queue的owner进行拉取操作)</li>
+</ol>
+<p>不理解: 为什么要等待10s, 理解执行问题也不大</p>
+<p>那么, broker 什么时候会返回 <code>PULL_OFFSET_MOVED</code> 呢</p>
+<ol>
+<li>consumer queue文件被删除了, 导致需要从0开始读取consumer queue文件, 需要client重置offset (对应broker NO_MESSAGE_IN_QUEUE)</li>
+<li>client offset 大于 consumer queue maxOffset, 原因是 consumer queue文件消息丢失: 比如 主从切换, commitlog文件最近文件损害导致consumer queue文件截断等   (broker内部 OFFSET_OVERFLOW_BADLY)</li>
+<li>consumer offset 小于 consumer queue minoffset, 很可能是 consumer queue 老的数据文件被清理了, 而 cosnumer group 的消费能力还没有消费完 之前被清理的数据 (或者consumer group被暂停了一段时间) (对应broker的OFFSET_TOO_SMALL)</li>
+</ol>
+<p><strong>4.FOUND</strong></p>
+<p>有消息, 不赘述. 会返回下次拉取的起点offset字段: nextOffset</p>
+<p>需要注意的是, 只要能够拉取到一条消息，返回的状态码都会是 <code>FOUND</code></p>
+<h2 id="总结">总结</h2>
+<ol>
+<li>还是很复杂的, 自定义逻辑还是需要避免采坑</li>
+</ol>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/rocketmq">rocketmq</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>237 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-03-26 23:33 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/rocketmq_search/">
+                                <span class="button__text">Rocketmq_search</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

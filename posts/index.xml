@@ -5,8 +5,83 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Wed, 25 Mar 2020 18:22:56 +0800</lastBuildDate>
+        <lastBuildDate>Thu, 26 Mar 2020 23:33:04 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Rocketmq_nomessage</title>
+            <link>https://xujianhai.fun/posts/rocketmq_nomessage/</link>
+            <pubDate>Thu, 26 Mar 2020 23:33:04 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/rocketmq_nomessage/</guid>
+            <description>背景 最近在修rocketmq-golang-client的问题的时候, 发现在处理 PullNoNewMsg 的时候会导致 offset 被自动提交, 但是用户并没有设置自动ack, 并且也没有手动ack
+注:
+rocketmq 开源的版本并没有ack的概念
+排查 于是, 通过日志打印调试, 发现是在 rocketmq-client-go 拉取消息处理 primitive.PullNoNewMsg 的状态的时候, 直接将 result.NextBeginOffset 替换为 request.nextOffset, 并且还 更新了本地offsetStore的offset 信息, 因为 rocektmq-client-go 是 周期性提交offset, 所以导致了 offset被ack 了
+解决 在rocketmq-client-go的内部开发版本中, 直接将 offset 的本地存储更新给注释掉就可以了, 因为内部开发中, 是异步处理处理消息的, 并且offset的提交不需要满足递增的特性 (考虑到很多场景中可能存在 offset被移动到 更小的情况)
+在开源的版本中, 对齐java的实现, 判断 processQueue是否有消息, 如果没有消息, 在更新本地offsetStore, 避免提交了 正在消费的消息
+更多的理解 乘这次机会, 重新梳理了 rocketmq 在 pullMessage 的响应逻辑的处理. 根据客户端处理的逻辑, 区分如下 (不涉及到transaction)
+1.NO_NEW_MSG
+当broker返回 ResponseCode.PULL_NOT_FOUND 的时候, 客户端会转义成 PullStatus.NO_NEW_MSG, 会执行如下操作:</description>
+            <content type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>最近在修rocketmq-golang-client的问题的时候, 发现在处理 PullNoNewMsg 的时候会导致 offset 被自动提交, 但是用户并没有设置自动ack, 并且也没有手动ack</p>
+<p><strong>注:</strong></p>
+<p>rocketmq 开源的版本并没有ack的概念</p>
+<h2 id="排查">排查</h2>
+<p>于是, 通过日志打印调试, 发现是在 rocketmq-client-go 拉取消息处理 <code>primitive.PullNoNewMsg</code> 的状态的时候, 直接将 result.NextBeginOffset 替换为 request.nextOffset, 并且还 更新了本地offsetStore的offset 信息, 因为 rocektmq-client-go 是 周期性提交offset, 所以导致了 offset被ack 了</p>
+<h2 id="解决">解决</h2>
+<p>在rocketmq-client-go的内部开发版本中, 直接将 offset 的本地存储更新给注释掉就可以了, 因为内部开发中, 是异步处理处理消息的, 并且offset的提交不需要满足递增的特性 (考虑到很多场景中可能存在 offset被移动到 更小的情况)</p>
+<p>在开源的版本中, 对齐java的实现, 判断 processQueue是否有消息, 如果没有消息, 在更新本地offsetStore, 避免提交了 正在消费的消息</p>
+<h2 id="更多的理解">更多的理解</h2>
+<p>乘这次机会, 重新梳理了 rocketmq 在 pullMessage 的响应逻辑的处理. 根据客户端处理的逻辑, 区分如下 (不涉及到transaction)</p>
+<p><strong>1.NO_NEW_MSG</strong></p>
+<p>当broker返回 <code>ResponseCode.PULL_NOT_FOUND</code> 的时候, 客户端会转义成 <code>PullStatus.NO_NEW_MSG</code>, 会执行如下操作:</p>
+<ol>
+<li>设置下次pullMessage的request的nextOffset 为 <code>pullResult.getNextBeginOffset()</code></li>
+<li>如果这个queue本地的processQueue没有消息, 就更新本地offsetStore的offset到nextOffset, 这个会通过定期提交offset最终提交到 broker的记录中</li>
+<li>重新调度拉取消息</li>
+</ol>
+<p>那么, broker 什么时候会返回 <code>PULL_NOT_FOUND</code> 呢？</p>
+<ol>
+<li>NO_MESSAGE_IN_QUEUE: queue没有数据, 可能是确实没有数据写入, 也可能是被删除了, 没数据写入的场景下会返回 <code>PULL_NOT_FOUND</code>, nextoffset=0, client的操作没有任何意义(甚至重新调度的时间也是可以延迟的). 如果是删除的场景, 会返回 <code>PULL_OFFSET_MOVED</code>, 客户端转义成 <code>OFFSET_ILLEGAL</code>, 具体操作参考下面的分析  (对应broker内部 NO_MESSAGE_IN_QUEUE)</li>
+<li>在读取consumer queue file 时候失败了, 一般是文件出问题了, 直接跳转到下一个文件 (broker内部 OFFSET_FOUND_NULL)</li>
+<li>consumer queue已经读取完毕了 (broker内部OFFSET_OVERFLOW_ONE)</li>
+</ol>
+<p><strong>2.NO_MATCHED_MSG</strong></p>
+<p>当broker返回 <code>PULL_RETRY_IMMEDIATELY</code>, 客户端会转义成 <code>NO_MATCHED_MSG</code>, 执行如下操作:</p>
+<ol>
+<li>重置 pullRequest#nextOffset 为 pullResult#nextBeginOffset</li>
+<li>如果queue对应的processQueue没有消息, 则重置offset</li>
+<li>重新调度拉取消息</li>
+</ol>
+<p>那么, broker 什么时候会返回 <code>PULL_RETRY_IMMEDIATELY</code> 呢？</p>
+<ol>
+<li>从 从节点 读取消息但是 BrokerConfig().isSlaveReadEnable() 不允许 从读取</li>
+<li>一轮拉取行为中, 第一次从 commitlog 没有读取到消息, 并且随后也都没有读取到消息. 这种情况下,是 consumer queue的消息已经是过期的了, 下次拉取的offset 就是 当前offset + 拉取数量的offset. (对应 MESSAGE_WAS_REMOVING)</li>
+<li>consumer queue 的tag过滤不满足 或者 类过滤不满足 (对应NO_MATCHED_MESSAGE)</li>
+</ol>
+<p><strong>3.OFFSET_ILLEGAL</strong></p>
+<p>当broker返回 <code>PULL_OFFSET_MOVED</code>, client会转义成 <code>OFFSET_ILLEGAL</code>, 并执行如下操作:</p>
+<ol>
+<li>更新 processQueue 的 nextOffset 字段为 <code>pullResult.getNextBeginOffset()</code>, 并设置 <code>dropped=true</code>, 丢弃这个queue</li>
+<li>10s 后执行: 更新offsetStore的queue对应的offset并持久化到 broker, 然后从 本地删除 messageQueue (等待下次rebalance之后queue的owner进行拉取操作)</li>
+</ol>
+<p>不理解: 为什么要等待10s, 理解执行问题也不大</p>
+<p>那么, broker 什么时候会返回 <code>PULL_OFFSET_MOVED</code> 呢</p>
+<ol>
+<li>consumer queue文件被删除了, 导致需要从0开始读取consumer queue文件, 需要client重置offset (对应broker NO_MESSAGE_IN_QUEUE)</li>
+<li>client offset 大于 consumer queue maxOffset, 原因是 consumer queue文件消息丢失: 比如 主从切换, commitlog文件最近文件损害导致consumer queue文件截断等   (broker内部 OFFSET_OVERFLOW_BADLY)</li>
+<li>consumer offset 小于 consumer queue minoffset, 很可能是 consumer queue 老的数据文件被清理了, 而 cosnumer group 的消费能力还没有消费完 之前被清理的数据 (或者consumer group被暂停了一段时间) (对应broker的OFFSET_TOO_SMALL)</li>
+</ol>
+<p><strong>4.FOUND</strong></p>
+<p>有消息, 不赘述. 会返回下次拉取的起点offset字段: nextOffset</p>
+<p>需要注意的是, 只要能够拉取到一条消息，返回的状态码都会是 <code>FOUND</code></p>
+<h2 id="总结">总结</h2>
+<ol>
+<li>还是很复杂的, 自定义逻辑还是需要避免采坑</li>
+</ol>
+]]></content>
+        </item>
         
         <item>
             <title>Rocketmq_search</title>
@@ -94,6 +169,7 @@ slotValue (4)
 <li>queryMsgById</li>
 </ol>
 <p>这里的id指的是 offsetMsgId, 根据前面的理解, offsetMsgId 其实包含了 brokerAddr 和 commitLog offset 信息, 因此可以直接向 目标broker请求读取指定offset的内容</p>
+<p>这里有一个让consumer重新消费的功能, 具体分析参照 queryMsgByUniqueKey</p>
 <ol start="3">
 <li>queryMsgByUniqueKey</li>
 </ol>
@@ -122,6 +198,61 @@ slotValue (4)
 <li>竟然提供了消息重新消费的功能</li>
 <li>多种消息查询方式便于运维</li>
 </ol>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Rocketmq_recover</title>
+            <link>https://xujianhai.fun/posts/rocketmq_recover/</link>
+            <pubDate>Tue, 24 Mar 2020 23:43:23 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/rocketmq_recover/</guid>
+            <description>背景 最近要开发延迟消息, 这里记录下 recover相关的逻辑实现
+原理 之前知道, rocketmq是所有的消息统一投递到 commitlog, 然后异步构建 consumer queue, 那么, 如果机器正常重启/异常宕机的情况下, 又是怎么恢复的呢?
+前菜 rocketmq 使用了 checkpoint 文件记录了 physicMsgTimestamp logicsMsgTimestamp indexMsgTimestamp 三个字段, 分别表示 commitlog 的flush的时间点、comsumer queue的flush的时间点、index file 刷新的时间点. 也就是 已经落地磁盘的时间点. (通过fileChannel#force)
+那么 这些时间点什么场景下会被更新, 什么时候checkpoint会flush呢?
+ physicMsgTimestamp  首先, CommitLog 本身既有一个定时flush的任务, 根据flush方式的不同, 有两种实现: GroupCommitService 和 FlushRealTimeService(后面单独分析), 无论是同步还是异步, 每次flush之后都会设置 physicMsgTimestamp.
+除此之外, 在 dledger模式中, slave构建 consumer queue的时候 也会设置 physicMsgTimestamp
+logicsMsgTimestamp  在定时flush consumer queue 以及 追加consumer queue消息的时候, 都会更新. (因此, logicsMsgTimestamp 并不是 consumer queue flush的时间)</description>
+            <content type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>最近要开发延迟消息, 这里记录下 recover相关的逻辑实现</p>
+<h2 id="原理">原理</h2>
+<p>之前知道, rocketmq是所有的消息统一投递到 commitlog, 然后异步构建 consumer queue, 那么, 如果机器正常重启/异常宕机的情况下, 又是怎么恢复的呢?</p>
+<h3 id="前菜">前菜</h3>
+<p>rocketmq 使用了 checkpoint 文件记录了 physicMsgTimestamp logicsMsgTimestamp indexMsgTimestamp 三个字段, 分别表示 commitlog 的flush的时间点、comsumer queue的flush的时间点、index file 刷新的时间点. 也就是 已经落地磁盘的时间点. (通过fileChannel#force)</p>
+<p>那么 这些时间点什么场景下会被更新, 什么时候checkpoint会flush呢?</p>
+<ol>
+<li>physicMsgTimestamp</li>
+</ol>
+<p>首先, CommitLog 本身既有一个定时flush的任务, 根据flush方式的不同, 有两种实现: GroupCommitService 和 FlushRealTimeService(后面单独分析), 无论是同步还是异步, 每次flush之后都会设置 physicMsgTimestamp.</p>
+<p>除此之外, 在 dledger模式中, slave构建 consumer queue的时候 也会设置 physicMsgTimestamp</p>
+<ol start="2">
+<li>logicsMsgTimestamp</li>
+</ol>
+<p>在定时flush consumer queue 以及 追加consumer queue消息的时候, 都会更新. (因此, logicsMsgTimestamp 并不是 consumer queue flush的时间)</p>
+<ol start="3">
+<li>indexMsgTimestamp</li>
+</ol>
+<ul>
+<li>在切换 indexFile 的时候, 会触发 把之前的 indexFile 刷新 以及 更新 indexMsgTimestamp</li>
+</ul>
+<p><strong>flush</strong></p>
+<ul>
+<li>rocketmq 正常关机</li>
+<li>在indexFile切换的时候, 不仅仅会flush 之前的 index file, 还会触发 checkpoint file flush</li>
+</ul>
+<p>刷新: shutdown
+周期刷新:   flushIntervalConsumeQueue = 1000;
+private int flushConsumeQueueThoroughInterval = 1000 * 60; ?</p>
+<h3 id="正常重启">正常重启</h3>
+<p>commitlog 恢复
+consumerqueue 恢复</p>
+<h3 id="异常宕机">异常宕机</h3>
+<p>commitlog 恢复</p>
+<p>consumerqueue 恢复</p>
+<p>重复信息？</p>
+<h2 id="总结">总结</h2>
+<h2 id="思考">思考</h2>
 ]]></content>
         </item>
         
@@ -438,6 +569,7 @@ usage: mqadmin updateSubGroup [-a &lt;arg&gt;] [-b &lt;arg&gt;] [-c &lt;arg&gt;]
 <p>直接获取k8s内部的环境变量 <code>MY_CPU_LIMIT</code>, 然后设置到procs中: <code>runtime.GOMAXPROCS(n)</code>, 上线后 集群cpu利用率逐渐降低了10%+</p>
 <h2 id="后记">后记</h2>
 <p>根据我司的<a href="https://www.infoq.cn/article/mu-1bFHNmrdd0kybgPXx">分享</a>, 建议是 <code>export GOMAXPROCS=$MY_CPU_LIMIT-1</code>, 为什么减1, 是预留核给系统线程(维护进程和线程的上下文信息以及线程切换). 打算尝试下, 虽然是从pct99的角度出发</p>
+<p>怎么更好的方式 cpu数量和 核数不对呢? 通过 http://ip:port/debug/pprof/ 可以看 threadcreate 的数量, 如果非常大, 一般是 maxprocs 不正常</p>
 ]]></content>
         </item>
         

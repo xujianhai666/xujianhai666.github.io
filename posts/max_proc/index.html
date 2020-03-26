@@ -42,7 +42,7 @@
 这个需要讲到 GOMAXPROCS 的参数了, 这个参数规定了 P 的最大数量, 默认取值是 cpu数量, 通过设置 最大并行度(GOMAXPROCS) 为 cpu 数量, 可以充分利用每个cpu, 避免线程切换间的代价. 如果说将 GOMAXPROCS 设置成了128, 首先并行执行go代码的线程数膨胀, 但是由于 k8s 容器对于cpu的约束，导致只有 16个cpu 运行 128个线程 (至少128个, 因为系统调用的线程是不受 GOMAXPROCS 约束的)">
 <meta itemprop="datePublished" content="2020-03-07T20:04:32&#43;08:00" />
 <meta itemprop="dateModified" content="2020-03-07T20:04:32&#43;08:00" />
-<meta itemprop="wordCount" content="91">
+<meta itemprop="wordCount" content="103">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -149,6 +149,7 @@
 <p>直接获取k8s内部的环境变量 <code>MY_CPU_LIMIT</code>, 然后设置到procs中: <code>runtime.GOMAXPROCS(n)</code>, 上线后 集群cpu利用率逐渐降低了10%+</p>
 <h2 id="后记">后记</h2>
 <p>根据我司的<a href="https://www.infoq.cn/article/mu-1bFHNmrdd0kybgPXx">分享</a>, 建议是 <code>export GOMAXPROCS=$MY_CPU_LIMIT-1</code>, 为什么减1, 是预留核给系统线程(维护进程和线程的上下文信息以及线程切换). 打算尝试下, 虽然是从pct99的角度出发</p>
+<p>怎么更好的方式 cpu数量和 核数不对呢? 通过 http://ip:port/debug/pprof/ 可以看 threadcreate 的数量, 如果非常大, 一般是 maxprocs 不正常</p>
 
             </div>
         </article>
@@ -160,7 +161,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/go">go</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>91 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>103 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-03-07 20:04 &#43;0800</p>
         </div>

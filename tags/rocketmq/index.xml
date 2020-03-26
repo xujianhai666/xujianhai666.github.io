@@ -6,10 +6,27 @@
     <description>Recent content in rocketmq on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 25 Mar 2020 18:22:56 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 26 Mar 2020 23:33:04 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/rocketmq/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_nomessage</title>
+      <link>https://xujianhai.fun/posts/rocketmq_nomessage/</link>
+      <pubDate>Thu, 26 Mar 2020 23:33:04 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_nomessage/</guid>
+      <description>背景 最近在修rocketmq-golang-client的问题的时候, 发现在处理 PullNoNewMsg 的时候会导致 offset 被自动提交, 但是用户并没有设置自动ack, 并且也没有手动ack
+注:
+rocketmq 开源的版本并没有ack的概念
+排查 于是, 通过日志打印调试, 发现是在 rocketmq-client-go 拉取消息处理 primitive.PullNoNewMsg 的状态的时候, 直接将 result.NextBeginOffset 替换为 request.nextOffset, 并且还 更新了本地offsetStore的offset 信息, 因为 rocektmq-client-go 是 周期性提交offset, 所以导致了 offset被ack 了
+解决 在rocketmq-client-go的内部开发版本中, 直接将 offset 的本地存储更新给注释掉就可以了, 因为内部开发中, 是异步处理处理消息的, 并且offset的提交不需要满足递增的特性 (考虑到很多场景中可能存在 offset被移动到 更小的情况)
+在开源的版本中, 对齐java的实现, 判断 processQueue是否有消息, 如果没有消息, 在更新本地offsetStore, 避免提交了 正在消费的消息
+更多的理解 乘这次机会, 重新梳理了 rocketmq 在 pullMessage 的响应逻辑的处理. 根据客户端处理的逻辑, 区分如下 (不涉及到transaction)
+1.NO_NEW_MSG
+当broker返回 ResponseCode.PULL_NOT_FOUND 的时候, 客户端会转义成 PullStatus.NO_NEW_MSG, 会执行如下操作:</description>
+    </item>
     
     <item>
       <title>Rocketmq_search</title>
@@ -24,6 +41,21 @@ offsetMsgId 本质上是 rocketmq commitLog 生成的, 生成格式如下:
  public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) { input.flip(); int msgIDLength = addr.limit() == 8 ? 16 : 28; input.limit(msgIDLength); input.put(addr); input.putLong(offset); return UtilAll.bytes2string(input.array()); } 可以发现, offsetMsgId 是基于commitLog 所在的地址 + 消息的offset 组成, 保证了 唯一性. 因此通过offsetMsgId 可以借助这个特性.
 msgkey
 在消息发送的时候, 发送的消息是可以指定消息的key的, 需要注意的是, msgKey可以设置多个.</description>
+    </item>
+    
+    <item>
+      <title>Rocketmq_recover</title>
+      <link>https://xujianhai.fun/posts/rocketmq_recover/</link>
+      <pubDate>Tue, 24 Mar 2020 23:43:23 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_recover/</guid>
+      <description>背景 最近要开发延迟消息, 这里记录下 recover相关的逻辑实现
+原理 之前知道, rocketmq是所有的消息统一投递到 commitlog, 然后异步构建 consumer queue, 那么, 如果机器正常重启/异常宕机的情况下, 又是怎么恢复的呢?
+前菜 rocketmq 使用了 checkpoint 文件记录了 physicMsgTimestamp logicsMsgTimestamp indexMsgTimestamp 三个字段, 分别表示 commitlog 的flush的时间点、comsumer queue的flush的时间点、index file 刷新的时间点. 也就是 已经落地磁盘的时间点. (通过fileChannel#force)
+那么 这些时间点什么场景下会被更新, 什么时候checkpoint会flush呢?
+ physicMsgTimestamp  首先, CommitLog 本身既有一个定时flush的任务, 根据flush方式的不同, 有两种实现: GroupCommitService 和 FlushRealTimeService(后面单独分析), 无论是同步还是异步, 每次flush之后都会设置 physicMsgTimestamp.
+除此之外, 在 dledger模式中, slave构建 consumer queue的时候 也会设置 physicMsgTimestamp
+logicsMsgTimestamp  在定时flush consumer queue 以及 追加consumer queue消息的时候, 都会更新. (因此, logicsMsgTimestamp 并不是 consumer queue flush的时间)</description>
     </item>
     
     <item>
