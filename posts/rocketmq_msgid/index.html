@@ -40,7 +40,7 @@ SendResult [sendStatus=SEND_OK, msgId=0AFE2AEF000018B4AAC2562A9AC70000, offsetMs
 Receive New Messages: [MessageExt [queueId=0, storeSize=197, queueOffset=0, sysFlag=0, bornTimestamp=1584437632711, bornHost=/10.254.42.239:49872, storeTimestamp=1584437632868, storeHost=/10.225.87.136:10911, msgId=0AE1578800002A9F0000000C6C988CC2, commitLogOffset=53361544386, bodyCRC=198614610, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message{topic=&#39;test_create_topic&#39;, flag=0, properties={MIN_OFFSET=0, MAX_OFFSET=1, KEYS=OrderID188, CONSUME_START_TIME=1584437674686, UNIQ_KEY=0AFE2AEF000018B4AAC2562A9AC70000, WAIT=true, TAGS=TagA}, body=[72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100], transactionId=&#39;null&#39;}]] consumer 收到的 msg的 msgId 和 producer的 msgId 是不一样的, 但是, producer侧的msgId 和 consumer侧的 UNIQUE_KEY 的值是一样的, producer 的 offsetMsgId 和 consumer侧的 msgId 是一致的.">
 <meta itemprop="datePublished" content="2020-03-17T18:18:05&#43;08:00" />
 <meta itemprop="dateModified" content="2020-03-17T18:18:05&#43;08:00" />
-<meta itemprop="wordCount" content="154">
+<meta itemprop="wordCount" content="175">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -146,6 +146,8 @@ Receive New Messages: [MessageExt [queueId=0, storeSize=197, queueOffset=0, sysF
 <p>翻看了源代码发现, (msgId)producer 其实是客户端设置的, 用户没有设置的时候, 会自动生成一个, 参看 MessageClientIDSetter#createUniqID. 这个值在处理发送的响应的时候会被用到, producer 将这个生成的 <code>PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX</code> 的值 放到了 <code>SendResult</code> 的 msgId 对象中, 而将 broker 的msgId 设置到了 <code>SendResult</code> 的 offsetMsgId 中</p>
 <p>但是在broker侧, <code>CommitLog#createMessageId</code> 基于 ip+物理偏移 创建的 msgId 传递给了 producer, producer 存储成 offsetMsgId. 需要注意的是 broker 并不会存储这个 msgId. 在消费的时候, consumer 在获取到消息之后, 会基于获取的 storeHost+commotLogOffset 重新创建出 msgId 放到msg 中, 具体参看 MessageDecoder#decode.</p>
 <p>所以, 基本上就是 producer 和 consumer 两边的概念不一致导致的</p>
+<h2 id="补充">补充</h2>
+<p>uniqueKey 自动生成的规则像这样: ip+pid+classloader hashcode + 当前时间戳 + 生存时间长度(最大一个月) + counter. 显然, 后面的一段时间并不能保证唯一,  而且在 k8s场景中, ip 也不是唯一的, 用户设置 msgid, 不是单一的key, 是可以多个的.</p>
 
             </div>
         </article>
@@ -157,7 +159,7 @@ Receive New Messages: [MessageExt [queueId=0, storeSize=197, queueOffset=0, sysF
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/rocketmq">rocketmq</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>154 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>175 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-03-17 18:18 &#43;0800</p>
         </div>

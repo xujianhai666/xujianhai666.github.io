@@ -6,10 +6,25 @@
     <description>Recent content in rocketmq on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 23 Mar 2020 22:31:59 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 25 Mar 2020 18:22:56 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/rocketmq/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_search</title>
+      <link>https://xujianhai.fun/posts/rocketmq_search/</link>
+      <pubDate>Wed, 25 Mar 2020 18:22:56 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_search/</guid>
+      <description>背景 最近基于golang做了 消息查询的功能, 这里做一些记录
+原理 rocketmq的消息查询, 支持两种模式: offsetMsgId 和 msgkey、uniqueKey, 我这里避免了 msgid 的命名, 因为在 rocketmq client的实现过程中, msgid 存在很大的差异.
+基本概念 offsetMsgId
+offsetMsgId 本质上是 rocketmq commitLog 生成的, 生成格式如下:
+ public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) { input.flip(); int msgIDLength = addr.limit() == 8 ? 16 : 28; input.limit(msgIDLength); input.put(addr); input.putLong(offset); return UtilAll.bytes2string(input.array()); } 可以发现, offsetMsgId 是基于commitLog 所在的地址 + 消息的offset 组成, 保证了 唯一性. 因此通过offsetMsgId 可以借助这个特性.
+msgkey
+在消息发送的时候, 发送的消息是可以指定消息的key的, 需要注意的是, msgKey可以设置多个.</description>
+    </item>
     
     <item>
       <title>Rocketmq_flow_control</title>

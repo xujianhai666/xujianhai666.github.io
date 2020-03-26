@@ -6,10 +6,25 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 23 Mar 2020 22:31:59 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 25 Mar 2020 18:22:56 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rocketmq_search</title>
+      <link>https://xujianhai.fun/posts/rocketmq_search/</link>
+      <pubDate>Wed, 25 Mar 2020 18:22:56 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rocketmq_search/</guid>
+      <description>背景 最近基于golang做了 消息查询的功能, 这里做一些记录
+原理 rocketmq的消息查询, 支持两种模式: offsetMsgId 和 msgkey、uniqueKey, 我这里避免了 msgid 的命名, 因为在 rocketmq client的实现过程中, msgid 存在很大的差异.
+基本概念 offsetMsgId
+offsetMsgId 本质上是 rocketmq commitLog 生成的, 生成格式如下:
+ public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) { input.flip(); int msgIDLength = addr.limit() == 8 ? 16 : 28; input.limit(msgIDLength); input.put(addr); input.putLong(offset); return UtilAll.bytes2string(input.array()); } 可以发现, offsetMsgId 是基于commitLog 所在的地址 + 消息的offset 组成, 保证了 唯一性. 因此通过offsetMsgId 可以借助这个特性.
+msgkey
+在消息发送的时候, 发送的消息是可以指定消息的key的, 需要注意的是, msgKey可以设置多个.</description>
+    </item>
     
     <item>
       <title>Rocketmq_flow_control</title>
@@ -118,15 +133,6 @@ gogo-protobuf 因为支持的插件体系比较多, 为此, 将插件分成了�
 validator插件 https://github.com/mwitkow/go-proto-validators 提供了字段检查的功能, 会根据proto文件生成goalng validator代码文件.
 protoc插件  protoc是支持插件的, 比如gogo-out其实就是去找gogo的插件, govalidators_out就是找 govalidators插件
 其他深入的点 union group 类型.</description>
-    </item>
-    
-    <item>
-      <title>Kip 2018 12</title>
-      <link>https://xujianhai.fun/posts/kip-2018-12/</link>
-      <pubDate>Wed, 11 Dec 2019 19:49:58 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kip-2018-12/</guid>
-      <description> reassignment 限流   摘要: 对 reassignment 的 replication 进行限流, 避免全局限流的导致isr落后的partition 的无法追上。这里的限流是动态的. 以前的通用的限流不进行废弃, 因为存在无isr而且 follower 用光带宽的时候, 这个限制还是需要的。新增加了两个配置: leader.reassignment.throttled.rate 和 follower.reassignment.throttled.rate, 前者是 leader broker 统一限流, 但是因为kafka reassignment 的 partition follower 可以有很多个, leader限流的话需要计算每个followerd的比例, 所以添加了 follower限流 kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-542%3A+Partition+Reassignment+Throttling  replication quota   摘要: client 的限流是通过延迟实现的, replica原来也有类似的限流 replica.fetch.max.bytes , 不过是 partition 级别的。新的方案, 添加了 LeaderQuotaRate 和 FollowerQuotaRate. kip: https://cwiki.apache.org/confluence/display/KAFKA/KIP-73+Replication+Quotas  </description>
     </item>
     
   </channel>
