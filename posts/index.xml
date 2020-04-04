@@ -16,12 +16,9 @@
             <guid>https://xujianhai.fun/posts/qmq_delay/</guid>
             <description>背景 最近在调研延迟消息的设计和研发, 其中, 目前开源并在线上大规模使用的主要是 去哪儿的qmq, 本文主要针对 qmq 中的延迟消息实现进行分析
 问题 作为一款延迟消息服务, 需要解决一下问题:
- 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
-  LogSegment&amp;amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化. 仅负责写入和读取的行为及结果, 不管理内容格式
-  MessageLog&amp;amp;MessageSegmentContainer: 基于上面的log机制 实现了 延迟消息的存储, 主要是 存储内容的定义, MessageLog 对外暴露写入接口. 相当于WAL
-  LogIterateService: 读取messagelog的消息分发给订阅者
-  ScheduleLog &amp;amp; ScheduleSet &amp;amp; ScheduleSetSegmentContainer: 定时任务的存储. 通过订阅 LogIterateService 将messageLog的消息添加到 schedule log.
-  DispatchLog &amp;amp; DispatchLogSegment &amp;amp; DispatchLogSegmentContainer: dispatch日志的存储, 用来确定在重启后, 当前刻度内哪些消息已经投递, 避免重复投递</description>
+ 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 qmq 的延迟设计中, 所有的消息投递到 message log, message log 相当于 wal, 会有一个IterateOffsetManager 异步读取 message log 构建 schedule log 和 hash wheel, schedule log 是每个目标到期时间的文件, 默认每分钟一个文件, 时间间隔可以定制. hash wheel 是内存的多层时间轮, 所有后续的延迟消息 以及 到期的schedule log文件的消息 都会加载到内存中. 消息到期后, 会投递给 正常的消息服务的broker (投递会目标subject)
+底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
+  LogSegment&amp;amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化.</description>
             <content type="html"><![CDATA[<h2 id="背景">背景</h2>
 <p>最近在调研延迟消息的设计和研发, 其中, 目前开源并在线上大规模使用的主要是 去哪儿的qmq, 本文主要针对 qmq 中的延迟消息实现进行分析</p>
 <h2 id="问题">问题</h2>
@@ -35,6 +32,8 @@
 <li>主从同步</li>
 </ol>
 <h2 id="设计">设计</h2>
+<p><img src="/qmq_delay.png" alt="qmq delay" title=""></p>
+<p>qmq 的延迟设计中,  所有的消息投递到 message log, message log 相当于 wal, 会有一个IterateOffsetManager 异步读取 message log 构建 schedule log 和 hash wheel, schedule log 是每个目标到期时间的文件, 默认每分钟一个文件, 时间间隔可以定制. hash wheel 是内存的多层时间轮, 所有后续的延迟消息 以及 到期的schedule log文件的消息 都会加载到内存中. 消息到期后, 会投递给 正常的消息服务的broker (投递会目标subject)</p>
 <h2 id="底层存储">底层存储</h2>
 <p>qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:</p>
 <ul>
@@ -251,44 +250,6 @@ speng hard nofile 10240
 <li><a href="https://github.com/qunarcorp/qmq/blob/concurrent_pull/docs/cn/arch.md">https://github.com/qunarcorp/qmq/blob/concurrent_pull/docs/cn/arch.md</a></li>
 </ol>
 ]]></content>
-        </item>
-        
-        <item>
-            <title>Google_api</title>
-            <link>https://xujianhai.fun/posts/google_api/</link>
-            <pubDate>Sun, 29 Mar 2020 19:40:51 +0800</pubDate>
-            
-            <guid>https://xujianhai.fun/posts/google_api/</guid>
-            <description>背景 最近发现了 google cloud api 的设计指南, 不仅有 http 相关的描述, 还涉及到grpc. 于是加以学习这里总结下
- 在对外暴露端口url的时候, 可以参考: https://cloud.google.com/apis/design/resource_names?hl=zh-cn , 更推崇: &amp;quot;https://calendar.googleapis.com/v3/users/john%20smith/events/123&amp;quot; 这种形式. 常见标准定义: https://cloud.google.com/apis/design/standard_methods?hl=zh-cn  在标准定义中, 这里的bookid 是哪里来的?
-message CreateBookRequest { // The parent resource name where the book is to be created. string parent = 1; // The book id to use for this book. string book_id = 3; // The book resource to create. // The field name should match the Noun in the method name.</description>
-            <content type="html"><![CDATA[<h2 id="背景">背景</h2>
-<p>最近发现了 google cloud  api 的设计指南, 不仅有 http 相关的描述, 还涉及到grpc. 于是加以学习这里总结下</p>
-<ol>
-<li>在对外暴露端口url的时候, 可以参考: <a href="https://cloud.google.com/apis/design/resource_names?hl=zh-cn">https://cloud.google.com/apis/design/resource_names?hl=zh-cn</a> , 更推崇: <code>&quot;https://calendar.googleapis.com/v3/users/john%20smith/events/123&quot;</code> 这种形式. 常见标准定义: <code>https://cloud.google.com/apis/design/standard_methods?hl=zh-cn</code></li>
-</ol>
-<p>在标准定义中, 这里的bookid 是哪里来的?</p>
-<pre><code>message CreateBookRequest {
-  // The parent resource name where the book is to be created.
-  string parent = 1;
-
-  // The book id to use for this book.
-  string book_id = 3;
-
-  // The book resource to create.
-  // The field name should match the Noun in the method name.
-  Book book = 2;
-}
-</code></pre><ol start="2">
-<li></li>
-</ol>
-<p>这种形式的操作: 我是不是可以自定义一些option ? 这个option 是怎么实现的?</p>
-<pre><code>  rpc GetBook(GetBookRequest) returns (Book) {
-    option (google.api.http) = {
-      get: &quot;/v1/{name=shelves/*/books/*}&quot;
-    };
-  };
-</code></pre>]]></content>
         </item>
         
         <item>

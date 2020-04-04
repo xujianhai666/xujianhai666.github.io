@@ -7,12 +7,9 @@
 <meta name="author" content="Zero xu ">
 <meta name="description" content="背景 最近在调研延迟消息的设计和研发, 其中, 目前开源并在线上大规模使用的主要是 去哪儿的qmq, 本文主要针对 qmq 中的延迟消息实现进行分析
 问题 作为一款延迟消息服务, 需要解决一下问题:
- 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
-  LogSegment&amp;amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化. 仅负责写入和读取的行为及结果, 不管理内容格式
-  MessageLog&amp;amp;MessageSegmentContainer: 基于上面的log机制 实现了 延迟消息的存储, 主要是 存储内容的定义, MessageLog 对外暴露写入接口. 相当于WAL
-  LogIterateService: 读取messagelog的消息分发给订阅者
-  ScheduleLog &amp;amp; ScheduleSet &amp;amp; ScheduleSetSegmentContainer: 定时任务的存储. 通过订阅 LogIterateService 将messageLog的消息添加到 schedule log.
-  DispatchLog &amp;amp; DispatchLogSegment &amp;amp; DispatchLogSegmentContainer: dispatch日志的存储, 用来确定在重启后, 当前刻度内哪些消息已经投递, 避免重复投递" />
+ 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 qmq 的延迟设计中, 所有的消息投递到 message log, message log 相当于 wal, 会有一个IterateOffsetManager 异步读取 message log 构建 schedule log 和 hash wheel, schedule log 是每个目标到期时间的文件, 默认每分钟一个文件, 时间间隔可以定制. hash wheel 是内存的多层时间轮, 所有后续的延迟消息 以及 到期的schedule log文件的消息 都会加载到内存中. 消息到期后, 会投递给 正常的消息服务的broker (投递会目标subject)
+底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
+  LogSegment&amp;amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化." />
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming, qmq, delay" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
@@ -40,15 +37,12 @@
 <meta itemprop="name" content="Qmq_delay">
 <meta itemprop="description" content="背景 最近在调研延迟消息的设计和研发, 其中, 目前开源并在线上大规模使用的主要是 去哪儿的qmq, 本文主要针对 qmq 中的延迟消息实现进行分析
 问题 作为一款延迟消息服务, 需要解决一下问题:
- 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
-  LogSegment&amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化. 仅负责写入和读取的行为及结果, 不管理内容格式
-  MessageLog&amp;MessageSegmentContainer: 基于上面的log机制 实现了 延迟消息的存储, 主要是 存储内容的定义, MessageLog 对外暴露写入接口. 相当于WAL
-  LogIterateService: 读取messagelog的消息分发给订阅者
-  ScheduleLog &amp; ScheduleSet &amp; ScheduleSetSegmentContainer: 定时任务的存储. 通过订阅 LogIterateService 将messageLog的消息添加到 schedule log.
-  DispatchLog &amp; DispatchLogSegment &amp; DispatchLogSegmentContainer: dispatch日志的存储, 用来确定在重启后, 当前刻度内哪些消息已经投递, 避免重复投递">
+ 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 qmq 的延迟设计中, 所有的消息投递到 message log, message log 相当于 wal, 会有一个IterateOffsetManager 异步读取 message log 构建 schedule log 和 hash wheel, schedule log 是每个目标到期时间的文件, 默认每分钟一个文件, 时间间隔可以定制. hash wheel 是内存的多层时间轮, 所有后续的延迟消息 以及 到期的schedule log文件的消息 都会加载到内存中. 消息到期后, 会投递给 正常的消息服务的broker (投递会目标subject)
+底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
+  LogSegment&amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化.">
 <meta itemprop="datePublished" content="2020-04-03T14:02:08&#43;08:00" />
 <meta itemprop="dateModified" content="2020-04-03T14:02:08&#43;08:00" />
-<meta itemprop="wordCount" content="1130">
+<meta itemprop="wordCount" content="1166">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -59,12 +53,9 @@
 <meta name="twitter:title" content="Qmq_delay"/>
 <meta name="twitter:description" content="背景 最近在调研延迟消息的设计和研发, 其中, 目前开源并在线上大规模使用的主要是 去哪儿的qmq, 本文主要针对 qmq 中的延迟消息实现进行分析
 问题 作为一款延迟消息服务, 需要解决一下问题:
- 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
-  LogSegment&amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化. 仅负责写入和读取的行为及结果, 不管理内容格式
-  MessageLog&amp;MessageSegmentContainer: 基于上面的log机制 实现了 延迟消息的存储, 主要是 存储内容的定义, MessageLog 对外暴露写入接口. 相当于WAL
-  LogIterateService: 读取messagelog的消息分发给订阅者
-  ScheduleLog &amp; ScheduleSet &amp; ScheduleSetSegmentContainer: 定时任务的存储. 通过订阅 LogIterateService 将messageLog的消息添加到 schedule log.
-  DispatchLog &amp; DispatchLogSegment &amp; DispatchLogSegmentContainer: dispatch日志的存储, 用来确定在重启后, 当前刻度内哪些消息已经投递, 避免重复投递"/>
+ 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 qmq 的延迟设计中, 所有的消息投递到 message log, message log 相当于 wal, 会有一个IterateOffsetManager 异步读取 message log 构建 schedule log 和 hash wheel, schedule log 是每个目标到期时间的文件, 默认每分钟一个文件, 时间间隔可以定制. hash wheel 是内存的多层时间轮, 所有后续的延迟消息 以及 到期的schedule log文件的消息 都会加载到内存中. 消息到期后, 会投递给 正常的消息服务的broker (投递会目标subject)
+底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
+  LogSegment&amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化."/>
 
 
 
@@ -159,6 +150,8 @@
 <li>主从同步</li>
 </ol>
 <h2 id="设计">设计</h2>
+<p><img src="https://xujianhai.fun/qmq_delay.png" alt="qmq delay" title=""></p>
+<p>qmq 的延迟设计中,  所有的消息投递到 message log, message log 相当于 wal, 会有一个IterateOffsetManager 异步读取 message log 构建 schedule log 和 hash wheel, schedule log 是每个目标到期时间的文件, 默认每分钟一个文件, 时间间隔可以定制. hash wheel 是内存的多层时间轮, 所有后续的延迟消息 以及 到期的schedule log文件的消息 都会加载到内存中. 消息到期后, 会投递给 正常的消息服务的broker (投递会目标subject)</p>
 <h2 id="底层存储">底层存储</h2>
 <p>qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:</p>
 <ul>
@@ -385,7 +378,7 @@ speng hard nofile 10240
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/qmq">qmq</a></span><span class="tag"><a href="https://xujianhai.fun/tags/delay">delay</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>1130 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>1166 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-04-03 14:02 &#43;0800</p>
         </div>
@@ -402,8 +395,8 @@ speng hard nofile 10240
 
                     
                         <span class="button next">
-                            <a href="https://xujianhai.fun/posts/google_api/">
-                                <span class="button__text">Google_api</span>
+                            <a href="https://xujianhai.fun/posts/mesh_file/">
+                                <span class="button__text">Mesh_file</span>
                                 <span class="button__icon">→</span>
                             </a>
                         </span>
