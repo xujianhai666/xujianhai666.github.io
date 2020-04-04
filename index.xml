@@ -6,10 +6,47 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 26 Mar 2020 23:33:04 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 03 Apr 2020 14:02:08 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Qmq_delay</title>
+      <link>https://xujianhai.fun/posts/qmq_delay/</link>
+      <pubDate>Fri, 03 Apr 2020 14:02:08 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/qmq_delay/</guid>
+      <description>背景 最近在调研延迟消息的设计和研发, 其中, 目前开源并在线上大规模使用的主要是 去哪儿的qmq, 本文主要针对 qmq 中的延迟消息实现进行分析
+问题 作为一款延迟消息服务, 需要解决一下问题:
+ 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
+  LogSegment&amp;amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化. 仅负责写入和读取的行为及结果, 不管理内容格式
+  MessageLog&amp;amp;MessageSegmentContainer: 基于上面的log机制 实现了 延迟消息的存储, 主要是 存储内容的定义, MessageLog 对外暴露写入接口. 相当于WAL
+  LogIterateService: 读取messagelog的消息分发给订阅者
+  ScheduleLog &amp;amp; ScheduleSet &amp;amp; ScheduleSetSegmentContainer: 定时任务的存储. 通过订阅 LogIterateService 将messageLog的消息添加到 schedule log.
+  DispatchLog &amp;amp; DispatchLogSegment &amp;amp; DispatchLogSegmentContainer: dispatch日志的存储, 用来确定在重启后, 当前刻度内哪些消息已经投递, 避免重复投递</description>
+    </item>
+    
+    <item>
+      <title>Google_api</title>
+      <link>https://xujianhai.fun/posts/google_api/</link>
+      <pubDate>Sun, 29 Mar 2020 19:40:51 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/google_api/</guid>
+      <description>背景 最近发现了 google cloud api 的设计指南, 不仅有 http 相关的描述, 还涉及到grpc. 于是加以学习这里总结下
+ 在对外暴露端口url的时候, 可以参考: https://cloud.google.com/apis/design/resource_names?hl=zh-cn , 更推崇: &amp;quot;https://calendar.googleapis.com/v3/users/john%20smith/events/123&amp;quot; 这种形式. 常见标准定义: https://cloud.google.com/apis/design/standard_methods?hl=zh-cn  在标准定义中, 这里的bookid 是哪里来的?
+message CreateBookRequest { // The parent resource name where the book is to be created. string parent = 1; // The book id to use for this book. string book_id = 3; // The book resource to create. // The field name should match the Noun in the method name.</description>
+    </item>
+    
+    <item>
+      <title>Mesh_file</title>
+      <link>https://xujianhai.fun/posts/mesh_file/</link>
+      <pubDate>Sat, 28 Mar 2020 23:36:12 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/mesh_file/</guid>
+      <description>记录 service mesh 的一些相关资料:
+ http://www.360doc.com/content/19/0907/06/46368139_859593650.shtml  </description>
+    </item>
     
     <item>
       <title>Rocketmq_nomessage</title>
@@ -103,41 +140,6 @@ proposal</description>
  场景 业务反馈的时候, 通常是 监控上部分partition lag 增长, 并且queue的消费qps是0.
 通过使用 mqadmin consumerProgress 查看offset 提交的时候, 发现这个group提交了多个topic, 并且每次结果不一样
 -&amp;gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0). RocketMQLog:WARN Please initialize the logger system properly. #Topic #Broker Name #QID #Broker Offset #Consumer Offset #Client IP #Diff #LastTime %RETRY%groupA broker1 0 0 0 ip1 0 N/A topicA broker1 0 2180901 2180901 ip1 0 2020-03-08 20:10:04 topicA broker1 1 2000000 0 ip1 200000 2020-03-08 00:10:04 -&amp;gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq_subsconfig</title>
-      <link>https://xujianhai.fun/posts/rocketmq_subs/</link>
-      <pubDate>Sun, 08 Mar 2020 15:35:05 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rocketmq_subs/</guid>
-      <description>最近咨询订阅配置的人比较多, 这里进行分析下.
- 配置信息 订阅配置信息是consumer向broker消费消息的凭证, 如果broker开启了 autoCreateSubscriptionGroup=false , 那么consumer client在消费之前, 必须通过命令行或者控制台上创建订阅配置, 然后consumer client使用配置订阅的名字. 通过命令行创建的订阅如下:
--&amp;gt; % mqadmin updateSubGroup usage: mqadmin updateSubGroup [-a &amp;lt;arg&amp;gt;] [-b &amp;lt;arg&amp;gt;] [-c &amp;lt;arg&amp;gt;] [-d &amp;lt;arg&amp;gt;] -g &amp;lt;arg&amp;gt; [-h] [-i &amp;lt;arg&amp;gt;] [-m &amp;lt;arg&amp;gt;] [-n &amp;lt;arg&amp;gt;] [-q &amp;lt;arg&amp;gt;] [-r &amp;lt;arg&amp;gt;] [-s &amp;lt;arg&amp;gt;] [-w &amp;lt;arg&amp;gt;] -a,--notifyConsumerIdsChanged &amp;lt;arg&amp;gt; notify consumerId changed -b,--brokerAddr &amp;lt;arg&amp;gt; create subscription group to which broker -c,--clusterName &amp;lt;arg&amp;gt; create subscription group to which cluster -d,--consumeBroadcastEnable &amp;lt;arg&amp;gt; broadcast -g,--groupName &amp;lt;arg&amp;gt; consumer group name -h,--help Print help -i,--brokerId &amp;lt;arg&amp;gt; consumer from which broker id -m,--consumeFromMinEnable &amp;lt;arg&amp;gt; from min offset -n,--namesrvAddr &amp;lt;arg&amp;gt; Name server address list, eg: 192.</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq_article</title>
-      <link>https://xujianhai.fun/posts/rocketmq_article/</link>
-      <pubDate>Sun, 08 Mar 2020 12:00:05 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rocketmq_article/</guid>
-      <description> 这里主要是收集一些比较不错的rocketmq 相关的文章
- 使用和优化 rocketmq官方文档的优化使用: irqbalance 关闭、中断聚合、numa: 链接
-双机房 源码分析 </description>
-    </item>
-    
-    <item>
-      <title>GOMAXPROCS</title>
-      <link>https://xujianhai.fun/posts/max_proc/</link>
-      <pubDate>Sat, 07 Mar 2020 20:04:32 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/max_proc/</guid>
-      <description>这个是年前的一个案例, 通过团队成员解决, 因为比较经典, 还是写下blog进行记录.
- 背景 随着业务接入, 服务的集群cpu逐渐上涨到 40%, 有时候流量一段时间上涨, 就会触发cpu 80% 报警, 常规情况下一般是简单扩容就好了, 但是本着cpu优化的角度, 开始进行了profile.
-因为我们的实现基于go的, 直接用 go pprof 进行cpu 分析 就可以了. 结果发现, runtime.findrunnable 的cpu占比比较高, 通过搜索发现, 可能是因为 cpu设置的问题. 于是进行了环境变量的打印, golang默认的 cpu 是获取物理机的cpu: 128, 但是我们的服务是部署在 k8s 上的, cpu 的数量应该是通过 MY_CPU_LIMIT 获取所在容器的cpu:16, 中间差了7倍的数量
-但是为什么 cpu 数量设置的不正确会影响 cpu 利用率呢？
-这个需要讲到 GOMAXPROCS 的参数了, 这个参数规定了 P 的最大数量, 默认取值是 cpu数量, 通过设置 最大并行度(GOMAXPROCS) 为 cpu 数量, 可以充分利用每个cpu, 避免线程切换间的代价. 如果说将 GOMAXPROCS 设置成了128, 首先并行执行go代码的线程数膨胀, 但是由于 k8s 容器对于cpu的约束，导致只有 16个cpu 运行 128个线程 (至少128个, 因为系统调用的线程是不受 GOMAXPROCS 约束的)</description>
     </item>
     
   </channel>

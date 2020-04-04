@@ -6,10 +6,46 @@
     <description>Recent content in Tags on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 26 Mar 2020 23:33:04 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 03 Apr 2020 14:02:08 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>delay</title>
+      <link>https://xujianhai.fun/tags/delay/</link>
+      <pubDate>Fri, 03 Apr 2020 14:02:08 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/delay/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>qmq</title>
+      <link>https://xujianhai.fun/tags/qmq/</link>
+      <pubDate>Fri, 03 Apr 2020 14:02:08 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/qmq/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>api</title>
+      <link>https://xujianhai.fun/tags/api/</link>
+      <pubDate>Sun, 29 Mar 2020 19:40:51 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/api/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>mesh</title>
+      <link>https://xujianhai.fun/tags/mesh/</link>
+      <pubDate>Sat, 28 Mar 2020 23:36:12 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/mesh/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>rocketmq</title>
@@ -35,6 +71,15 @@
       <pubDate>Sat, 07 Mar 2020 20:04:32 +0800</pubDate>
       
       <guid>https://xujianhai.fun/tags/go/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>untagged</title>
+      <link>https://xujianhai.fun/tags/untagged/</link>
+      <pubDate>Fri, 12 Jul 2019 12:40:33 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/untagged/</guid>
       <description></description>
     </item>
     

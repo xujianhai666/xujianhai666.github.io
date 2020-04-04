@@ -3,8 +3,53 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xujianhai.fun/tags/delay/</loc>
+    <lastmod>2020-04-03T14:02:08+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-03-26T23:33:04+08:00</lastmod>
+    <lastmod>2020-04-03T14:02:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/qmq/</loc>
+    <lastmod>2020-04-03T14:02:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/qmq_delay/</loc>
+    <lastmod>2020-04-03T14:02:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/</loc>
+    <lastmod>2020-04-03T14:02:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2020-04-03T14:02:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/api/</loc>
+    <lastmod>2020-03-29T19:40:51+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/google_api/</loc>
+    <lastmod>2020-03-29T19:40:51+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/mesh/</loc>
+    <lastmod>2020-03-28T23:36:12+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/mesh_file/</loc>
+    <lastmod>2020-03-28T23:36:12+08:00</lastmod>
   </url>
   
   <url>
@@ -14,16 +59,6 @@
   
   <url>
     <loc>https://xujianhai.fun/posts/rocketmq_nomessage/</loc>
-    <lastmod>2020-03-26T23:33:04+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-03-26T23:33:04+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
     <lastmod>2020-03-26T23:33:04+08:00</lastmod>
   </url>
   
@@ -180,6 +215,16 @@
   <url>
     <loc>https://xujianhai.fun/posts/python-deadlock/</loc>
     <lastmod>2019-09-08T11:20:15+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/grpc-client/</loc>
+    <lastmod>2019-07-12T12:40:33+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/untagged/</loc>
+    <lastmod>2019-07-12T12:40:33+08:00</lastmod>
   </url>
   
   <url>

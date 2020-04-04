@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>qmq on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/qmq/</link>
+    <description>Recent content in qmq on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Fri, 03 Apr 2020 14:02:08 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/qmq/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Qmq_delay</title>
+      <link>https://xujianhai.fun/posts/qmq_delay/</link>
+      <pubDate>Fri, 03 Apr 2020 14:02:08 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/qmq_delay/</guid>
+      <description>背景 最近在调研延迟消息的设计和研发, 其中, 目前开源并在线上大规模使用的主要是 去哪儿的qmq, 本文主要针对 qmq 中的延迟消息实现进行分析
+问题 作为一款延迟消息服务, 需要解决一下问题:
+ 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
+  LogSegment&amp;amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化. 仅负责写入和读取的行为及结果, 不管理内容格式
+  MessageLog&amp;amp;MessageSegmentContainer: 基于上面的log机制 实现了 延迟消息的存储, 主要是 存储内容的定义, MessageLog 对外暴露写入接口. 相当于WAL
+  LogIterateService: 读取messagelog的消息分发给订阅者
+  ScheduleLog &amp;amp; ScheduleSet &amp;amp; ScheduleSetSegmentContainer: 定时任务的存储. 通过订阅 LogIterateService 将messageLog的消息添加到 schedule log.
+  DispatchLog &amp;amp; DispatchLogSegment &amp;amp; DispatchLogSegmentContainer: dispatch日志的存储, 用来确定在重启后, 当前刻度内哪些消息已经投递, 避免重复投递</description>
+    </item>
+    
+  </channel>
+</rss>

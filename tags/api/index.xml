@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>api on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/api/</link>
+    <description>Recent content in api on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 29 Mar 2020 19:40:51 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/api/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Google_api</title>
+      <link>https://xujianhai.fun/posts/google_api/</link>
+      <pubDate>Sun, 29 Mar 2020 19:40:51 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/google_api/</guid>
+      <description>背景 最近发现了 google cloud api 的设计指南, 不仅有 http 相关的描述, 还涉及到grpc. 于是加以学习这里总结下
+ 在对外暴露端口url的时候, 可以参考: https://cloud.google.com/apis/design/resource_names?hl=zh-cn , 更推崇: &amp;quot;https://calendar.googleapis.com/v3/users/john%20smith/events/123&amp;quot; 这种形式. 常见标准定义: https://cloud.google.com/apis/design/standard_methods?hl=zh-cn  在标准定义中, 这里的bookid 是哪里来的?
+message CreateBookRequest { // The parent resource name where the book is to be created. string parent = 1; // The book id to use for this book. string book_id = 3; // The book resource to create. // The field name should match the Noun in the method name.</description>
+    </item>
+    
+  </channel>
+</rss>

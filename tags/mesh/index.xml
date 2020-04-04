@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>mesh on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/mesh/</link>
+    <description>Recent content in mesh on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 28 Mar 2020 23:36:12 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/mesh/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Mesh_file</title>
+      <link>https://xujianhai.fun/posts/mesh_file/</link>
+      <pubDate>Sat, 28 Mar 2020 23:36:12 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/mesh_file/</guid>
+      <description>记录 service mesh 的一些相关资料:
+ http://www.360doc.com/content/19/0907/06/46368139_859593650.shtml  </description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>untagged on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/untagged/</link>
+    <description>Recent content in untagged on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Fri, 12 Jul 2019 12:40:33 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/untagged/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Grpc Client</title>
+      <link>https://xujianhai.fun/posts/grpc-client/</link>
+      <pubDate>Fri, 12 Jul 2019 12:40:33 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/grpc-client/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>
