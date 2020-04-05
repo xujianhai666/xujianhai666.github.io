@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>sam on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/sam/</link>
+    <description>Recent content in sam on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 05 Apr 2020 09:42:10 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/sam/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Proxy_sam</title>
+      <link>https://xujianhai.fun/posts/proxy_sam/</link>
+      <pubDate>Sun, 05 Apr 2020 09:42:10 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/proxy_sam/</guid>
+      <description>背景 最近在研究service mesh相关的实现, 除了知名的 envoy-proxy(c++写的), go写的知名mesh就是 mosn, 在饿了么, 也实现了mesh的产品: samaritan
+设计 整体设计 samaritan 本质上是一个proxy, 通过 unix domain socket 和应用进程交互. samaritan-proxy 的设计有以下几个重要模块:
+ instance: 一个samaritan-proxy就是一个实例 controller: 负责配置信息的变更和处理, 配置变更会启动一个proc Proc: 服务名绑定的 流量处理和转发抽象, 每一个 procName 对应一个Proc. 比如 redis的实现 就是一个 Proc. Proc 独立监听 网络端口和网络包处理 admin: 运维管理接口, 比如 获取配置、stats统计、pprof. admin端口是重用的. config: 动态配置实现, 获取动态配置 放到 event channel, 订阅者监听 event channel 处理配置变更  需要注意的是, proc 的协议相关实现 需要实现注册到 controller#procs 的map中, 注册目前依赖 Bootstrap#StaticServices 的配置信息.
+主流程 先关注主流程, 协议启动:
+Controller#handleEvent -&amp;gt; handleSvcAdd -&amp;gt; #tryEnsureProc -&amp;gt; newProc(controller.</description>
+    </item>
+    
+  </channel>
+</rss>

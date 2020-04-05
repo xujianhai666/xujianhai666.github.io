@@ -5,8 +5,72 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Fri, 03 Apr 2020 14:02:08 +0800</lastBuildDate>
+        <lastBuildDate>Sun, 05 Apr 2020 09:42:10 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Proxy_sam</title>
+            <link>https://xujianhai.fun/posts/proxy_sam/</link>
+            <pubDate>Sun, 05 Apr 2020 09:42:10 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/proxy_sam/</guid>
+            <description>背景 最近在研究service mesh相关的实现, 除了知名的 envoy-proxy(c++写的), go写的知名mesh就是 mosn, 在饿了么, 也实现了mesh的产品: samaritan
+设计 整体设计 samaritan 本质上是一个proxy, 通过 unix domain socket 和应用进程交互. samaritan-proxy 的设计有以下几个重要模块:
+ instance: 一个samaritan-proxy就是一个实例 controller: 负责配置信息的变更和处理, 配置变更会启动一个proc Proc: 服务名绑定的 流量处理和转发抽象, 每一个 procName 对应一个Proc. 比如 redis的实现 就是一个 Proc. Proc 独立监听 网络端口和网络包处理 admin: 运维管理接口, 比如 获取配置、stats统计、pprof. admin端口是重用的. config: 动态配置实现, 获取动态配置 放到 event channel, 订阅者监听 event channel 处理配置变更  需要注意的是, proc 的协议相关实现 需要实现注册到 controller#procs 的map中, 注册目前依赖 Bootstrap#StaticServices 的配置信息.
+主流程 先关注主流程, 协议启动:
+Controller#handleEvent -&amp;gt; handleSvcAdd -&amp;gt; #tryEnsureProc -&amp;gt; newProc(controller.</description>
+            <content type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>最近在研究service mesh相关的实现, 除了知名的 envoy-proxy(c++写的), go写的知名mesh就是 mosn, 在饿了么, 也实现了mesh的产品: samaritan</p>
+<h2 id="设计">设计</h2>
+<h3 id="整体设计">整体设计</h3>
+<p>samaritan 本质上是一个proxy, 通过 unix domain socket 和应用进程交互. samaritan-proxy 的设计有以下几个重要模块:</p>
+<ol>
+<li>instance: 一个samaritan-proxy就是一个实例</li>
+<li>controller: 负责配置信息的变更和处理, 配置变更会启动一个proc</li>
+<li>Proc: 服务名绑定的 流量处理和转发抽象, 每一个 procName 对应一个Proc. 比如 redis的实现 就是一个 Proc. Proc 独立监听 网络端口和网络包处理</li>
+<li>admin: 运维管理接口, 比如 获取配置、stats统计、pprof. admin端口是重用的.</li>
+<li>config: 动态配置实现, 获取动态配置 放到 event channel, 订阅者监听 event channel 处理配置变更</li>
+</ol>
+<p>需要注意的是, proc 的协议相关实现 需要实现注册到 controller#procs 的map中, 注册目前依赖 Bootstrap#StaticServices 的配置信息.</p>
+<h4 id="主流程">主流程</h4>
+<p>先关注主流程, 协议启动:</p>
+<pre><code>Controller#handleEvent -&gt; handleSvcAdd -&gt; #tryEnsureProc -&gt; newProc(controller.go) -&gt; proc#new: 根据协议获取相应的 builder, 实例化 后端服务, 比如 newRedisProc(redis.go)
+</code></pre><p>每个协议的实现, 会根据config#Listener获取监听的地址, Start 的时候 会启动两个goroutine,</p>
+<ul>
+<li>listener的监听和读写操作, 这一块是抽象出去的, 所有协议的 listener 实现是一个(uds), 连接的处理 是 实例化listener 注册进去的 (connHandleFn), redis 连接的操作 是 session 机制的, 每个 connection 是一个 session, 连接的读写是全双工的, 读是一个goroutine, 写是一个goroutine. 利用了 unix socket 的全双工操作. 在消息的处理上, 每个消息就是一个 cmd, 每个 cmd 对应一个handler实现, 比如: mset mget eval scan hotkey ping quit info time select, 显然没有pipeline, 为什么没有 pipeline 呢? 同时redis 也会实例一个goroutine 处理 upstream 的操作(redis refresh slot), 这样 redis proxy 就可以下线了.</li>
+</ul>
+<h4 id="问题">问题</h4>
+<ul>
+<li>这里就存在一个问题了, 每一种协议的实现 监听端口的是不一样的吗?</li>
+</ul>
+<p>是的, 每个proc 根据config#Listener 信息独立监听 unix domain socket 地址, 彼此之间隔离.</p>
+<ul>
+<li>协议复用</li>
+</ul>
+<p>每个proc的实现都需要实现自己的 连接处理栈, 不能利用相同协议的服务的实现,比如: 网络连接管理、session管理. 按照配置上的解耦实现来看, 应该是可以规划下的, 比如 redis 协议上不同服务的实现. 可以把 handleRequest 抽象出去.</p>
+<h4 id="不错的实现">不错的实现</h4>
+<ol>
+<li>
+<p>redis proc 在unix domain socket实现了全双工模型, 每一个连接都是 读写并行的.</p>
+</li>
+<li>
+<p>支持热重启, 但是什么情况下需要热重启呢?</p>
+</li>
+<li>
+<p>热重启&amp;端口复用</p>
+</li>
+</ol>
+<p>proxy 在升级的时候, 我们希望尽可能的不丢失用户的连接, 在tcp中可以通过 REUSE_PORT 实现, 比如一些 mysql proxy. 在 unix domain 中, 只能通过 sendmessage 和 receivemessage 实现 fd 在新老proxy之间传递, 实现端口上连接的复用, 在fd迁移完成后, 会kill 老的proxy. 这种机制就是热重启/端口复用, 整体的实现在 hotrestart模块 + proxy instance#New + #Run 方法中, 会有以下以下步骤:</p>
+<ul>
+<li>启动hotreload模块 (监听新的unix domain socket)</li>
+<li>启动controller (根据动态配置的信息, 会启动相应的proc监听 unix domain socket, 这个时候有多个instance 监听同一个socket)</li>
+<li>通过 unix domain socket 向之前的proxy 发送暂停admin通知. 老的proxy关闭admin的端口监听</li>
+<li>启动本地的admin模块</li>
+<li>通过 unix domain socket 向之前的proxy 发送fd迁移通知, 老的proxy循环所有的proc 关闭监听</li>
+<li>通过 unix domain socket 向之前的proxy 发送关闭通知. 老的proxy系统调用kill自杀</li>
+</ul>
+]]></content>
+        </item>
         
         <item>
             <title>Qmq_delay</title>
