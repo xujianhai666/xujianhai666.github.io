@@ -69,6 +69,8 @@ Controller#handleEvent -&amp;gt; handleSvcAdd -&amp;gt; #tryEnsureProc -&amp;gt;
 <li>通过 unix domain socket 向之前的proxy 发送fd迁移通知, 老的proxy循环所有的proc 关闭监听</li>
 <li>通过 unix domain socket 向之前的proxy 发送关闭通知. 老的proxy系统调用kill自杀</li>
 </ul>
+<p>那么怎么知道老的proxy的端口呢?</p>
+<p>在 hack/hot-restart.py 中, 启动的时候, 会将proxy的地址放到环境变量中: <code>__Samaritan_Parent__</code></p>
 ]]></content>
         </item>
         
