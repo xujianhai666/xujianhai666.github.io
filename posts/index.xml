@@ -5,8 +5,82 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Sun, 05 Apr 2020 09:42:10 +0800</lastBuildDate>
+        <lastBuildDate>Sun, 05 Apr 2020 19:36:11 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Cpp_basic</title>
+            <link>https://xujianhai.fun/posts/cpp_basic/</link>
+            <pubDate>Sun, 05 Apr 2020 19:36:11 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/cpp_basic/</guid>
+            <description>背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
+基础 锁 std::mutex 是基础的锁, 但是使用 std::mutex 很容易经常忘记解锁, 而且缺乏一些常用的特性: 延迟加锁、尝试加锁. 为此, cpp提供了 std::unique_lock 和 std::lock_gurad , 都是简化锁的使用, std::local_guard 是通过栈上变量的 构造和析构 解决加锁和解锁逻辑, std::unique_lock 则提供了更多的特性: 延迟锁定、递归锁定、有时限尝试、所有权转移等.
+std::scoped_lock: raii风格的互斥包装器, 创建对象的时候 会获取 互斥的所有权, 离开的时候 逆序释放. 相当于两步操作的封装 (std::lock(a, b), std::lock_quard g1(a1, std::adopt_lock), std::lock_gurad g2(a2, std::adopt_lock))
+https://zh.cppreference.com/w/cpp/thread/lock https://zh.cppreference.com/w/cpp/thread/mutex https://zh.cppreference.com/w/cpp/thread/lock_guard https://zh.cppreference.com/w/cpp/thread/unique_lock http://www.cplusplus.com/reference/mutex/unique_lock/ https://zh.cppreference.com/w/cpp/thread/scoped_lock
+补充, std::lock 是一个函数, 用来对多个互斥量上锁, 还有尝试加锁的函数: std::try_lock 更多线程相关的信息: https://zh.cppreference.com/w/cpp/thread
+智能指针 为了避免在处理指针导致指针对象泄露, cpp提供了多种智能指针的处理方式. 除了 auto, 更常见的是 std::shared_pter 和 std::unique_ptr.
+std::shared_ptr: 通过指针保持对象共享所有权的智能指针, 多个 shared_ptr 对象可占有同一对象, 当最后的shared_ptr 被销毁或者被赋值为其他指针就会释放、销毁 对象 并释放内存.</description>
+            <content type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>最近准备写 cpp 的一些项目, 学习下不太了解的领域.</p>
+<h2 id="基础">基础</h2>
+<h3 id="锁">锁</h3>
+<p>std::mutex 是基础的锁, 但是使用 std::mutex 很容易经常忘记解锁, 而且缺乏一些常用的特性: 延迟加锁、尝试加锁. 为此, cpp提供了 std::unique_lock 和 std::lock_gurad , 都是简化锁的使用, std::local_guard 是通过栈上变量的 构造和析构 解决加锁和解锁逻辑, std::unique_lock 则提供了更多的特性: 延迟锁定、递归锁定、有时限尝试、所有权转移等.</p>
+<p>std::scoped_lock: raii风格的互斥包装器, 创建对象的时候 会获取 互斥的所有权, 离开的时候 逆序释放. 相当于两步操作的封装 (std::lock(a, b), std::lock_quard g1(a1, std::adopt_lock), std::lock_gurad g2(a2, std::adopt_lock))</p>
+<p><a href="https://zh.cppreference.com/w/cpp/thread/lock">https://zh.cppreference.com/w/cpp/thread/lock</a>
+<a href="https://zh.cppreference.com/w/cpp/thread/mutex">https://zh.cppreference.com/w/cpp/thread/mutex</a>
+<a href="https://zh.cppreference.com/w/cpp/thread/lock_guard">https://zh.cppreference.com/w/cpp/thread/lock_guard</a>
+<a href="https://zh.cppreference.com/w/cpp/thread/unique_lock">https://zh.cppreference.com/w/cpp/thread/unique_lock</a>
+<a href="http://www.cplusplus.com/reference/mutex/unique_lock/">http://www.cplusplus.com/reference/mutex/unique_lock/</a>
+<a href="https://zh.cppreference.com/w/cpp/thread/scoped_lock">https://zh.cppreference.com/w/cpp/thread/scoped_lock</a></p>
+<p>补充, std::lock 是一个函数, 用来对多个互斥量上锁, 还有尝试加锁的函数: std::try_lock
+更多线程相关的信息: <a href="https://zh.cppreference.com/w/cpp/thread">https://zh.cppreference.com/w/cpp/thread</a></p>
+<h3 id="智能指针">智能指针</h3>
+<p>为了避免在处理指针导致指针对象泄露, cpp提供了多种智能指针的处理方式. 除了 auto, 更常见的是 std::shared_pter 和 std::unique_ptr.</p>
+<p>std::shared_ptr: 通过指针保持对象共享所有权的智能指针, 多个 shared_ptr 对象可占有同一对象, 当最后的shared_ptr 被销毁或者被赋值为其他指针就会释放、销毁 对象 并释放内存. 但是用share_ptr处理双向链表会导致泄露 (pre和next相互引用, 造成循环), 需要借助 weak_ptr</p>
+<p>std::weak_ptr: 对shared_pter的弱引用, 在访问所需引用的对象的时候需要转换为 std::shared_ptr, 用来表达临时所有权的概念. 常见的例子是 双向列表</p>
+<p>std::unique_ptr: 通过指针占有并管理另一个对象, 并在 unique_ptr离开作用域的时候销毁对象. 可以通过 std::move 转移 控制权.</p>
+<p>std::move:</p>
+<p><a href="https://zh.cppreference.com/w/cpp/memory/shared_ptr">https://zh.cppreference.com/w/cpp/memory/shared_ptr</a>
+<a href="https://zh.cppreference.com/w/cpp/memory/unique_ptr">https://zh.cppreference.com/w/cpp/memory/unique_ptr</a>
+<a href="https://zh.cppreference.com/w/cpp/memory/weak_ptr">https://zh.cppreference.com/w/cpp/memory/weak_ptr</a></p>
+<h3 id="常用容器">常用容器</h3>
+<p>boost.circular_buffer: 用数组维护了一段数据, 超过容量后覆盖开头的数据写入</p>
+<h3 id="其他概念">其他概念</h3>
+<p><em>pimpl</em></p>
+<p>pimpl: 指向实现的指针, 将类的实现细节从对象表示中移除, 放到另一个分离的类, 并以一个不透明的指针进行访问, 一开始看的略微懂了, 但是实践不是很懂, 看到这篇文章: <a href="https://www.cnblogs.com/senior-engineer/p/9811937.html,">https://www.cnblogs.com/senior-engineer/p/9811937.html,</a> 理解了出发点: 基础的头文件修改会导致 依赖的 所有源文件都得重新编译.</p>
+<p><a href="https://zh.cppreference.com/w/cpp/language/pimpl">https://zh.cppreference.com/w/cpp/language/pimpl</a></p>
+<p><em>raii</em></p>
+<p>resource acquisition is initializaiton: 资源即获取, 使用局部变量来管理资源. 因为对象的构造和析构是系统调用的, 可以在构造函数中初始化资源, 在析构函数中释放资源, 比如 std::lock_gurard. 也可以自己设计.</p>
+<p><em>函数绑定</em></p>
+<p>这个是最近学习到的, 可以动态申明绑定一个函数. 需要注意的是, std::ref 是引用传递, 外部修改和内部修改 都会奏效.</p>
+<pre><code>std::function&lt;void()&gt; bound_f = std::bind(f, n1, std::ref(n2), std::cref(n3));
+</code></pre><p>参照:</p>
+<ul>
+<li><a href="https://zh.cppreference.com/w/cpp/utility/functional/ref">https://zh.cppreference.com/w/cpp/utility/functional/ref</a></li>
+<li><a href="https://zh.cppreference.com/w/cpp/utility/functional/bind">https://zh.cppreference.com/w/cpp/utility/functional/bind</a></li>
+</ul>
+<p><em>左值、右值</em></p>
+<p>虽然有文章: <a href="https://zh.cppreference.com/w/cpp/language/value_category,">https://zh.cppreference.com/w/cpp/language/value_category,</a> 但是一次还是没读懂</p>
+<p><em>赋值、构造</em></p>
+<p>移动构造函数: 构造函数很特别, 还要区分 析构函数阻止隐式移动构造函数 和 强制生成移动构造函数, 不是特别理解, 使用如下</p>
+<pre><code>A(A&amp;&amp; o) noexcept :
+       s(std::move(o.s)),       // 类类型成员的显式移动
+       k(std::exchange(o.k, 0)) // 非类类型成员的显式移动
+{ }
+</code></pre><p><a href="https://zh.cppreference.com/w/cpp/language/move_constructor">https://zh.cppreference.com/w/cpp/language/move_constructor</a>
+<a href="https://zh.cppreference.com/w/cpp/named_req/MoveConstructible">https://zh.cppreference.com/w/cpp/named_req/MoveConstructible</a></p>
+<p>移动赋值运算符: 不是很懂. 定义如下:</p>
+<pre><code> V&amp; operator=(V&amp;&amp; other) {}
+</code></pre><p><a href="https://zh.cppreference.com/w/cpp/language/move_assignment">https://zh.cppreference.com/w/cpp/language/move_assignment</a>
+<a href="https://zh.cppreference.com/w/cpp/named_req/MoveAssignable">https://zh.cppreference.com/w/cpp/named_req/MoveAssignable</a></p>
+<p><em>仿函数</em></p>
+<p>函数指针 使函数作为参数 传递给处理逻辑, 解耦了 可插拔逻辑, 但是函数指针并不能维护 一些本地信息: 比如局部变量, 这个时候可以使用 Functor/仿函数,</p>
+<p><a href="https://cloud.tencent.com/developer/article/1347883">https://cloud.tencent.com/developer/article/1347883</a></p>
+<h2 id="总结">总结</h2>
+<p>目前参考 <a href="https://zh.cppreference.com">https://zh.cppreference.com</a> 和 <a href="https://zh.cppreference.com">https://zh.cppreference.com</a> 就足够了. 更多的需要example 辅助学习.</p>
+]]></content>
+        </item>
         
         <item>
             <title>Proxy_sam</title>

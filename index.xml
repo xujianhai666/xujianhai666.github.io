@@ -6,10 +6,25 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 05 Apr 2020 09:42:10 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 05 Apr 2020 19:36:11 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Cpp_basic</title>
+      <link>https://xujianhai.fun/posts/cpp_basic/</link>
+      <pubDate>Sun, 05 Apr 2020 19:36:11 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/cpp_basic/</guid>
+      <description>背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
+基础 锁 std::mutex 是基础的锁, 但是使用 std::mutex 很容易经常忘记解锁, 而且缺乏一些常用的特性: 延迟加锁、尝试加锁. 为此, cpp提供了 std::unique_lock 和 std::lock_gurad , 都是简化锁的使用, std::local_guard 是通过栈上变量的 构造和析构 解决加锁和解锁逻辑, std::unique_lock 则提供了更多的特性: 延迟锁定、递归锁定、有时限尝试、所有权转移等.
+std::scoped_lock: raii风格的互斥包装器, 创建对象的时候 会获取 互斥的所有权, 离开的时候 逆序释放. 相当于两步操作的封装 (std::lock(a, b), std::lock_quard g1(a1, std::adopt_lock), std::lock_gurad g2(a2, std::adopt_lock))
+https://zh.cppreference.com/w/cpp/thread/lock https://zh.cppreference.com/w/cpp/thread/mutex https://zh.cppreference.com/w/cpp/thread/lock_guard https://zh.cppreference.com/w/cpp/thread/unique_lock http://www.cplusplus.com/reference/mutex/unique_lock/ https://zh.cppreference.com/w/cpp/thread/scoped_lock
+补充, std::lock 是一个函数, 用来对多个互斥量上锁, 还有尝试加锁的函数: std::try_lock 更多线程相关的信息: https://zh.cppreference.com/w/cpp/thread
+智能指针 为了避免在处理指针导致指针对象泄露, cpp提供了多种智能指针的处理方式. 除了 auto, 更常见的是 std::shared_pter 和 std::unique_ptr.
+std::shared_ptr: 通过指针保持对象共享所有权的智能指针, 多个 shared_ptr 对象可占有同一对象, 当最后的shared_ptr 被销毁或者被赋值为其他指针就会释放、销毁 对象 并释放内存.</description>
+    </item>
     
     <item>
       <title>Proxy_sam</title>
@@ -127,18 +142,6 @@ Receive New Messages: [MessageExt [queueId=0, storeSize=197, queueOffset=0, sysF
       <description>这里主要记录kafka broker 的相关proposal
  broker 增加配置: fetch.max.bytes, 避免部分consumer影响其他consumer.
 proposal</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq_allocate</title>
-      <link>https://xujianhai.fun/posts/rocketmq_allocate/</link>
-      <pubDate>Sun, 08 Mar 2020 20:04:52 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rocketmq_allocate/</guid>
-      <description>最近一年中, 经常有用户不同的服务用一个group分别订阅不同的topic, 导致部分partition不消费
- 场景 业务反馈的时候, 通常是 监控上部分partition lag 增长, 并且queue的消费qps是0.
-通过使用 mqadmin consumerProgress 查看offset 提交的时候, 发现这个group提交了多个topic, 并且每次结果不一样
--&amp;gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0). RocketMQLog:WARN Please initialize the logger system properly. #Topic #Broker Name #QID #Broker Offset #Consumer Offset #Client IP #Diff #LastTime %RETRY%groupA broker1 0 0 0 ip1 0 N/A topicA broker1 0 2180901 2180901 ip1 0 2020-03-08 20:10:04 topicA broker1 1 2000000 0 ip1 200000 2020-03-08 00:10:04 -&amp;gt; % mqadmin consumerProgress -g groupA -n $addr -s true RocketMQLog:WARN No appenders could be found for logger (io.</description>
     </item>
     
   </channel>
