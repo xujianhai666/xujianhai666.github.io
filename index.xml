@@ -6,10 +6,21 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 05 Apr 2020 19:36:11 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 08 Apr 2020 09:07:46 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Redis_basic</title>
+      <link>https://xujianhai.fun/posts/redis_basic/</link>
+      <pubDate>Wed, 08 Apr 2020 09:07:46 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/redis_basic/</guid>
+      <description>背景 最近和小伙伴重新讨论了下 redis 相关的一些知识点, 发现自己很多已经遗忘了, 今天重新学习下. (最早的redis知识点还是从 “” 学习的)
+原理 数据类型/对象 redis支持的数据结构:
+ string (sds 采用预分配冗余空间的方式来减少内存的频繁分配, 获取字符串长度也更快) list (双向列表, 可以模拟队列/堆栈; 存储: ziplist, 元素较少使用一块连续的内存空间, 普通列表的附加指针空间大) hash (渐进式rehash, hash碰撞扩容在大数据量的时候耗时很长, 渐进式rehash, 不是立即迁移, 而是在后续的定时任务以及hash结构的读写指令进行迁移, golang sync.map 类似) set: 基于hash实现, value 指向的都是同一个对象 zset/sortedset: hash+跳跃列表, hash 保存的是权重, 跳跃列表给value排序, zrange 的排序方式是 升序, 部分场景是希望最新的排前面, 需要降序 bitmap: bit的操作, 上层 布隆过滤器. 用于验证场景, 签到、是否已经执行. 最大 2^32 Geo: Redis 3.2, 处理地理位置信息 HyperLogLog: 统计计数: 统计uv. 是一种概率数据结构，它使用概率算法来统计集合的近似基数. 参考分析: https://www.zhihu.com/question/53416615 Streams: 流式pub/sub  编码&amp;amp;数据结构 目前支持的编码格式:</description>
+    </item>
     
     <item>
       <title>Cpp_basic</title>
@@ -131,17 +142,6 @@ logicsMsgTimestamp  在定时flush consumer queue 以及 追加consumer queue消
 复现 我用producer发送一条消息如下:
 SendResult [sendStatus=SEND_OK, msgId=0AFE2AEF000018B4AAC2562A9AC70000, offsetMsgId=0AE1578800002A9F0000000C6C988CC2, messageQueue=MessageQueue [topic=test_create_topic, brokerName=sandbox_boe4, queueId=0], queueOffset=0] 需要注意的是, msgId 和 offsetMsgId 是不一样的. 在consumer侧, 我接受到的消息如下:
 Receive New Messages: [MessageExt [queueId=0, storeSize=197, queueOffset=0, sysFlag=0, bornTimestamp=1584437632711, bornHost=/10.254.42.239:49872, storeTimestamp=1584437632868, storeHost=/10.225.87.136:10911, msgId=0AE1578800002A9F0000000C6C988CC2, commitLogOffset=53361544386, bodyCRC=198614610, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message{topic=&#39;test_create_topic&#39;, flag=0, properties={MIN_OFFSET=0, MAX_OFFSET=1, KEYS=OrderID188, CONSUME_START_TIME=1584437674686, UNIQ_KEY=0AFE2AEF000018B4AAC2562A9AC70000, WAIT=true, TAGS=TagA}, body=[72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100], transactionId=&#39;null&#39;}]] consumer 收到的 msg的 msgId 和 producer的 msgId 是不一样的, 但是, producer侧的msgId 和 consumer侧的 UNIQUE_KEY 的值是一样的, producer 的 offsetMsgId 和 consumer侧的 msgId 是一致的.</description>
-    </item>
-    
-    <item>
-      <title>Kip_broker</title>
-      <link>https://xujianhai.fun/posts/kip_broker/</link>
-      <pubDate>Mon, 09 Mar 2020 23:13:41 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kip_broker/</guid>
-      <description>这里主要记录kafka broker 的相关proposal
- broker 增加配置: fetch.max.bytes, 避免部分consumer影响其他consumer.
-proposal</description>
     </item>
     
   </channel>

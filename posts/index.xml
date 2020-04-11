@@ -5,8 +5,377 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Sun, 05 Apr 2020 19:36:11 +0800</lastBuildDate>
+        <lastBuildDate>Wed, 08 Apr 2020 09:07:46 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Redis_basic</title>
+            <link>https://xujianhai.fun/posts/redis_basic/</link>
+            <pubDate>Wed, 08 Apr 2020 09:07:46 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/redis_basic/</guid>
+            <description>背景 最近和小伙伴重新讨论了下 redis 相关的一些知识点, 发现自己很多已经遗忘了, 今天重新学习下. (最早的redis知识点还是从 “” 学习的)
+原理 数据类型/对象 redis支持的数据结构:
+ string (sds 采用预分配冗余空间的方式来减少内存的频繁分配, 获取字符串长度也更快) list (双向列表, 可以模拟队列/堆栈; 存储: ziplist, 元素较少使用一块连续的内存空间, 普通列表的附加指针空间大) hash (渐进式rehash, hash碰撞扩容在大数据量的时候耗时很长, 渐进式rehash, 不是立即迁移, 而是在后续的定时任务以及hash结构的读写指令进行迁移, golang sync.map 类似) set: 基于hash实现, value 指向的都是同一个对象 zset/sortedset: hash+跳跃列表, hash 保存的是权重, 跳跃列表给value排序, zrange 的排序方式是 升序, 部分场景是希望最新的排前面, 需要降序 bitmap: bit的操作, 上层 布隆过滤器. 用于验证场景, 签到、是否已经执行. 最大 2^32 Geo: Redis 3.2, 处理地理位置信息 HyperLogLog: 统计计数: 统计uv. 是一种概率数据结构，它使用概率算法来统计集合的近似基数. 参考分析: https://www.zhihu.com/question/53416615 Streams: 流式pub/sub  编码&amp;amp;数据结构 目前支持的编码格式:</description>
+            <content type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>最近和小伙伴重新讨论了下 redis 相关的一些知识点, 发现自己很多已经遗忘了, 今天重新学习下. (最早的redis知识点还是从 “” 学习的)</p>
+<h2 id="原理">原理</h2>
+<h3 id="数据类型对象">数据类型/对象</h3>
+<p>redis支持的数据结构:</p>
+<ul>
+<li>string (sds 采用预分配冗余空间的方式来减少内存的频繁分配, 获取字符串长度也更快)</li>
+<li>list (双向列表, 可以模拟队列/堆栈; 存储: ziplist, 元素较少使用一块连续的内存空间, 普通列表的附加指针空间大)</li>
+<li>hash (渐进式rehash, hash碰撞扩容在大数据量的时候耗时很长, 渐进式rehash, 不是立即迁移, 而是在后续的定时任务以及hash结构的读写指令进行迁移, golang sync.map 类似)</li>
+<li>set: 基于hash实现, value 指向的都是同一个对象</li>
+<li>zset/sortedset: hash+跳跃列表, hash 保存的是权重, 跳跃列表给value排序, zrange 的排序方式是 升序, 部分场景是希望最新的排前面, 需要降序</li>
+<li>bitmap: bit的操作, 上层 布隆过滤器. 用于验证场景, 签到、是否已经执行. 最大 2^32</li>
+<li>Geo: Redis 3.2, 处理地理位置信息</li>
+<li>HyperLogLog:  统计计数: 统计uv. 是一种概率数据结构，它使用概率算法来统计集合的近似基数.  参考分析: <a href="https://www.zhihu.com/question/53416615">https://www.zhihu.com/question/53416615</a></li>
+<li>Streams: 流式pub/sub</li>
+</ul>
+<h3 id="编码数据结构">编码&amp;数据结构</h3>
+<p>目前支持的编码格式:</p>
+<pre><code>int raw(sds) embstr hashtable linkedlist ziplist quicklist skiplist zipmap intset stream  
+</code></pre><ol>
+<li>int</li>
+</ol>
+<p>string 类型的优化, 存储的是int的时候使用</p>
+<ol start="2">
+<li>sds/raw</li>
+</ol>
+<p>简单动态字符串（simple dynamic string SDS), len + free + buf 的数据结构. 为什么不用 ASNI C: 采用预分配冗余空间的方式来减少内存的频繁分配, 获取字符串长度也更快, 避免缓冲区溢出, free 字段统计未使用空间, 用于惰性释放. 二进制安全, c语言的字符串有编码规范, 不能有空格, 字符结尾有要求. 问题: 一般分配多大呢?</p>
+<ol start="3">
+<li>embstr</li>
+</ol>
+<p>sds 的优化, 直接申请一块内存存放 sdsheader+string. 不可修改. 目前以 44 为界区分 raw/embstr</p>
+<ol start="4">
+<li>双向链表</li>
+</ol>
+<p>用len保存了长度信息. 实现平平无奇</p>
+<ol start="4">
+<li>ziplist</li>
+</ol>
+<p>一种相当极致的实现, 也是申请了一批连续的内存存储元素, 为了能够反向遍历, 每个元素都会存储前面的元素长度; 在存储元素中, 支持int 和 string, 为了动态适应不同长度的string和int, encoding 比较复杂. 并且实现的时候, 并没有 ziplist 实际的对象表示, 借助 zlentry 实现.</p>
+<pre><code>typedef struct zlentry {
+    unsigned int prevrawlensize; /* Bytes used to encode the previous entry len*/
+    unsigned int prevrawlen;     /* Previous entry len. */
+    unsigned int lensize;        /* Bytes used to encode this entry type/len.
+                                    For example strings have a 1, 2 or 5 bytes
+                                    header. Integers always use a single byte.*/
+    unsigned int len;            /* Bytes used to represent the actual entry.
+                                    For strings this is just the string length
+                                    while for integers it is 1, 2, 3, 4, 8 or
+                                    0 (for 4 bit immediate) depending on the
+                                    number range. */
+    unsigned int headersize;     /* prevrawlensize + lensize. */
+    unsigned char encoding;      /* Set to ZIP_STR_* or ZIP_INT_* depending on
+                                    the entry encoding. However for 4 bits
+                                    immediate integers this can assume a range
+                                    of values and must be range-checked. */
+    unsigned char *p;            /* Pointer to the very start of the entry, that
+                                    is, this points to prev-entry-len field. */
+} zlentry;
+</code></pre><p>存储的时候, entry 是一段连续的内存来存储 <code>char*</code> 的. 相比list, 节省了 pre/next 指针的开销, 但是每次插入insert delete 都可能涉及到内存重新分配, 效率低下, 但是触发的可能性低, 因为entry的 encoding 是变长的, 不同长度的str和int 用不同的encoding表示, encoding 长度不一样.</p>
+<p>更多详细描述看源码: <a href="https://github.com/antirez/redis/blob/unstable/src/ziplist.c#L11">https://github.com/antirez/redis/blob/unstable/src/ziplist.c#L11</a></p>
+<ol start="5">
+<li>quicklist</li>
+</ol>
+<p>quicklist 是对 linkedlist的优化, 虽然也是双向链表的设计, 但是内部编码用的是 ziplist, 并且支持压缩存储的内容.<br>
+3.2 版本之后都是用 quicklist 实现的, 计数用16 bit, 最多 65536. 为什么这么设计?</p>
+<pre><code>/* quicklistNode is a 32 byte struct describing a ziplist for a quicklist.
+ * We use bit fields keep the quicklistNode at 32 bytes.
+ * count: 16 bits, max 65536 (max zl bytes is 65k, so max count actually &lt; 32k).
+ * encoding: 2 bits, RAW=1, LZF=2.
+ * container: 2 bits, NONE=1, ZIPLIST=2.
+ * recompress: 1 bit, bool, true if node is temporarry decompressed for usage.
+ * attempted_compress: 1 bit, boolean, used for verifying during testing.
+ * extra: 10 bits, free for future use; pads out the remainder of 32 bits */
+typedef struct quicklistNode {
+    struct quicklistNode *prev;
+    struct quicklistNode *next;
+    unsigned char *zl;
+    unsigned int sz;             /* ziplist size in bytes */
+    unsigned int count : 16;     /* count of items in ziplist */
+    unsigned int encoding : 2;   /* RAW==1 or LZF==2 */
+    unsigned int container : 2;  /* NONE==1 or ZIPLIST==2 */
+    unsigned int recompress : 1; /* was this node previous compressed? */
+    unsigned int attempted_compress : 1; /* node can't compress; too small */
+    unsigned int extra : 10; /* more bits to steal for future usage */
+} quicklistNode;
+
+/* quicklist is a 40 byte struct (on 64-bit systems) describing a quicklist.
+ * 'count' is the number of total entries.
+ * 'len' is the number of quicklist nodes.
+ * 'compress' is: -1 if compression disabled, otherwise it's the number
+ *                of quicklistNodes to leave uncompressed at ends of quicklist.
+ * 'fill' is the user-requested (or default) fill factor.
+ * 'bookmakrs are an optional feature that is used by realloc this struct,
+ *      so that they don't consume memory when not used. */
+ typedef struct quicklist {
+    quicklistNode *head;
+    quicklistNode *tail;
+    unsigned long count;        /* total count of all entries in all ziplists */
+    unsigned long len;          /* number of quicklistNodes */
+    int fill : QL_FILL_BITS;              /* fill factor for individual nodes */
+    unsigned int compress : QL_COMP_BITS; /* depth of end nodes not to compress;0=off */
+    unsigned int bookmark_count: QL_BM_BITS;
+    quicklistBookmark bookmarks[];
+} quicklist;
+</code></pre><ol start="6">
+<li>ht/hashtable</li>
+</ol>
+<p>链地址法解决key hash冲突的情况. 渐进式rehash, hash碰撞扩容在大数据量的时候耗时很长, 渐进式rehash, 不是立即迁移, 而是在后续的定时任务以及hash结构的读写指令进行迁移, golang sync.map 类似. 数据结构如下</p>
+<pre><code>typedef struct dictEntry {
+    void *key;
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+        double d;
+    } v;
+    struct dictEntry *next;
+} dictEntry;
+
+typedef struct dictht {
+    dictEntry **table;
+    unsigned long size;
+    unsigned long sizemask;
+    unsigned long used;
+} dictht;
+</code></pre><ol start="7">
+<li>zipmap</li>
+</ol>
+<p>对 map 的优化, 直接分配一块内存存储, 查找的时候需要遍历, 所以是 O(n) 操作. 但是还没有正式进入编码流程. 写完了没使用</p>
+<pre><code>/* Memory layout of a zipmap, for the map &quot;foo&quot; =&gt; &quot;bar&quot;, &quot;hello&quot; =&gt; &quot;world&quot;:
+ *
+ * &lt;zmlen&gt;&lt;len&gt;&quot;foo&quot;&lt;len&gt;&lt;free&gt;&quot;bar&quot;&lt;len&gt;&quot;hello&quot;&lt;len&gt;&lt;free&gt;&quot;world&quot;
+ .......
+ */
+
+</code></pre><ol start="8">
+<li>skiplist</li>
+</ol>
+<p>为什么不用 avl (可以挖掘avl的深度)</p>
+<pre><code>1. 实现简单
+2. 插入删除只需要修改相邻节点, avl 需要修改子树
+3. 查找key的复杂度一样: O(logn)
+4. 范围查找, 平衡树复杂 
+5. skiplist 元素也是有序的
+</code></pre><p>常用的数据结构, 可以参考: <a href="http://zhangtielei.com/posts/blog-redis-skiplist.html">http://zhangtielei.com/posts/blog-redis-skiplist.html</a></p>
+<p>需要考虑一个问题, 就是 skiplist 是基于 随机数 决定 插入节点的层高的, redis 通过 maxlevel=32 以及 概率p=1/4 保证插入到高层的几率少. 之前针对这个问题查找了 blog, 分析下来, 1/4 会保证每个节点所包含的指针数目是 1.33.</p>
+<ol start="9">
+<li>intset: 整数集合</li>
+</ol>
+<p>intset: 对int的set类型的优化. 支持 int16 int32 int64 三种存储内容, 添加会升级, 删除不会降级(个人猜想: 需要遍历开销大), 所有的数据存储在一块连续内存中, 数据是有序的, 查找是二分查找. 每次插入都会扩容,  扩容的时候, 假设插入点在中间, 然后插入位置的后面的元素统一后移一位, 预留插入点给新的数据.</p>
+<p>在 int16插入 int32, 所有数据都升级到 int32, 有一次copy开销, 没有降级.</p>
+<p>数据结构如下:</p>
+<pre><code>typedef struct intset {
+    uint32_t encoding;   // int16 int32 int64 三种编码
+    uint32_t length;    // 定位最后一个元素, 以及长度获取
+    int8_t contents[];
+} intset;
+</code></pre><ol start="10">
+<li>stream</li>
+</ol>
+<p>实现了pub/sub 的功能, 也是encoding的一种, stramid: 毫秒+序列号(序列号64位, 理论无上限), 时间是为了方便查询, 大量使用 rax/基树 维护了 stream 和 consumer group 以及 pending message. 支持 group 隔离、group read、range(类似tail). 存在maxlen的概念, 消息数量大于maxlen, 将会驱逐太久的数据. 消费模式类似nsq, 消费者竞争消费消息. 死信的支持: 使用计数器检测消息处理失败的次数, 达到上限就放入另一个stream. XREAD 支持订阅多个stream, XACK 实现对消息的ack, 有个问题，没有ack的消息什么时候回分派给其他的消费者? 也会持久化 aof/rdb. 里面用到了 基树/字典树 维护 group name, 因为 group name 经常前缀相同. 存储元素的时候使用了 listpack的方式对多个 string 进行编码. 数据会先添加到 stream 的 rax 树上, key 是 streamId. 消费者的消费是通过 streamIterator 扫描 stream-&gt;rax(消息) 实现的, 每个consumer独立一个streamIterator</p>
+<p>关于消费者组:</p>
+<pre><code>/* Stream item ID: a 128 bit number composed of a milliseconds time and
+ * a sequence counter. IDs generated in the same millisecond (or in a past
+ * millisecond if the clock jumped backward) will use the millisecond time
+ * of the latest generated ID and an incremented sequence. */
+typedef struct streamID {
+    uint64_t ms;        /* Unix time in milliseconds. */
+    uint64_t seq;       /* Sequence number. */
+} streamID;
+
+typedef struct stream {
+    rax *rax;               /* The radix tree holding the stream. */
+    uint64_t length;        /* Number of elements inside this stream. */
+    streamID last_id;       /* Zero if there are yet no items. */
+    rax *cgroups;           /* Consumer groups dictionary: name -&gt; streamCG */
+} stream;
+/* Consumer group. */
+typedef struct streamCG {
+    streamID last_id;       /* Last delivered (not acknowledged) ID for this
+                               group. Consumers that will just ask for more
+                               messages will served with IDs &gt; than this. */
+    rax *pel;               /* Pending entries list. This is a radix tree that
+                               has every message delivered to consumers (without
+                               the NOACK option) that was yet not acknowledged
+                               as processed. The key of the radix tree is the
+                               ID as a 64 bit big endian number, while the
+                               associated value is a streamNACK structure.*/
+    rax *consumers;         /* A radix tree representing the consumers by name
+                               and their associated representation in the form
+                               of streamConsumer structures. */
+} streamCG;
+
+/* A specific consumer in a consumer group.  */
+typedef struct streamConsumer {
+    mstime_t seen_time;         /* Last time this consumer was active. */
+    sds name;                   /* Consumer name. This is how the consumer
+                                   will be identified in the consumer group
+                                   protocol. Case sensitive. */
+    rax *pel;                   /* Consumer specific pending entries list: all
+                                   the pending messages delivered to this
+                                   consumer not yet acknowledged. Keys are
+                                   big endian message IDs, while values are
+                                   the same streamNACK structure referenced
+                                   in the &quot;pel&quot; of the conumser group structure
+                                   itself, so the value is shared. */
+} streamConsumer;
+</code></pre><p>更多细节参考文章: <a href="https://redis.io/topics/streams-intro">https://redis.io/topics/streams-intro</a></p>
+<p>亮点: rax 和 listpack</p>
+<ol start="11">
+<li>其他</li>
+</ol>
+<p>有趣的点, 在长度编码上, 经常用一个字节活五个字节来表示, 而没有其他的字节长度, 不是1 就是5.</p>
+<p>在redis中, 有ziplist优化map的使用方式, 除了ziplist 优化 list, 比如 zset 的 skiplist. ziplist 采用的判断条件都是一样的</p>
+<pre><code>if (server.zset_max_ziplist_entries == 0 ||
+    server.zset_max_ziplist_value &lt; sdslen(c-&gt;argv[scoreidx+1]-&gt;ptr))
+</code></pre><h3 id="redis对象编码格式">redis对象&amp;编码格式</h3>
+<ul>
+<li>string:</li>
+</ul>
+<p>int: 字符串对象保存的是 整数类型
+raw: sds, 长度&gt;39. 3.2 版本之后是 44, 为什么呢?<br>
+embstr:  长度&lt;39, 本质上还是 sds, 但是是一次性申请了一块内存放 redisObject+sdshdr, 内存的申请和释放减少, 缓存优势高(一块内存)</p>
+<p>怎么看对象的编码方式:</p>
+<pre><code>OBJECT ENCODING xxxx
+</code></pre><p>问题:</p>
+<ol>
+<li>float/double 的值用string存储, 是什么编码? 看长度, raw/emdstr. 但是支持 浮点数的操作.</li>
+<li>string的 int 类型编码会转换成 raw/emdstr, 比如 10086 添加了 &ldquo;a number&rdquo; 的操作</li>
+</ol>
+<p>可以参考:
+<a href="http://redisbook.com/preview/object/string.html">http://redisbook.com/preview/object/string.html</a>
+<a href="https://blog.csdn.net/XiyouLinux_Kangyijie/article/details/78045385">https://blog.csdn.net/XiyouLinux_Kangyijie/article/details/78045385</a></p>
+<ul>
+<li>list</li>
+</ul>
+<p>ziplist:    个数小于512个, 并且 值小于 64字节. 使用一整块内存存储, 有利用存储短字符和整数, 但是 插入和删除元素的开销大, 需要频繁realloc
+linkedlist: 双向列表. pre/next 两个指针 暂用空间, 并且元素之间 内存独立, 地址不连续容易内存碎片
+quicklist: 结合了  ziplist 和 quicklist, 是以一个zpilist为节点的linkedlist.</p>
+<ul>
+<li>hashtable</li>
+</ul>
+<p>map 的常规实现</p>
+<ul>
+<li>set</li>
+</ul>
+<p>使用 hashtable 编码, 对于能用int表示并且 也有intset 编码 (针对int类型的优化),</p>
+<ul>
+<li>zset</li>
+</ul>
+<p>组合了 skiplist 和 map 两种编码实现. 但是也会用 ziplist 实现. 选择的条件和上面一致.</p>
+<p>zset的常规实现</p>
+<pre><code>/* ZSETs use a specialized version of Skiplists */
+typedef struct zskiplistNode {
+    sds ele;
+    double score;
+    struct zskiplistNode *backward;
+    struct zskiplistLevel {
+        struct zskiplistNode *forward;
+        unsigned long span;
+    } level[];
+} zskiplistNode;
+
+typedef struct zskiplist {
+    struct zskiplistNode *header, *tail;
+    unsigned long length;
+    int level;
+} zskiplist;
+
+typedef struct zset {
+    dict *dict;
+    zskiplist *zsl;
+} zset;
+</code></pre><ul>
+<li>bitmap</li>
+</ul>
+<p>没有编码方式&hellip;..</p>
+<ul>
+<li>stream</li>
+</ul>
+<p>stream</p>
+<h3 id="总结基础">总结基础</h3>
+<p>在redis中, 有 对象和编码的认知差异, 也就是我们常说的 数据类型和数据结构的差异, 很多人其实分不清楚, 这种还是需要注意的. 另外, 这里只是简单的讲述, 细节和思考还需要深挖</p>
+<h3 id="使用姿势">使用姿势</h3>
+<p>redis 有哪些知名的使用场景?</p>
+<p>im 的会话场景, 会话根据最新消息的时间进行排序</p>
+<h3 id="集群搭建">集群搭建</h3>
+<p>基本理念:</p>
+<p><em>redis持久化</em></p>
+<p>aof(append only file) 和 rdb. rdb 是数据库内存的快照, 二进制 (flushall/shutdown/手动bgsave, 不建议save, save是阻塞的.). aof 是 追加性, 文本协议, 所有的操作都会落地到 aof, 不是立即, 而是先写入 redis进程的aof 缓冲区, 根据策略写入 操作系统的文件, 减少磁盘IO, 为了及时的写入磁盘, 也可以自定义策略: 每秒 绝不 每个命令都同步. 亮点: aof 因为是记录操作, 有很多冗余的操作信息, 需要 compact, 这里就涉及到 rewrite 操作, 也是通过 fork 实现.</p>
+<p><em>主从模式</em></p>
+<p>slave 启动后发送一个 sync 命令, master 会启动一个进程同步数据, 2.8 之前版本都是 全量(数据库快照 rdb)+ 命令传播.</p>
+<p>2.8~4.0 增加了优化实现: 部分复制, 命令psync: master 的runid(随机生成) + offset, 只同步 offset 之后的数据, 避免slave每次重启进行全量复制, 但是slave有时候是一个空白的新机器, 还是需要全量同步的, 因此 paysnc 有全量重同步和部分重同步.  那么 master offset之后的数据是怎么获取的呢? 又是怎么判断 需要全量同步还是增量同步呢? master 会在内部中维护一个 复制积压缓冲区(FIFO, 大概是1MB), master除了将命令同步给slave, 也会将命令写入复制积压缓冲区, slave重启的时候, 会拿着复制偏移量(offset) 请求master, 如果offset不在复制积压缓冲区, 就会全量同步, 否则增量同步 将 复制积压缓冲区中offset之后的命令传播过. master runid 是为了避免重启期间master切换了机器.</p>
+<p>关于兼容性, 如果master 是 2.8 版本之前的, 那么无法识别 psync, 返回error给slave, slave 将执行 sync 操作</p>
+<p>4.0 之后优化了psync, 也就是 psync2, 优化点: 避免 master切换导致全量同步的开销. 引入了 master repid2 来保存上一次同步的 master id, 当slave提升到master之后, repid2 就是之前的masterId, 其他的slave连过来传递的 repid 等于 新的master的 repid2 的话, 也会触发增量同步. PSYNC 支持流式同步 rdb, 而不需要生成一个 rdb文件,</p>
+<p><em>哨兵模式</em></p>
+<p>2.4 版本之后, 监控 master节点的健康状况, 实现主节点的健康转移, 解决master-slave 的问题. 如何实现:</p>
+<ul>
+<li>sentinel 监控所有master服务器, 向master/slave 发送info, 向 master/slave/sentinel 发送 ping、hello 命令</li>
+<li>当master挂掉, sentinel 的所有进程中的大部分 会标记master为 Down. 注意是大多数, 避免个别sentinel故障导致master错误标记. (gossip)</li>
+<li>执行主从切换</li>
+</ul>
+<p>定时发送的三种命令的意义?</p>
+<ul>
+<li>INFO:
+仅仅对 master/slave发送, 确定主从关系. 发现slave节点</li>
+<li>hello:
+通过 <strong>sentinel</strong>:hello 交换信息, 比如 master挂了</li>
+<li>ping
+健康状态判断的依据</li>
+</ul>
+<p>怎么部署? sentinel 是集群部署的, 在redis切主的时候, 是需要 sentinel leader 操作的, sentinel leader 选举也是基于raft的. epoch + 超过半数同意. 另外, sentinel 只需要配置redis master地址就可以, slave 地址可以由 sentinel 通过 询问 master 得到, 其他sentinel的地址也是这样的.</p>
+<p>如何选择新的 redis master?</p>
+<p>基于投票协议判断master挂了, 以及故障迁移的决定. 选择master, 通过slave的 优先级、复制位移、进程id选择.</p>
+<p>具体代码: <a href="https://github.com/antirez/redis/blob/unstable/src/sentinel.c">https://github.com/antirez/redis/blob/unstable/src/sentinel.c</a></p>
+<p><em>sharding</em></p>
+<p>一个节点的处理和存储能力有限, 那么就需要多个节点组成集群对外服务, 每个节点负责部分的数据存储, 那么, client如何将数据发送到目标节点 以及 client获取从目标节点获取数据</p>
+<ul>
+<li>服务端sharding (官方)</li>
+</ul>
+<p>采用虚拟槽, key hash 到 0~16383 选择节点, 而不是一致性hash</p>
+<pre><code>slot = CRC16(key) &amp; 16383
+</code></pre><p>redis 节点之间通过 gossip 协议进行交互. 节点的失败检测需要集群中半数节点统一. 客户端的发送/获取 通过集群中节点的重定向达到真实的节点.</p>
+<p>没有大规模推广</p>
+<ul>
+<li>客户端sharding</li>
+</ul>
+<p>不建议</p>
+<ul>
+<li>代理sharding</li>
+</ul>
+<ol>
+<li>Twemproxy</li>
+</ol>
+<p>twitter 使用的 redis/memcached 的代理服务器.  数据分片采用一致性hash. Twemproxy 的高可用依赖 keepalived. redis 扩缩容操作麻烦, 偏向静态sharding. 无法水平扩缩容、没有可视化操作、不能自动迁移</p>
+<ol start="2">
+<li>codis</li>
+</ol>
+<p>client 和 codis proxy进行交互, codis proxy 除了转发流量, 也支持不停机的数据迁移. codis-proxy 和 codis-config 的配置信息同步通过 zookeeper 进行, codis-proxy 本身无状态. 2014 slot</p>
+<p>问题:</p>
+<p>数据分片 和 自动平衡、数据热迁移怎么实现?</p>
+<p>codis中 redis master-slave 构成一个 group, slave 迁移到 master 可以通过 dashboard 操作, 为了支持热迁移, 修改了 redis. codis 采用 预分片, 主要是 逻辑分片, redis物理节点 最大不超过 逻辑分片数. 物理迁移也是以 slot 为单位进行的. codis 并不负责 redis 的主从关系, 因此需要搭配 sentinel 负责 主从切换.</p>
+<p>迁移过程中, 最小粒度是 slot, 迁移过程如下:</p>
+<ol>
+<li>dashboard 通过 zk 想所有的proxy 发送pre_migrate命令</li>
+<li>proxy 的元数据更新</li>
+<li>redis config 向 原来group的机器 发送 slotMigrate 命令, 完成slot的数据</li>
+<li>迁移过程中, 请求 迁移slot 的数据都会前往新的group 上, proxy 会强制先执行 migrate key, 将数据迁移到新的group (会引起阻塞)</li>
+<li>迁移的slot 状态标志位 online</li>
+</ol>
+<p>补充: 无论是 redis cluster 还是 codis, 都是基于 slot hash.</p>
+<p>参考: <a href="http://tech.it168.com/a2018/0525/3205/000003205125.shtml">http://tech.it168.com/a2018/0525/3205/000003205125.shtml</a></p>
+<p>其他思考:</p>
+<p>codis 迁移以 slot 为单位, 是 懒迁移阻塞的方案, 不能是 非阻塞的?</p>
+<p>未被迁移的key 在src 处理, 正在迁移的key 拒绝写入, 读取src返回; 已经被迁移的, src 返回 moved 回复, 再请求 dst. 请求的数据不存在, 和迁移后的处理一样.</p>
+<h3 id="双机房">双机房</h3>
+<p>stream 特性的话, 因为消息和group都会复制, 建议是主备或者多活</p>
+]]></content>
+        </item>
         
         <item>
             <title>Cpp_basic</title>

@@ -3,27 +3,37 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xujianhai.fun/posts/</loc>
+    <lastmod>2020-04-08T09:07:46+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/redis/</loc>
+    <lastmod>2020-04-08T09:07:46+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/redis_basic/</loc>
+    <lastmod>2020-04-08T09:07:46+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/</loc>
+    <lastmod>2020-04-08T09:07:46+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2020-04-08T09:07:46+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xujianhai.fun/tags/cpp/</loc>
     <lastmod>2020-04-05T19:36:11+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://xujianhai.fun/posts/cpp_basic/</loc>
-    <lastmod>2020-04-05T19:36:11+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-04-05T19:36:11+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-04-05T19:36:11+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
     <lastmod>2020-04-05T19:36:11+08:00</lastmod>
   </url>
   
