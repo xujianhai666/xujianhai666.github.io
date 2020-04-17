@@ -6,10 +6,29 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 08 Apr 2020 09:07:46 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 11 Apr 2020 20:51:59 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Mysql_basic</title>
+      <link>https://xujianhai.fun/posts/mysql_basic/</link>
+      <pubDate>Sat, 11 Apr 2020 20:51:59 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/mysql_basic/</guid>
+      <description>背景 假设一个面试者过来面试, 想要考察mysql方面, 我该怎么考察呢? 从整体上而言, mysql 还是偏基础概念, 比如 事务和锁.
+理解与概念 首先需要确保候选人理解以下的基本概念:
+ 索引  InnoDB支持的几种索引类型:
+ hash索引 B+索引 全文索引  B+数中的索引类型:
+ 聚簇索引: 节点页只包含了索引列，叶子页包含了行的全部数据 覆盖索引: 一个查询语句的执行只用从索引中就能够取得，不必从数据表中读 联合索引: 表上的多个列进行索引. 最左前缀: 最常用的在最左边  慢查询优化经验. 索引没有被使用的情况 遇到过? 如何判断索引生效?
+ explain 的使用  事务  什么是事务 以及 事务的四个特征: acid
+事务的隔离级别: 读未提交 、读已提交(解决脏读)、可重复读(解决不可重复读)、可串行化(幻读: 插入了新数据)
+InnoDB 怎么解决幻读的? mvcc + 间隙锁(gap lock)、next-key lock, mysql的读已提交
+什么是gap lock、next-key lock?
+当我们用范围条件进行查询, InnoDB 除了给 符合条件的数据的索引加锁, 还会给 在条件范围内但并不存在的记录 进行加锁,
+代理  如何自己设计一个代理, 怎么设计?</description>
+    </item>
     
     <item>
       <title>Redis_basic</title>
@@ -130,18 +149,6 @@ logicsMsgTimestamp  在定时flush consumer queue 以及 追加consumer queue消
 原因 其实这个行为是 rocektmq broker 的自我保护机制, 那么什么时候会触发呢? 这个主要是在 store 进行put 消息的时候会触发. 之前讲过, 在 rocketmq 的处理机制中, netty 将读取到的消息 会封装成 RequestTask 对象提交到 executorService 的队列中, 然后等待 executorService 调度执行. 那么, 这里存在两种情况:
   queue已经被写满了, 无法再提交新的任务, 那么会触发 RejectedExecutionException, 这个时候, rocketmq broker 会返回 RemotingSysResponseCode.SYSTEM_BUSY, 提示信息是: [OVERLOAD]. 参考: NettyRemotingAbstract#processRequestCommand
   调度延迟的问题. 我在 11:05 提交了一个写入请求, 但是因为 写入流程耗时 增加, 导致我的请求到 11:06 才被处理, 对于实时在线业务而言, 这条消息其实早就超时了, 这种情况, rocketmq 有两套机制:</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq_msgid</title>
-      <link>https://xujianhai.fun/posts/rocketmq_msgid/</link>
-      <pubDate>Tue, 17 Mar 2020 18:18:05 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rocketmq_msgid/</guid>
-      <description>最近利用 msgId 进行一些延迟实现, 结果发现, msgId 在 producer 和 consumer 两侧是不一致的.
-复现 我用producer发送一条消息如下:
-SendResult [sendStatus=SEND_OK, msgId=0AFE2AEF000018B4AAC2562A9AC70000, offsetMsgId=0AE1578800002A9F0000000C6C988CC2, messageQueue=MessageQueue [topic=test_create_topic, brokerName=sandbox_boe4, queueId=0], queueOffset=0] 需要注意的是, msgId 和 offsetMsgId 是不一样的. 在consumer侧, 我接受到的消息如下:
-Receive New Messages: [MessageExt [queueId=0, storeSize=197, queueOffset=0, sysFlag=0, bornTimestamp=1584437632711, bornHost=/10.254.42.239:49872, storeTimestamp=1584437632868, storeHost=/10.225.87.136:10911, msgId=0AE1578800002A9F0000000C6C988CC2, commitLogOffset=53361544386, bodyCRC=198614610, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message{topic=&#39;test_create_topic&#39;, flag=0, properties={MIN_OFFSET=0, MAX_OFFSET=1, KEYS=OrderID188, CONSUME_START_TIME=1584437674686, UNIQ_KEY=0AFE2AEF000018B4AAC2562A9AC70000, WAIT=true, TAGS=TagA}, body=[72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100], transactionId=&#39;null&#39;}]] consumer 收到的 msg的 msgId 和 producer的 msgId 是不一样的, 但是, producer侧的msgId 和 consumer侧的 UNIQUE_KEY 的值是一样的, producer 的 offsetMsgId 和 consumer侧的 msgId 是一致的.</description>
     </item>
     
   </channel>

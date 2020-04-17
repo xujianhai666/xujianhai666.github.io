@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="背景 假设一个面试者过来面试, 想要考察mysql方面, 我该怎么考察呢? 从整体上而言, mysql 还是偏基础概念, 比如 事务和锁.
+理解与概念 首先需要确保候选人理解以下的基本概念:
+ 索引  InnoDB支持的几种索引类型:
+ hash索引 B&#43;索引 全文索引  B&#43;数中的索引类型:
+ 聚簇索引: 节点页只包含了索引列，叶子页包含了行的全部数据 覆盖索引: 一个查询语句的执行只用从索引中就能够取得，不必从数据表中读 联合索引: 表上的多个列进行索引. 最左前缀: 最常用的在最左边  慢查询优化经验. 索引没有被使用的情况 遇到过? 如何判断索引生效?
+ explain 的使用  事务  什么是事务 以及 事务的四个特征: acid
+事务的隔离级别: 读未提交 、读已提交(解决脏读)、可重复读(解决不可重复读)、可串行化(幻读: 插入了新数据)
+InnoDB 怎么解决幻读的? mvcc &#43; 间隙锁(gap lock)、next-key lock, mysql的读已提交
+什么是gap lock、next-key lock?
+当我们用范围条件进行查询, InnoDB 除了给 符合条件的数据的索引加锁, 还会给 在条件范围内但并不存在的记录 进行加锁,
+代理  如何自己设计一个代理, 怎么设计?" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, mysql" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/mysql_basic/" />
+
+
+    <title>
+        
+            Mysql_basic :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Mysql_basic">
+<meta itemprop="description" content="背景 假设一个面试者过来面试, 想要考察mysql方面, 我该怎么考察呢? 从整体上而言, mysql 还是偏基础概念, 比如 事务和锁.
+理解与概念 首先需要确保候选人理解以下的基本概念:
+ 索引  InnoDB支持的几种索引类型:
+ hash索引 B&#43;索引 全文索引  B&#43;数中的索引类型:
+ 聚簇索引: 节点页只包含了索引列，叶子页包含了行的全部数据 覆盖索引: 一个查询语句的执行只用从索引中就能够取得，不必从数据表中读 联合索引: 表上的多个列进行索引. 最左前缀: 最常用的在最左边  慢查询优化经验. 索引没有被使用的情况 遇到过? 如何判断索引生效?
+ explain 的使用  事务  什么是事务 以及 事务的四个特征: acid
+事务的隔离级别: 读未提交 、读已提交(解决脏读)、可重复读(解决不可重复读)、可串行化(幻读: 插入了新数据)
+InnoDB 怎么解决幻读的? mvcc &#43; 间隙锁(gap lock)、next-key lock, mysql的读已提交
+什么是gap lock、next-key lock?
+当我们用范围条件进行查询, InnoDB 除了给 符合条件的数据的索引加锁, 还会给 在条件范围内但并不存在的记录 进行加锁,
+代理  如何自己设计一个代理, 怎么设计?">
+<meta itemprop="datePublished" content="2020-04-11T20:51:59&#43;08:00" />
+<meta itemprop="dateModified" content="2020-04-11T20:51:59&#43;08:00" />
+<meta itemprop="wordCount" content="557">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="mysql," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Mysql_basic"/>
+<meta name="twitter:description" content="背景 假设一个面试者过来面试, 想要考察mysql方面, 我该怎么考察呢? 从整体上而言, mysql 还是偏基础概念, 比如 事务和锁.
+理解与概念 首先需要确保候选人理解以下的基本概念:
+ 索引  InnoDB支持的几种索引类型:
+ hash索引 B&#43;索引 全文索引  B&#43;数中的索引类型:
+ 聚簇索引: 节点页只包含了索引列，叶子页包含了行的全部数据 覆盖索引: 一个查询语句的执行只用从索引中就能够取得，不必从数据表中读 联合索引: 表上的多个列进行索引. 最左前缀: 最常用的在最左边  慢查询优化经验. 索引没有被使用的情况 遇到过? 如何判断索引生效?
+ explain 的使用  事务  什么是事务 以及 事务的四个特征: acid
+事务的隔离级别: 读未提交 、读已提交(解决脏读)、可重复读(解决不可重复读)、可串行化(幻读: 插入了新数据)
+InnoDB 怎么解决幻读的? mvcc &#43; 间隙锁(gap lock)、next-key lock, mysql的读已提交
+什么是gap lock、next-key lock?
+当我们用范围条件进行查询, InnoDB 除了给 符合条件的数据的索引加锁, 还会给 在条件范围内但并不存在的记录 进行加锁,
+代理  如何自己设计一个代理, 怎么设计?"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-04-11 20:51:59 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/mysql_basic/">Mysql_basic</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="背景">背景</h2>
+<p>假设一个面试者过来面试, 想要考察mysql方面, 我该怎么考察呢? 从整体上而言, mysql 还是偏基础概念, 比如 事务和锁.</p>
+<h2 id="理解与概念">理解与概念</h2>
+<p>首先需要确保候选人理解以下的基本概念:</p>
+<ol>
+<li>索引</li>
+</ol>
+<p>InnoDB支持的几种索引类型:</p>
+<ul>
+<li>hash索引</li>
+<li>B+索引</li>
+<li>全文索引</li>
+</ul>
+<p>B+数中的索引类型:</p>
+<ul>
+<li>聚簇索引: 节点页只包含了索引列，叶子页包含了行的全部数据</li>
+<li>覆盖索引: 一个查询语句的执行只用从索引中就能够取得，不必从数据表中读</li>
+<li>联合索引: 表上的多个列进行索引.</li>
+<li>最左前缀: 最常用的在最左边</li>
+</ul>
+<p>慢查询优化经验. 索引没有被使用的情况 遇到过? 如何判断索引生效?</p>
+<ul>
+<li>explain 的使用</li>
+</ul>
+<ol start="2">
+<li>事务</li>
+</ol>
+<p>什么是事务 以及 事务的四个特征: acid</p>
+<p>事务的隔离级别: 读未提交 、读已提交(解决脏读)、可重复读(解决不可重复读)、可串行化(幻读: 插入了新数据)</p>
+<p>InnoDB 怎么解决幻读的? mvcc + 间隙锁(gap lock)、next-key lock, mysql的读已提交</p>
+<p>什么是gap lock、next-key lock?</p>
+<p>当我们用范围条件进行查询, InnoDB 除了给 符合条件的数据的索引加锁, 还会给 在条件范围内但并不存在的记录 进行加锁,</p>
+<ol start="3">
+<li>代理</li>
+</ol>
+<p>如何自己设计一个代理, 怎么设计?</p>
+<p>限流、慢查询, 如何分库分表.</p>
+<ol start="4">
+<li>高可用</li>
+</ol>
+<p>一条mysql存在单点问题, 有什么解决方案? 使用 master-slave, 但是master挂了, slave 怎么通知到呢? 如何自动切主呢? =&gt; 故障转移.</p>
+<p>针对这个问题, 我们需要思考一下几个点:</p>
+<ul>
+<li>master-slave 的配置模型</li>
+<li>master-slave 故障检测</li>
+<li>master-slave 故障转移</li>
+</ul>
+<p>首先针对第一个问题, 我们需要 master-slave 的同步模型 相关的知识点. master-slave的有两种复制方式, 如下:</p>
+<ul>
+<li>异步复制： master写binlog后不等slave响应，立即提交事务. 主从切换会丢失部分日志</li>
+<li>半同步复制：写binlog后等到slave ack再提交事务. 相当于指定了 优先的从库. 但是依旧存在 主从数据丢失的场景(binlog先同步到slave, masterredo未写入就挂了, 那么 slave的数据就多了)</li>
+</ul>
+<p>一般而言, 只有强调一致性的服务才会配置 半同步复制模型, 一般使用异步复制. 在master-slave复制的过程中, 有一个知识点: gitd, gitd 有 uuid + 事务id 保证了唯一性, 每个机器都有唯一的uuid, 通过 gtid 可以 避免 binlog 的重复执行. 后面会讲到.</p>
+<p>确定了复制模型, 我们需要考虑如何检测到故障和故障转义, 这些基本上依赖一些开源的方案, 如下:</p>
+<pre><code>MHA:
+	仅负责MYSQL的高可用, 三次连接主库失败, 会认为主库失败. 执行切主. 
+	问题: manager 单点 无人维护. 架构图. 
+MGR:
+	MySQL 5.7.17版本中以插件形式推出的方案, 通过对事物的hook实现的, 将事物的信息(binlog、gtid) 封装成 paxos 协议发送到其他节点内. 其他节点检查通过后进行提交 (冲突检测).  支持自动故障转移
+	通过paxos协议实现. 支持单主和多主(冲突的可能大, 不建议)
+	必须需要打开gtid.
+	基于paxos, 写入延迟大
+Orchestrator:
+	自动故障转义、手动主从切换、复制拓扑调整. 界面丰富 
+	通过raft 解决自身的高可用. Orchestrator 节点集群中一个leader, hook 的抽象和处理. 
+	如何判断master宕机: 
+		本身连不上主，可以连上该主的从，则通过从去检测，若在从上也看不到主（IO Thread），则判断Master宕机
+	开源的 Orchestrator 也是基于 vip的
+
+从美团的经验上来讲:
+	经历了 mmm (master-master replication manager for mysql, 无人维护, bug多, 依赖vip, mmm-agent敏感, mmm-manager单点), mha (依赖vip, 存在交换机抖动引起的master脑裂, 即两个master 都有 vip),  mha+zebra/mha+proxy(zebra 美团自研的数据库访问中间件, 去除了对mha vip的依赖, mha 仅仅做主从切换; 因为binlog复制, 存在数据丢失的风险). 
+	美团使用半同步
+从github上的经验上来讲:
+	orchestrator/raft 来做监测和故障转移, 将新的master添加到 consul 上 (orchestrator/raft 跨集群部署)
+	Consul 来做服务发现
+	GLB/HAProxy 作为客户端和写节点的代理层, 都是代理到本地的集群节点, 本身无状态. 监听 consul 获取到 主节点
+	选播(anycast)做网络路由
+	早期也是基于vip, 现在完全删除 VIP 和 DNS 的修改
+	对候选服务器 指定 半同步, 来加快恢复
+	心跳注入很多余? 
+</code></pre><p>参考:</p>
+<p><a href="https://dbaplus.cn/news-11-1451-1.html">https://dbaplus.cn/news-11-1451-1.html</a>
+<a href="https://juejin.im/entry/5b568e1e5188257bcb58fbe6">https://juejin.im/entry/5b568e1e5188257bcb58fbe6</a>
+<a href="https://github.com/yoshinorim/mha4mysql-manager/wiki">https://github.com/yoshinorim/mha4mysql-manager/wiki</a>
+<a href="https://github.com/openark/orchestrator">https://github.com/openark/orchestrator</a></p>
+<p>总结, 核心问题是:</p>
+<ul>
+<li>故障检查的高可用和可靠性(不能因为网络抖动就判定master出故障)</li>
+<li>master-slave切换</li>
+<li>宣告新的master (很多开源方案基于 vip/dns宣告, 容易脑裂, 同机房基于vip, 不同机房基于 dns, 国内偏向 通知proxy切换写流量)</li>
+</ul>
+<p>这里补充下新master的选举, 即如何从slave中选举出最佳的master, 因此是 同步模型, 而不是一致性协议, 需要一些策略, 常见策略如下:</p>
+<ul>
+<li>根据gtid或者 file pos 选择最全的 slave</li>
+<li>指定slave, 半同步模型</li>
+</ul>
+<p>怎么知道那个slave gtid是最全的呢?</p>
+<ol start="5">
+<li>binlog</li>
+</ol>
+<p>主从同步是基于 binlog 实现的, binlog 除了应用在master-slave模式, 有时候, 我们也需要基于 binlog 机制实现 缓存删除、业务通知 以及 多机房同步. 在主从同步, 一般基于 canal 伪装成slave 从master读取数据, 然后投递给 mq 或者 本地存储, 让下游操作(删除缓存、通知业务或者插入下游数据库). 在canal 中, 我们需要知道 不同的mysql版本对应的 binlog 格式是不一样的, 那canal 怎么知道 binlog 版本不一样的呢? 最新的版本中(5.0以上), mysql binlog 同步过程中, 会有一个 FORMAT_DESCRIPTION_EVENT 指明了 mysql 版本、binlog版本 以及 binlog文件创建的时间, 是binlog同步的第一个事件, 也仅在binlog会话中出现一次. 针对mysql的插入、删除、更新有对应的 ROWS_EVENT格式: WRITE_ROWS_EVENT、DELETE_ROWS_EVENT、UPDATE_ROWS_EVENT. 针对事务, 开始(begin)和提交(commit)都有相应的event: QUERY_EVENT 和 XID_EVENT. 在gtid开启的情况下, 每个事务分配了 GTID_LOG_EVENT, 除此之外, 在gtid开启的情况下, 紧跟着  FORMAT_DESCRIPTION_EVENT 之后, 会跟着 PREVIOUS_GTIDS_LOG_EVENT .</p>
+<p>对于一些特殊场景, 需要维护上游的数据表的结构, 则需要对 ddl 操作产生的 QUERY_EVENT 进行操作</p>
+<p>不同版本的mysql对应的binlog类型不同, 版本关系如下:</p>
+<pre><code>v1: Used in MySQL 3.23
+v3: Used in MySQL 4.0.2 though 4.1
+v4: Used in MySQL 5.0 and up
+</code></pre><p>目前, 基本上使用的都是 5.0 以上版本.</p>
+<p>存在的问题: mysql 列格式可能会变化, binlog同步服务 需要存储元数据. 因为上游 下游 的表的列会变更, 这样, 上游同步到下游, 下游可能数据没有变更. 尤其在双机房的场景中, 这个是一个大问题, 一些公司的实现中, 直接没有实现这个场景, 如果需要变更上游表结构, 则需要暂停drc</p>
+<p>在没有gtid的设计中, 也就是老版本的循环同步问题(数据同步经历了 masterA-&gt;masterB-&gt;masterA), 是mysql原生无法解决的, 需要借助其他姿势, 比如: 插入一个隐藏字段、依赖一张第三方表. 但是有了gtid, slave 是可以识别出 已经执行过的gtid, 不会重复执行.</p>
+<ol start="6">
+<li>双机房同步</li>
+</ol>
+<p>双机房场景比较复杂, 这里单独提出来讨论. 在双机房同步, 我们需要思考一下问题:</p>
+<ul>
+<li>数据回环</li>
+<li>数据冲突解决</li>
+<li>拓扑解决</li>
+</ul>
+<p>如何防止回环? 在饿了么, 我们是通过 hack checkpoint 来实现的, 标志了数据的同步情况. 在开源的otter实现中, 是 通过 同一个库中的辅助表插入一条记录的方式 进行检查, 辅助表对业务不可见. 有些公司通过 注释标记变更来源 + proxy 来实现</p>
+<p>数据冲突解决方案? 在饿了么, 通过最后更新时间解决( last write win), 在一些场景中, 也通过 指定机房为准. 常见的一些策略参照 《数据密集型应用系统设计》. 整理如下:</p>
+<ul>
+<li>避免冲突, 单元化</li>
+<li>lww: last write win,</li>
+<li>Trusted Source: 指定机房为准, 有些公司数据户口的概念, 在国际化场景中, 以某一个区域的机房为准</li>
+<li>冲突暴露给业务方</li>
+<li>自定义冲突解决方案</li>
+</ul>
+<p>下游master挂了, 怎么确保复制链路正确, 寻找正确的master? 在饿了么, 是通过 mha</p>
+<p>补充: 需要避免 binlog 文件被删除的 场景. 因此有些 binlog 同步的实现中, 会自定义 binlog 存储.</p>
+<p>其他需要考虑的点:
+- 拓扑变更感知, drc 需要知道 master挂了之后, 连接到 哪一台机器
+- 数据schema变更, 需要同步到下游处理. 当时在饿了么, 维护了一个单独的元数据的数据库, 用来记录变更
+- 大批数据变更的优化: 带宽压力 和 存储压力</p>
+<ol start="7">
+<li>
+<p>优化经验</p>
+</li>
+<li>
+<p>内部原理</p>
+</li>
+</ol>
+<p>写流程: 不同的人回答不一样, 主要讲到  redo undo log 就可以了. 注意 先写入 undo log, 在写入 redo log, 最后写入 binlog.</p>
+<p>redo log 做啥: redo log buffer + redo log, innodb 的日志, 保证事务的持久性
+undo log 做啥: 实现事务的原子性, 记录操作前的数据, 用于回滚</p>
+<p>可以参考网上的一个 流程(具体的看后面的分析):</p>
+<pre><code>1、语法解析、语义解析: 分析器
+
+2、生成执行计划: 优化器
+
+3、事务修改阶段
+
+　　1) 激活事务，事务状态由not_active变为active
+
+　　2) 查找定位数据
+
+　　3) 乐观插入
+
+　　4) 记录insert相关的undo记录，并将undo记录的变化写入 undo log buffer (重点)
+
+　　5) 进行insert 元组插入，及实际的插入操作，并写入到redo log buffer (重点)
+
+　　6) binlog event 写入到 binlog cache (重点)
+
+4、事务提交阶段
+
+　　1) 事务prepare
+
+　　2) redo组提交，redo落盘 (重点)
+
+　　3) flush binlog cache到binlog文件，然后fsync binlog文件将它落盘 (重点)
+
+　　4) innodb进行提交，事务状态由prepare变为not_active
+</code></pre>
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/mysql">mysql</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>557 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-04-11 20:51 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/redis_basic/">
+                                <span class="button__text">Redis_basic</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -6,10 +6,19 @@
     <description>Recent content in Tags on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 08 Apr 2020 09:07:46 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 11 Apr 2020 20:51:59 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>mysql</title>
+      <link>https://xujianhai.fun/tags/mysql/</link>
+      <pubDate>Sat, 11 Apr 2020 20:51:59 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/mysql/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>redis</title>
@@ -89,15 +98,6 @@
       <pubDate>Sat, 07 Mar 2020 20:04:32 +0800</pubDate>
       
       <guid>https://xujianhai.fun/tags/go/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>untagged</title>
-      <link>https://xujianhai.fun/tags/untagged/</link>
-      <pubDate>Fri, 12 Jul 2019 12:40:33 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/untagged/</guid>
       <description></description>
     </item>
     
