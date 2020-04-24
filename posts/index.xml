@@ -1162,6 +1162,112 @@ slotValue (4)
         </item>
         
         <item>
+            <title>Golang_timer</title>
+            <link>https://xujianhai.fun/posts/golang_timer/</link>
+            <pubDate>Wed, 25 Mar 2020 10:23:01 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/golang_timer/</guid>
+            <description>背景 新版发布了新的定时器实现, 声称性能优化了很多. 这里特意记录. 同时, 也偶尔看到有同事写错了相关实现, 这里补充
+历史 1.10 之前, 一个独立的timerproc通过小顶堆和futexsleep 管理定时任务 1.10 ~ 1.13: 64个timerproc协程 + 四插堆 1.14: 不再有timerproc, 基于 netpoll的epoll wait来做就近时间的休眠等待, 在每次runtime.findrinnable 调度时都检查运行到期的定时器
+基本结构:   p 里面存储了 timers []*timer (runtime2.go), 其他辅助结构 timersLock 和 其他timer状态的计数, 使用 四插堆维护 timer, 使用锁避免插入冲突
+  netpoller 支持 超时等待, 这样p可以利用这个特性进行timer的等待
+  基本流程 timer 支持 Timer.NewTimer、 Timer.Stop 和 Timer.Reset 三种接口.
+下面分析三个接口
+  Timer.NewTimer 其实就是 创建了 timer对象, 然后调用了 runtime/time.addtimer 方法, 将timer对象添加到p的timers四插堆, 需要注意的是 这里执行了两个特殊的操作: cleantimers 和 wakeNetPoller, cleantimers 是删除 timer0(最早到期的那个); wakeNetPoller 只有在 新增timer的时间比较早的时候才会触发, 个人猜想是为了 解决 fundrunnable 阻塞在timer的设计 (后面细讲).</description>
+            <content type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>新版发布了新的定时器实现, 声称性能优化了很多. 这里特意记录. 同时, 也偶尔看到有同事写错了相关实现, 这里补充</p>
+<h2 id="历史">历史</h2>
+<p>1.10 之前, 一个独立的timerproc通过小顶堆和futexsleep 管理定时任务
+1.10 ~ 1.13: 64个timerproc协程 + 四插堆
+1.14: 不再有timerproc, 基于 netpoll的epoll wait来做就近时间的休眠等待, 在每次runtime.findrinnable 调度时都检查运行到期的定时器</p>
+<h2 id="基本结构">基本结构:</h2>
+<ol>
+<li>
+<p>p 里面存储了 <code>timers []*timer</code> (runtime2.go), 其他辅助结构 <code>timersLock</code> 和 其他timer状态的计数, 使用 四插堆维护 timer, 使用锁避免插入冲突</p>
+</li>
+<li>
+<p>netpoller 支持 超时等待, 这样p可以利用这个特性进行timer的等待</p>
+</li>
+</ol>
+<h2 id="基本流程">基本流程</h2>
+<p>timer 支持 Timer.NewTimer、 Timer.Stop 和 Timer.Reset 三种接口.</p>
+<p>下面分析三个接口</p>
+<ol>
+<li>
+<p>Timer.NewTimer 其实就是 创建了 timer对象, 然后调用了 runtime/time.addtimer 方法, 将timer对象添加到p的timers四插堆, 需要注意的是 这里执行了两个特殊的操作: cleantimers 和 wakeNetPoller, cleantimers 是删除 timer0(最早到期的那个); wakeNetPoller 只有在 新增timer的时间比较早的时候才会触发, 个人猜想是为了 解决 fundrunnable 阻塞在timer的设计 (后面细讲).</p>
+</li>
+<li>
+<p>Timer.Stop 最终调用的是 runtime/time.deltimer , 需要注意的是, 其实这里并不会真正的删除, 只是标记status为 timerDeleted, 后面在 checktimers 方法中被删除 (findrunnable 和 schedule), 如果是删除的是 timers0, 那么 NewTimer 的时候也会触发删除.</p>
+</li>
+<li>
+<p>Timer.Reset 比较特殊, 需要考虑两种情况: 一种是 timer 已经过期被移除了, 那么 直接添加, 唤醒 netpoll. 一种是 timer还没有被移除, 则会进入modifying 状态 (记录 ajustTimers, 给后面逻辑判断), 因为 timer 不一定是这个 p 上的, modifying 如果是 改的过期时间更小, 则需要唤醒 netpoll.</p>
+</li>
+</ol>
+<p>那么 什么时候 modifying 被改成 正常状态并被执行? checktimers 入口会调用 runtime/time.adjusttimers, 将 modyfing 状态的 timer 添加到 timers 四插堆中, 注意是 先删除(真删除) 再添加.</p>
+<h2 id="内部实现">内部实现</h2>
+<h3 id="netpoller-支持">netpoller 支持</h3>
+<p>前面讲到了 netpoller 支持 timer, 这个是怎么回事呢?</p>
+<p>首先在 findrunnable 的代码块中, 如果没有可用的 goroutine, 但是有timer的话, 会尝试阻塞, 部分代码如下:</p>
+<pre><code>func findrunnable() (gp *g, inheritTime bool) { // proc.go
+	.....
+	now, pollUntil, _ := checkTimers(_p_, 0) // 返回下一个timer到期的时间
+	....
+	delta := int64(-1)
+	if pollUntil != 0 {
+		// checkTimers ensures that polluntil &gt; now.
+		delta = pollUntil - now
+	}
+	......
+	if netpollinited() &amp;&amp; (atomic.Load(&amp;netpollWaiters) &gt; 0 || pollUntil != 0) &amp;&amp; atomic.Xchg64(&amp;sched.lastpoll, 0) != 0 {
+		....
+		list := netpoll(delta) // block until new work is available
+		....
+	}
+}
+</code></pre><p>从代码中可以发现, 存在timer的场景的, 最终会调用 netpoll(delta) 进行超时堵塞. 那么什么时候回被唤醒呢?</p>
+<p>刚才分析到 time.addtimer 会调用 wakeNetPoller, 这里就会通过 pipe 的读写管道管道唤醒.</p>
+<h3 id="什么时候真正的删除">什么时候真正的删除</h3>
+<p>除了 addTimer 的时候会触发 timer[0] 的删除, 主要的删除逻辑在 runtime/proc.checkTimers 函数中. 在 runtime/proc.schedule 和 runtime/proc.findrunnable 触发, 可以发现还是很频繁触发的. findrunnable 除了 调用一次 checkTimers, 如果没有goroutine可用且timer存在, 会选择超时阻塞 (如果没有goroutine 没有timer 但是有 网络调用, 就会无限阻塞), 直到 addTimers 触发 netpoll 唤醒 或者 超时.</p>
+<p>删除的代码的完整实现是 runtime/time.clearDeletedTimers ,  是 runtime/proc.checkTimers 调用的. 删除会遍历所有的timer将 timerDeleted 状态的timer 删除</p>
+<p>除此之外, runtime/time.adjusttimers 除了处理 modifying 状态的timer, 也会删除 timerDeleted 的timer 以及 modyfing 的timer (会在添加).</p>
+<h3 id="什么时候触发执行">什么时候触发执行</h3>
+<p>这段代码 在 runtime/proc.checkTimers , 这段代码会首先执行 到期的timers, 然后在调用 runtime/time.clearDeletedTimers 删除过期的消息</p>
+<h3 id="timer-的状态">timer 的状态</h3>
+<p>timer的初始状态是 timerNoStatus, 添加成功进入 timerWaiting. 整体流程如下:</p>
+<pre><code>timerNoStatus -&gt; timerWaiting -&gt; timerRunning ---即将调用执行--&gt; timerNoStatus ---&gt; 执行代码
+</code></pre><p>如果用户主动删除, 流程如下</p>
+<pre><code>timerDeleted -&gt; timerRemoving --(dodeltimer0)--&gt; timerRemoved: 最终被gc掉
+</code></pre><h2 id="补充">补充</h2>
+<ol>
+<li>
+<p>time.sleep 也是基于 timer 机制实现的. time.now 通过汇编实现</p>
+</li>
+<li>
+<p>因为 timer 可能在其他的p 上, 所以删除操作是比较麻烦的, 实现通过 标记删除实现, 然后通过 addTimer 和  clearDeletedTimers(调度的时候触发) 执行删除</p>
+</li>
+</ol>
+<h2 id="参考">参考</h2>
+<ul>
+<li>
+<p><a href="http://xiaorui.cc/archives/6483">http://xiaorui.cc/archives/6483</a></p>
+</li>
+<li>
+<p>timer的正确使用: <a href="https://tonybai.com/2016/12/21/how-to-use-timer-reset-in-golang-correctly/">https://tonybai.com/2016/12/21/how-to-use-timer-reset-in-golang-correctly/</a></p>
+</li>
+<li>
+<p><a href="https://github.com/golang/go/issues/38070">https://github.com/golang/go/issues/38070</a></p>
+</li>
+<li>
+<p><a href="https://github.com/golang/go/commit/b43b463d8fd3b15e9feb5156ff13b51ffa6f4599">https://github.com/golang/go/commit/b43b463d8fd3b15e9feb5156ff13b51ffa6f4599</a></p>
+</li>
+<li>
+<p><a href="https://go-review.googlesource.com/c/go/+/225497/3/src/runtime/time.go">https://go-review.googlesource.com/c/go/+/225497/3/src/runtime/time.go</a></p>
+</li>
+</ul>
+]]></content>
+        </item>
+        
+        <item>
             <title>Rocketmq_recover</title>
             <link>https://xujianhai.fun/posts/rocketmq_recover/</link>
             <pubDate>Tue, 24 Mar 2020 23:43:23 +0800</pubDate>

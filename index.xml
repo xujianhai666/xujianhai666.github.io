@@ -125,6 +125,21 @@ msgkey
     </item>
     
     <item>
+      <title>Golang_timer</title>
+      <link>https://xujianhai.fun/posts/golang_timer/</link>
+      <pubDate>Wed, 25 Mar 2020 10:23:01 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/golang_timer/</guid>
+      <description>背景 新版发布了新的定时器实现, 声称性能优化了很多. 这里特意记录. 同时, 也偶尔看到有同事写错了相关实现, 这里补充
+历史 1.10 之前, 一个独立的timerproc通过小顶堆和futexsleep 管理定时任务 1.10 ~ 1.13: 64个timerproc协程 + 四插堆 1.14: 不再有timerproc, 基于 netpoll的epoll wait来做就近时间的休眠等待, 在每次runtime.findrinnable 调度时都检查运行到期的定时器
+基本结构:   p 里面存储了 timers []*timer (runtime2.go), 其他辅助结构 timersLock 和 其他timer状态的计数, 使用 四插堆维护 timer, 使用锁避免插入冲突
+  netpoller 支持 超时等待, 这样p可以利用这个特性进行timer的等待
+  基本流程 timer 支持 Timer.NewTimer、 Timer.Stop 和 Timer.Reset 三种接口.
+下面分析三个接口
+  Timer.NewTimer 其实就是 创建了 timer对象, 然后调用了 runtime/time.addtimer 方法, 将timer对象添加到p的timers四插堆, 需要注意的是 这里执行了两个特殊的操作: cleantimers 和 wakeNetPoller, cleantimers 是删除 timer0(最早到期的那个); wakeNetPoller 只有在 新增timer的时间比较早的时候才会触发, 个人猜想是为了 解决 fundrunnable 阻塞在timer的设计 (后面细讲).</description>
+    </item>
+    
+    <item>
       <title>Rocketmq_recover</title>
       <link>https://xujianhai.fun/posts/rocketmq_recover/</link>
       <pubDate>Tue, 24 Mar 2020 23:43:23 +0800</pubDate>
@@ -137,18 +152,6 @@ msgkey
  physicMsgTimestamp  首先, CommitLog 本身既有一个定时flush的任务, 根据flush方式的不同, 有两种实现: GroupCommitService 和 FlushRealTimeService(后面单独分析), 无论是同步还是异步, 每次flush之后都会设置 physicMsgTimestamp.
 除此之外, 在 dledger模式中, slave构建 consumer queue的时候 也会设置 physicMsgTimestamp
 logicsMsgTimestamp  在定时flush consumer queue 以及 追加consumer queue消息的时候, 都会更新. (因此, logicsMsgTimestamp 并不是 consumer queue flush的时间)</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq_flow_control</title>
-      <link>https://xujianhai.fun/posts/rocketmq_flow_control/</link>
-      <pubDate>Mon, 23 Mar 2020 22:31:59 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rocketmq_flow_control/</guid>
-      <description>背景 rocketmq推广过程中, 偶尔会遇到 [TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: 201ms, size of queue: 5389 类似的报错, 导致上游业务失败率报警以及错误日志飙升. 在相应的监控上, rocketmq 的发送qps也是非常高.
-原因 其实这个行为是 rocektmq broker 的自我保护机制, 那么什么时候会触发呢? 这个主要是在 store 进行put 消息的时候会触发. 之前讲过, 在 rocketmq 的处理机制中, netty 将读取到的消息 会封装成 RequestTask 对象提交到 executorService 的队列中, 然后等待 executorService 调度执行. 那么, 这里存在两种情况:
-  queue已经被写满了, 无法再提交新的任务, 那么会触发 RejectedExecutionException, 这个时候, rocketmq broker 会返回 RemotingSysResponseCode.SYSTEM_BUSY, 提示信息是: [OVERLOAD]. 参考: NettyRemotingAbstract#processRequestCommand
-  调度延迟的问题. 我在 11:05 提交了一个写入请求, 但是因为 写入流程耗时 增加, 导致我的请求到 11:06 才被处理, 对于实时在线业务而言, 这条消息其实早就超时了, 这种情况, rocketmq 有两套机制:</description>
     </item>
     
   </channel>
