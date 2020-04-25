@@ -6,10 +6,28 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sat, 11 Apr 2020 20:51:59 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 24 Apr 2020 21:07:36 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Mosn_base</title>
+      <link>https://xujianhai.fun/posts/mosn_base/</link>
+      <pubDate>Fri, 24 Apr 2020 21:07:36 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/mosn_base/</guid>
+      <description>背景 最近调研 rocketmq + mosn 的推广形式, 这里对mosn 进行研究
+原理分析 mosn是 Go 语言开发的网络代理软件, 可以和 xds api 的service mesh 体系集成. 其中, 支持 核心转发(TCP/TProxy)、多协议代理(dubbo/tars/sofarpc/http1.1/http2)、核心路由(各种路由方式)、后端管理&amp;amp;负载均衡、tls、进程管理(平滑升级)、自定义扩展协议.
+我按照官方的example, 很轻易的运行了一个效果, 还是很不错的.
+核心问题 可观测性
+泛指 metrics 、trace日志、消息轨迹 等基本的服务治理功能
+扩展性
+对于业务方而言, 最重要的是扩展性, 可以轻易的支持自定义协议. 按照mosn的说法, 应该是很方便的. 不仅仅置 协议扩展, 还可以filter 扩展 以及 extension实现.
+ 多协议:  文章参考 https://mosn.io/zh/docs/concept/multi-protocol/ sofabolt 接入的例子: https://github.com/mosn/mosn/tree/master/pkg/protocol/xprotocol/bolt demo: https://github.com/mosn/mosn/tree/master/examples/codes/sofarpc-with-xprotocol-sample
+ extension  支持 streamFilter 和 plugin, plugin 有多进程方式 和 动态库两种实现. 文章参考: https://mosn.io/zh/docs/concept/extensions/
+Stream Filter Demo: https://github.com/mosn/mosn/tree/master/examples/codes/mosn-extensions/simple_streamfilter Demo Readme：https://github.</description>
+    </item>
     
     <item>
       <title>Mysql_basic</title>
@@ -137,21 +155,6 @@ msgkey
   基本流程 timer 支持 Timer.NewTimer、 Timer.Stop 和 Timer.Reset 三种接口.
 下面分析三个接口
   Timer.NewTimer 其实就是 创建了 timer对象, 然后调用了 runtime/time.addtimer 方法, 将timer对象添加到p的timers四插堆, 需要注意的是 这里执行了两个特殊的操作: cleantimers 和 wakeNetPoller, cleantimers 是删除 timer0(最早到期的那个); wakeNetPoller 只有在 新增timer的时间比较早的时候才会触发, 个人猜想是为了 解决 fundrunnable 阻塞在timer的设计 (后面细讲).</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq_recover</title>
-      <link>https://xujianhai.fun/posts/rocketmq_recover/</link>
-      <pubDate>Tue, 24 Mar 2020 23:43:23 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rocketmq_recover/</guid>
-      <description>背景 最近要开发延迟消息, 这里记录下 recover相关的逻辑实现
-原理 之前知道, rocketmq是所有的消息统一投递到 commitlog, 然后异步构建 consumer queue, 那么, 如果机器正常重启/异常宕机的情况下, 又是怎么恢复的呢?
-前菜 rocketmq 使用了 checkpoint 文件记录了 physicMsgTimestamp logicsMsgTimestamp indexMsgTimestamp 三个字段, 分别表示 commitlog 的flush的时间点、comsumer queue的flush的时间点、index file 刷新的时间点. 也就是 已经落地磁盘的时间点. (通过fileChannel#force)
-那么 这些时间点什么场景下会被更新, 什么时候checkpoint会flush呢?
- physicMsgTimestamp  首先, CommitLog 本身既有一个定时flush的任务, 根据flush方式的不同, 有两种实现: GroupCommitService 和 FlushRealTimeService(后面单独分析), 无论是同步还是异步, 每次flush之后都会设置 physicMsgTimestamp.
-除此之外, 在 dledger模式中, slave构建 consumer queue的时候 也会设置 physicMsgTimestamp
-logicsMsgTimestamp  在定时flush consumer queue 以及 追加consumer queue消息的时候, 都会更新. (因此, logicsMsgTimestamp 并不是 consumer queue flush的时间)</description>
     </item>
     
   </channel>

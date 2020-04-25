@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>mosn on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/mosn/</link>
+    <description>Recent content in mosn on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Fri, 24 Apr 2020 21:07:36 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/mosn/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Mosn_base</title>
+      <link>https://xujianhai.fun/posts/mosn_base/</link>
+      <pubDate>Fri, 24 Apr 2020 21:07:36 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/mosn_base/</guid>
+      <description>背景 最近调研 rocketmq + mosn 的推广形式, 这里对mosn 进行研究
+原理分析 mosn是 Go 语言开发的网络代理软件, 可以和 xds api 的service mesh 体系集成. 其中, 支持 核心转发(TCP/TProxy)、多协议代理(dubbo/tars/sofarpc/http1.1/http2)、核心路由(各种路由方式)、后端管理&amp;amp;负载均衡、tls、进程管理(平滑升级)、自定义扩展协议.
+我按照官方的example, 很轻易的运行了一个效果, 还是很不错的.
+核心问题 可观测性
+泛指 metrics 、trace日志、消息轨迹 等基本的服务治理功能
+扩展性
+对于业务方而言, 最重要的是扩展性, 可以轻易的支持自定义协议. 按照mosn的说法, 应该是很方便的. 不仅仅置 协议扩展, 还可以filter 扩展 以及 extension实现.
+ 多协议:  文章参考 https://mosn.io/zh/docs/concept/multi-protocol/ sofabolt 接入的例子: https://github.com/mosn/mosn/tree/master/pkg/protocol/xprotocol/bolt demo: https://github.com/mosn/mosn/tree/master/examples/codes/sofarpc-with-xprotocol-sample
+ extension  支持 streamFilter 和 plugin, plugin 有多进程方式 和 动态库两种实现. 文章参考: https://mosn.io/zh/docs/concept/extensions/
+Stream Filter Demo: https://github.com/mosn/mosn/tree/master/examples/codes/mosn-extensions/simple_streamfilter Demo Readme：https://github.</description>
+    </item>
+    
+  </channel>
+</rss>

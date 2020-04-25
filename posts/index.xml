@@ -5,8 +5,112 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Sat, 11 Apr 2020 20:51:59 +0800</lastBuildDate>
+        <lastBuildDate>Fri, 24 Apr 2020 21:07:36 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Mosn_base</title>
+            <link>https://xujianhai.fun/posts/mosn_base/</link>
+            <pubDate>Fri, 24 Apr 2020 21:07:36 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/mosn_base/</guid>
+            <description>背景 最近调研 rocketmq + mosn 的推广形式, 这里对mosn 进行研究
+原理分析 mosn是 Go 语言开发的网络代理软件, 可以和 xds api 的service mesh 体系集成. 其中, 支持 核心转发(TCP/TProxy)、多协议代理(dubbo/tars/sofarpc/http1.1/http2)、核心路由(各种路由方式)、后端管理&amp;amp;负载均衡、tls、进程管理(平滑升级)、自定义扩展协议.
+我按照官方的example, 很轻易的运行了一个效果, 还是很不错的.
+核心问题 可观测性
+泛指 metrics 、trace日志、消息轨迹 等基本的服务治理功能
+扩展性
+对于业务方而言, 最重要的是扩展性, 可以轻易的支持自定义协议. 按照mosn的说法, 应该是很方便的. 不仅仅置 协议扩展, 还可以filter 扩展 以及 extension实现.
+ 多协议:  文章参考 https://mosn.io/zh/docs/concept/multi-protocol/ sofabolt 接入的例子: https://github.com/mosn/mosn/tree/master/pkg/protocol/xprotocol/bolt demo: https://github.com/mosn/mosn/tree/master/examples/codes/sofarpc-with-xprotocol-sample
+ extension  支持 streamFilter 和 plugin, plugin 有多进程方式 和 动态库两种实现. 文章参考: https://mosn.io/zh/docs/concept/extensions/
+Stream Filter Demo: https://github.com/mosn/mosn/tree/master/examples/codes/mosn-extensions/simple_streamfilter Demo Readme：https://github.</description>
+            <content type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>最近调研 rocketmq + mosn 的推广形式, 这里对mosn 进行研究</p>
+<h2 id="原理分析">原理分析</h2>
+<p>mosn是 Go 语言开发的网络代理软件, 可以和 xds api 的service mesh 体系集成. 其中, 支持 核心转发(TCP/TProxy)、多协议代理(dubbo/tars/sofarpc/http1.1/http2)、核心路由(各种路由方式)、后端管理&amp;负载均衡、tls、进程管理(平滑升级)、自定义扩展协议.</p>
+<p>我按照官方的example, 很轻易的运行了一个效果, 还是很不错的.</p>
+<h3 id="核心问题">核心问题</h3>
+<p><em>可观测性</em></p>
+<p>泛指 metrics 、trace日志、消息轨迹 等基本的服务治理功能</p>
+<p><em>扩展性</em></p>
+<p>对于业务方而言, 最重要的是扩展性, 可以轻易的支持自定义协议. 按照mosn的说法, 应该是很方便的. 不仅仅置 协议扩展, 还可以filter 扩展 以及 extension实现.</p>
+<ul>
+<li>多协议:</li>
+</ul>
+<p>文章参考 <a href="https://mosn.io/zh/docs/concept/multi-protocol/">https://mosn.io/zh/docs/concept/multi-protocol/</a>
+sofabolt 接入的例子:  <a href="https://github.com/mosn/mosn/tree/master/pkg/protocol/xprotocol/bolt">https://github.com/mosn/mosn/tree/master/pkg/protocol/xprotocol/bolt</a>
+demo: <a href="https://github.com/mosn/mosn/tree/master/examples/codes/sofarpc-with-xprotocol-sample">https://github.com/mosn/mosn/tree/master/examples/codes/sofarpc-with-xprotocol-sample</a></p>
+<ul>
+<li>extension</li>
+</ul>
+<p>支持 streamFilter 和 plugin, plugin 有多进程方式 和 动态库两种实现.
+文章参考: <a href="https://mosn.io/zh/docs/concept/extensions/">https://mosn.io/zh/docs/concept/extensions/</a></p>
+<pre><code>Stream Filter Demo: https://github.com/mosn/mosn/tree/master/examples/codes/mosn-extensions/simple_streamfilter
+Demo Readme：https://github.com/mosn/mosn/tree/master/examples/cn_readme/mosn-extensions
+</code></pre><p><em>平滑升级</em></p>
+<p>另一个重要的概念, 是 平滑升级, 问题是这样的: mosn proxy 升级的时候, mson proxy 和 上游的client/server 存在连接的数据没有收发结束, 因此, 新的mosn proxy 需要保证 旧的mosn proxy 连接上的数据能够正常收发完毕, 但是连接存在长链接和短连接的区分, 对于短连接, 直接发送完数据之后切换到 新的 proxy 就可以了, 重建创建连接, 因为本身就会重新创建连接, 但是在 service mesh场景下一般都是长链接, 因为短连接相对性能很低; 对于长链接, 就存在 连接的处理了, 直观的想法: 启动新的mosn, client/server 创建和 新的mosn连接, 逐渐关闭旧的 mosn (等待一段时间确保数据收发完毕) 但是这里存在几个问题:</p>
+<ol>
+<li>无法100% 确保旧的mosn数据能够 收发完毕, server 响应的数据 可能很晚才发回 (取决于业务实现)</li>
+<li>对上层应用侵入性很大, 需要上游感知到 新的mosn的存在、创建新的连接、关闭旧的连接. 每个sdk都需要实现, 本身就违背了 service mesh 的初衷</li>
+</ol>
+<p>因此, 需要一个更好的设计, 需要做到 业务无感知的效果. 在 TCP 场景下, 有 REUSEPORT 方法, 新老进程都监听 同一个端口, 对于 UDP, linux 提供了 sendmsg 和 recvmsg 机制, 让 旧的mosn 将 监听的fd 传递给 新的mosn, 新的mosn 将请求转发给 下游的server, 接受到响应后传递给新的mosn, 然后 旧的mosn进程退出.</p>
+<p>对于7层协议, http1 是 connection Close, 没有平滑迁移的能力, http2 是有 Goaway frame 实现客户端重新创建连接的.</p>
+<p>mosn 平滑迁移的具体信息:  <a href="https://mosn.io/zh/docs/concept/smooth-upgrade/">https://mosn.io/zh/docs/concept/smooth-upgrade/</a></p>
+<p>即使提供了完备的机制, 但是还是存在一个问题, 对于迁移的fd, 存在两种概念: 读迁移 和 写迁移, 读迁移没有问题, fd迁移之后 old mosn 不在读取client的请求就可以. 但是写迁移存在一个问题, 因为旧的mosn上还有部分来自 下游server 的响应, 如果旧的mosn 将这些响应写回到 client, 那么 就会和新 的mosn 写数据冲突, 导致 cleint 数据错乱, 解决方案是, old mosn 将响应数据传递给 new mosn, 由 new mosn 将数据写回到 client 就可以了.</p>
+<h3 id="扩展知识点">扩展知识点</h3>
+<h4 id="流量转发">流量转发</h4>
+<p><em>iptables</em></p>
+<p>iptables 实际上只是个命令行工具, 实现是 内核的 netfilter 模块.</p>
+<p>iptables 有5个链: preRouting input forwarding postRouting output
+分别的作用:
+- preRouting: 进来的数据包处理的第一站, 在数据包被路由前调用 (接受的所有数据包都需要经过)
+- input: 处理目的地是本地进程的包
+- forward: 转发到其他机器或者 network namespace的数据包 (所有输出的数据包都需要经过)
+- postRouting: 确定路由后、发送到网卡之前的处理链路
+- output: 本地进程向外数据数据包的处理链路</p>
+<p>对于接受远程数据的流程, 基本上是:</p>
+<pre><code>prerouting -&gt; input 
+</code></pre><p>对于接受到需要转发的数据包, 流程是</p>
+<pre><code>prerouting -&gt; forwarding -&gt; postrouting 
+</code></pre><p>本地数据包发往远程ip, 流程是</p>
+<pre><code>output -&gt; postrouting 
+</code></pre><p>主要注意的是, 这里有个 route 的概念, 那么 route 是做什么的呢? 对于 进入的数据包, route 判断数据包是需要本地处理还是需要转发; 对于 输出的数据包, route 确定输出的目的地</p>
+<p>除此之外还有五张表:
+raw: 链接追踪机制
+mangle: 修改数据包的ip头信息
+nat: 网络地址转换, 修改数据包的源地址/目标地址
+filter: 控制数据包是 继续、丢弃或者拒绝
+security: SELinux 使用</p>
+<p>正常情况下, raw 是输入和输出的第一站. (preroutin raw 和 output raw)
+对于进来的数据包, 经历 mangle+nat 表计算后, 可以判断数据包是否是 本地处理 还是转发
+对于输出的数据包, 需要对数据进行 managle 和 nat 封装之后才能发出去.</p>
+<p><em>透明代理</em></p>
+<p>iptables nat 的方式转发流量, 目标地址会被修改, tcp 因为面向连接, 有手段可以拿到, 但是udp 是无法知道的.</p>
+<p>为此, linux 提供了 tproxy: 透明代理的功能. 参考文档 <a href="https://www.kernel.org/doc/Documentation/networking/tproxy.txt">https://www.kernel.org/doc/Documentation/networking/tproxy.txt</a> ;这个主要就是讲到了 监听非本地地址 的特性 (传统都是监听本地地址) 和 重定向路由不修改目的地址 的特性;</p>
+<p>透明代理 也是基于 iptables, 只在 PREROUTING 链上设置, 因此不会修改 目标地址, 除此之外, 这里还需要 linux 提供的一个特性: IP_TRANSPARENT (就可以接收任意目的地址的包, linux 2.6.24) ; 应用使用主要是 socket 的 IP_TRANSPARENT .</p>
+<h4 id="reuse_port">REUSE_PORT</h4>
+<p>resueport 简单使用没问题, 但是深入的话, 还是需要进一步思考.</p>
+<p>问题:</p>
+<ul>
+<li>两个进程监听同一个port, 新来的连接会分配到哪一个进程</li>
+<li>两个进程中老的进程挂了, 新的进程会接管老进程的端口吗</li>
+</ul>
+<p>reuseport 有两种模式: 热备模式 和 负载均衡 模式. reuseport 是将多个套接字 绑定到一个 ip/port 上, 实现多个进程 接收到同一个端口的连接. 热备模式, 端口上的每个连接只会交给 套接字列表的第一个; 负载均衡模式 下 多个连接会均匀的分到多个 套接字上 (通过 srcip/srcport 的hash取模). 比如 多线程监听同一个port 实现 accept 的负载均衡</p>
+<p>为什么uds 不支持 reuseport? 需要更多的学习了解</p>
+<p>相关文章:</p>
+<ul>
+<li><a href="https://blog.csdn.net/dog250/article/details/51510823">https://blog.csdn.net/dog250/article/details/51510823</a></li>
+<li><a href="http://man7.org/linux/man-pages/man7/socket.7.html">http://man7.org/linux/man-pages/man7/socket.7.html</a></li>
+</ul>
+<h4 id="消息mesh">消息mesh</h4>
+<p><em>蚂蚁金服</em></p>
+<p>消息mesh和传统的service mesh 存在一些差异, 这里分开来将</p>
+<p><a href="https://juejin.im/post/5ddc82fae51d45233530f0d9">https://juejin.im/post/5ddc82fae51d45233530f0d9</a>  在消息的mesh中, 模型和rpc 不一样, rpc 是单向的流量, 消息的mesh 是双向的流量, 这篇文章讲到了 broker 除了接收 producer 经过sidecar 推送给broker的消息, broker还会通过sidecar投递消息给 producer, 貌似 rocketmq 没有这个问题. 但是文章提到的 ”写残余“ 场景中因为 MSON 上下文缺失 确实会导致 响应(commitOffset) 无法传递给服务端 (但是可以等待上下文初始化结束呀). 另一个问题, 和 consumer 模式有关, 老的mosn在 迁移完fd 到 退出之前, 和 broker 的连接还存在 旧的mosn 参与到消息分配流程. 按照 蚂蚁金服的设计, 存在一段时间无法消费的开销.</p>
+<p>我的想法是, producer 和 consumer 不共用一个连接, 是两个. 或者是两个stream, 避免公用一个连接 导致 多集群兼容的问题. 对于 分配的问题, 和蚂蚁金服的一致.</p>
+<p><em>rocketmq</em></p>
+<p>envoy 最近也支持了 rocketmq, 虽然consumer 只实现了 pull的逻辑. 实现基于 network-filter extension 实现的</p>
+]]></content>
+        </item>
         
         <item>
             <title>Mysql_basic</title>
