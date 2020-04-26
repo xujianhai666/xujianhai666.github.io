@@ -8,7 +8,7 @@
 <meta name="description" content="小伙伴写for循环, 提出了一个问题: 为啥下面的不可以这么写 (虽然是新手问题, 但是还是得从源代码解释):
 arr := []int32{1, 2, 3, 4, 5} for _, a := range arr { go func(){ fmt.Println(&amp;quot;a: %v&amp;quot;, a) }() } 我们编译查看下
 go build -gcflags &#39;-l&#39; -o main main.go go tool objdump -s &amp;quot;main\.test0&amp;quot; main 我们可以看到
-TEXT main.test0(SB) /Users/snow_young/go/src/code.byted.org/im_cloud/teq_stack/main.go main.go:14 0x1091cf0 65488b0c2530000000 MOVQ GS:0x30, CX main.go:14 0x1091cf9 483b6110 CMPQ 0x10(CX), SP main.go:14 0x1091cfd 0f868a000000 JBE 0x1091d8d main.go:14 0x1091d03 4883ec48 SUBQ $0x48, SP main.go:14 0x1091d07 48896c2440 MOVQ BP, 0x40(SP) main." />
+TEXT main.test0(SB) /Users/snow_young/go/src/teq_stack/main.go main.go:14 0x1091cf0 65488b0c2530000000 MOVQ GS:0x30, CX main.go:14 0x1091cf9 483b6110 CMPQ 0x10(CX), SP main.go:14 0x1091cfd 0f868a000000 JBE 0x1091d8d main.go:14 0x1091d03 4883ec48 SUBQ $0x48, SP main.go:14 0x1091d07 48896c2440 MOVQ BP, 0x40(SP) main." />
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
@@ -37,7 +37,7 @@ TEXT main.test0(SB) /Users/snow_young/go/src/code.byted.org/im_cloud/teq_stack/m
 <meta itemprop="description" content="小伙伴写for循环, 提出了一个问题: 为啥下面的不可以这么写 (虽然是新手问题, 但是还是得从源代码解释):
 arr := []int32{1, 2, 3, 4, 5} for _, a := range arr { go func(){ fmt.Println(&quot;a: %v&quot;, a) }() } 我们编译查看下
 go build -gcflags &#39;-l&#39; -o main main.go go tool objdump -s &quot;main\.test0&quot; main 我们可以看到
-TEXT main.test0(SB) /Users/snow_young/go/src/code.byted.org/im_cloud/teq_stack/main.go main.go:14 0x1091cf0 65488b0c2530000000 MOVQ GS:0x30, CX main.go:14 0x1091cf9 483b6110 CMPQ 0x10(CX), SP main.go:14 0x1091cfd 0f868a000000 JBE 0x1091d8d main.go:14 0x1091d03 4883ec48 SUBQ $0x48, SP main.go:14 0x1091d07 48896c2440 MOVQ BP, 0x40(SP) main.">
+TEXT main.test0(SB) /Users/snow_young/go/src/teq_stack/main.go main.go:14 0x1091cf0 65488b0c2530000000 MOVQ GS:0x30, CX main.go:14 0x1091cf9 483b6110 CMPQ 0x10(CX), SP main.go:14 0x1091cfd 0f868a000000 JBE 0x1091d8d main.go:14 0x1091d03 4883ec48 SUBQ $0x48, SP main.go:14 0x1091d07 48896c2440 MOVQ BP, 0x40(SP) main.">
 <meta itemprop="datePublished" content="2019-05-01T10:11:45&#43;08:00" />
 <meta itemprop="dateModified" content="2019-05-01T10:11:45&#43;08:00" />
 <meta itemprop="wordCount" content="259">
@@ -52,7 +52,7 @@ TEXT main.test0(SB) /Users/snow_young/go/src/code.byted.org/im_cloud/teq_stack/m
 <meta name="twitter:description" content="小伙伴写for循环, 提出了一个问题: 为啥下面的不可以这么写 (虽然是新手问题, 但是还是得从源代码解释):
 arr := []int32{1, 2, 3, 4, 5} for _, a := range arr { go func(){ fmt.Println(&quot;a: %v&quot;, a) }() } 我们编译查看下
 go build -gcflags &#39;-l&#39; -o main main.go go tool objdump -s &quot;main\.test0&quot; main 我们可以看到
-TEXT main.test0(SB) /Users/snow_young/go/src/code.byted.org/im_cloud/teq_stack/main.go main.go:14 0x1091cf0 65488b0c2530000000 MOVQ GS:0x30, CX main.go:14 0x1091cf9 483b6110 CMPQ 0x10(CX), SP main.go:14 0x1091cfd 0f868a000000 JBE 0x1091d8d main.go:14 0x1091d03 4883ec48 SUBQ $0x48, SP main.go:14 0x1091d07 48896c2440 MOVQ BP, 0x40(SP) main."/>
+TEXT main.test0(SB) /Users/snow_young/go/src/teq_stack/main.go main.go:14 0x1091cf0 65488b0c2530000000 MOVQ GS:0x30, CX main.go:14 0x1091cf9 483b6110 CMPQ 0x10(CX), SP main.go:14 0x1091cfd 0f868a000000 JBE 0x1091d8d main.go:14 0x1091d03 4883ec48 SUBQ $0x48, SP main.go:14 0x1091d07 48896c2440 MOVQ BP, 0x40(SP) main."/>
 
 
 
@@ -145,7 +145,7 @@ for _, a := range arr {
 <pre><code>go build -gcflags '-l' -o main main.go
 go tool objdump -s &quot;main\.test0&quot;  main
 </code></pre><p>我们可以看到</p>
-<pre><code>TEXT main.test0(SB) /Users/snow_young/go/src/code.byted.org/im_cloud/teq_stack/main.go
+<pre><code>TEXT main.test0(SB) /Users/snow_young/go/src/teq_stack/main.go
   main.go:14                0x1091cf0                65488b0c2530000000        MOVQ GS:0x30, CX
   main.go:14                0x1091cf9                483b6110                CMPQ 0x10(CX), SP
   main.go:14                0x1091cfd                0f868a000000                JBE 0x1091d8d

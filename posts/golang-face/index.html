@@ -238,7 +238,7 @@ func main(){
 <pre><code>go build -gcflags '-l' -o main main.go 
 go tool objdump -s &quot;main\.TestHelloClient&quot; main
 </code></pre><p>得到如下图的内容</p>
-<pre><code>TEXT main.TestHelloClient(SB) /Users/snow_young/go/src/code.byted.org/awesomeProject1/inter/main.go
+<pre><code>TEXT main.TestHelloClient(SB) /Users/snow_young/go/src/inter/main.go
   main.go:13        0x104e1a0       65488b0c2530000000  MOVQ GS:0x30, CX
   main.go:13        0x104e1a9       483b6110        CMPQ 0x10(CX), SP
   main.go:13        0x104e1ad       762c            JBE 0x104e1db
