@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>tcp on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/tcp/</link>
+    <description>Recent content in tcp on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 28 Apr 2020 15:40:34 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/tcp/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Tcp_user_timeout</title>
+      <link>https://xujianhai.fun/posts/tcp_user_timeout/</link>
+      <pubDate>Tue, 28 Apr 2020 15:40:34 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/tcp_user_timeout/</guid>
+      <description>背景 最近小伙伴讲到 TCP_USER_TIMEOUT 这个tcp 参数, 今天特意学习下
+深入  TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?  TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的
+什么场景用?  client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:
+TCP_USER_TIMEOUT &amp;gt;= TCP_KEEPIDLE + TCP_KEEPINTVL * TCP_KEEPCNT. 文章学习 文章: https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/
+TCP_USER_TIMEOUT: 文章里讲到 linux kernel 5.2 并没有效果, 对 client connect sync retry 没有限制
+TCP_DEFER_ACCEPT:
+	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab 因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况 java tcp_so_timeout</description>
+    </item>
+    
+  </channel>
+</rss>

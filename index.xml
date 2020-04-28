@@ -6,10 +6,25 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Fri, 24 Apr 2020 21:07:36 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 28 Apr 2020 15:40:34 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Tcp_user_timeout</title>
+      <link>https://xujianhai.fun/posts/tcp_user_timeout/</link>
+      <pubDate>Tue, 28 Apr 2020 15:40:34 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/tcp_user_timeout/</guid>
+      <description>背景 最近小伙伴讲到 TCP_USER_TIMEOUT 这个tcp 参数, 今天特意学习下
+深入  TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?  TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的
+什么场景用?  client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:
+TCP_USER_TIMEOUT &amp;gt;= TCP_KEEPIDLE + TCP_KEEPINTVL * TCP_KEEPCNT. 文章学习 文章: https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/
+TCP_USER_TIMEOUT: 文章里讲到 linux kernel 5.2 并没有效果, 对 client connect sync retry 没有限制
+TCP_DEFER_ACCEPT:
+	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab 因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况 java tcp_so_timeout</description>
+    </item>
     
     <item>
       <title>Mosn_base</title>
@@ -140,21 +155,6 @@ offsetMsgId 本质上是 rocketmq commitLog 生成的, 生成格式如下:
  public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) { input.flip(); int msgIDLength = addr.limit() == 8 ? 16 : 28; input.limit(msgIDLength); input.put(addr); input.putLong(offset); return UtilAll.bytes2string(input.array()); } 可以发现, offsetMsgId 是基于commitLog 所在的地址 + 消息的offset 组成, 保证了 唯一性. 因此通过offsetMsgId 可以借助这个特性.
 msgkey
 在消息发送的时候, 发送的消息是可以指定消息的key的, 需要注意的是, msgKey可以设置多个.</description>
-    </item>
-    
-    <item>
-      <title>Golang_timer</title>
-      <link>https://xujianhai.fun/posts/golang_timer/</link>
-      <pubDate>Wed, 25 Mar 2020 10:23:01 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/golang_timer/</guid>
-      <description>背景 新版发布了新的定时器实现, 声称性能优化了很多. 这里特意记录. 同时, 也偶尔看到有同事写错了相关实现, 这里补充
-历史 1.10 之前, 一个独立的timerproc通过小顶堆和futexsleep 管理定时任务 1.10 ~ 1.13: 64个timerproc协程 + 四插堆 1.14: 不再有timerproc, 基于 netpoll的epoll wait来做就近时间的休眠等待, 在每次runtime.findrinnable 调度时都检查运行到期的定时器
-基本结构:   p 里面存储了 timers []*timer (runtime2.go), 其他辅助结构 timersLock 和 其他timer状态的计数, 使用 四插堆维护 timer, 使用锁避免插入冲突
-  netpoller 支持 超时等待, 这样p可以利用这个特性进行timer的等待
-  基本流程 timer 支持 Timer.NewTimer、 Timer.Stop 和 Timer.Reset 三种接口.
-下面分析三个接口
-  Timer.NewTimer 其实就是 创建了 timer对象, 然后调用了 runtime/time.addtimer 方法, 将timer对象添加到p的timers四插堆, 需要注意的是 这里执行了两个特殊的操作: cleantimers 和 wakeNetPoller, cleantimers 是删除 timer0(最早到期的那个); wakeNetPoller 只有在 新增timer的时间比较早的时候才会触发, 个人猜想是为了 解决 fundrunnable 阻塞在timer的设计 (后面细讲).</description>
     </item>
     
   </channel>

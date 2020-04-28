@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="背景 最近小伙伴讲到 TCP_USER_TIMEOUT 这个tcp 参数, 今天特意学习下
+深入  TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?  TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的
+什么场景用?  client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:
+TCP_USER_TIMEOUT &amp;gt;= TCP_KEEPIDLE &#43; TCP_KEEPINTVL * TCP_KEEPCNT. 文章学习 文章: https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/
+TCP_USER_TIMEOUT: 文章里讲到 linux kernel 5.2 并没有效果, 对 client connect sync retry 没有限制
+TCP_DEFER_ACCEPT:
+	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab 因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况 java tcp_so_timeout" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, tcp" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/tcp_user_timeout/" />
+
+
+    <title>
+        
+            Tcp_user_timeout :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Tcp_user_timeout">
+<meta itemprop="description" content="背景 最近小伙伴讲到 TCP_USER_TIMEOUT 这个tcp 参数, 今天特意学习下
+深入  TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?  TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的
+什么场景用?  client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:
+TCP_USER_TIMEOUT &gt;= TCP_KEEPIDLE &#43; TCP_KEEPINTVL * TCP_KEEPCNT. 文章学习 文章: https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/
+TCP_USER_TIMEOUT: 文章里讲到 linux kernel 5.2 并没有效果, 对 client connect sync retry 没有限制
+TCP_DEFER_ACCEPT:
+	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab 因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况 java tcp_so_timeout">
+<meta itemprop="datePublished" content="2020-04-28T15:40:34&#43;08:00" />
+<meta itemprop="dateModified" content="2020-04-28T15:40:34&#43;08:00" />
+<meta itemprop="wordCount" content="233">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="tcp," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Tcp_user_timeout"/>
+<meta name="twitter:description" content="背景 最近小伙伴讲到 TCP_USER_TIMEOUT 这个tcp 参数, 今天特意学习下
+深入  TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?  TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的
+什么场景用?  client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:
+TCP_USER_TIMEOUT &gt;= TCP_KEEPIDLE &#43; TCP_KEEPINTVL * TCP_KEEPCNT. 文章学习 文章: https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/
+TCP_USER_TIMEOUT: 文章里讲到 linux kernel 5.2 并没有效果, 对 client connect sync retry 没有限制
+TCP_DEFER_ACCEPT:
+	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab 因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况 java tcp_so_timeout"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-04-28 15:40:34 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/tcp_user_timeout/">Tcp_user_timeout</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h3 id="背景">背景</h3>
+<p>最近小伙伴讲到 <code>TCP_USER_TIMEOUT</code> 这个tcp 参数, 今天特意学习下</p>
+<h3 id="深入">深入</h3>
+<ol>
+<li>TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?</li>
+</ol>
+<p>TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的</p>
+<ol start="2">
+<li>什么场景用?</li>
+</ol>
+<p>client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:</p>
+<pre><code>TCP_USER_TIMEOUT &gt;= TCP_KEEPIDLE + TCP_KEEPINTVL * TCP_KEEPCNT. 
+</code></pre><h3 id="文章学习">文章学习</h3>
+<p>文章: <a href="https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/">https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/</a></p>
+<p>TCP_USER_TIMEOUT: 文章里讲到  linux kernel 5.2 并没有效果, 对 client connect  sync retry 没有限制</p>
+<p>TCP_DEFER_ACCEPT:</p>
+<pre><code>	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab
+	因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况
+</code></pre><p>java tcp_so_timeout</p>
+<p>tcp keepalive 的学习</p>
+<pre><code>SO_KEEPALIVE = 1 - Let's enable keepalives.
+TCP_KEEPIDLE = 5 - Send first keepalive probe after 5 seconds of idleness.
+TCP_KEEPINTVL = 3 - Send subsequent keepalive probes after 3 seconds.
+TCP_KEEPCNT = 3 - Time out after three failed probes.
+</code></pre><p>不同场景的讨论:</p>
+<ul>
+<li>
+<p>空闲连接下, TCP_USER_TIMEOUT 会影响到 KEEPALIVE, 导致 keepalive 的连接被关闭. 也就是说 心跳消息不会重置  TCP_USER_TIMEOUT 的超时	计算; 如果 TCP_USER_TIMEOUT 设置的特别大, 还会使 TCP_KEEPCNT 无效.</p>
+</li>
+<li>
+<p>send unack 消息的连接,  TCP_USER_TIMEOUT 会影响到 KEEPALIVE, 导致连接因为长期没有接收到 相应而关闭</p>
+</li>
+<li>
+<p>server 处理慢, client sender 被流控. 这个时候 server read buffer 被填满然后流控了, 返回滑动窗口 0, sender send buffer 也是满的, 这个时候 TCP_USER_TIMEOUT 会暂停直到 win不为0 才重新计算.</p>
+</li>
+</ul>
+<p>所以总结下来, TCP_USER_TIMEOUT 是不受重传影响的, 重传不会导致 TCP_USER_TIMEOUT 更新. 文章中还提供, 对于慢连接(server处理慢), 不在使用应用的超时, 而是使用 TCP_USER_TIMEOUT, 这样更加有效</p>
+<p>推荐配置:</p>
+<ol>
+<li>Enable TCP keepalives</li>
+<li>Set TCP_USER_TIMEOUT to TCP_KEEPIDLE + TCP_KEEPINTVL * TCP_KEEPCNT.</li>
+<li>一般使用 TCP keepalives and user-timeout 足够了, 如果希望降低资源及时清理超时的连接, 可以 ioctl (统计unsent+unacked) 和 TCP_INFO (tcp unsent)</li>
+</ol>
+<h3 id="学习">学习</h3>
+<p>对于我们而言, 这个有什么意义?
+主要是 TCP_USER_TIMEOUT, 没有设置的情况下, 如果下游主机直接挂了, client 没有感知, 那么 client 还在不断的发送数据 直到 sendbuffer 满了, 这个时候 write timeout 超时 才会导致连接关闭, 但是这个时间 已经很长了, 对业务是有损的. 因此 通过设置 TCP_USER_TIMEOUT 能够解决问题</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/tcp">tcp</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>233 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-04-28 15:40 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/mosn_base/">
+                                <span class="button__text">Mosn_base</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

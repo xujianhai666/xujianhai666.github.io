@@ -5,8 +5,70 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Fri, 24 Apr 2020 21:07:36 +0800</lastBuildDate>
+        <lastBuildDate>Tue, 28 Apr 2020 15:40:34 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Tcp_user_timeout</title>
+            <link>https://xujianhai.fun/posts/tcp_user_timeout/</link>
+            <pubDate>Tue, 28 Apr 2020 15:40:34 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/tcp_user_timeout/</guid>
+            <description>背景 最近小伙伴讲到 TCP_USER_TIMEOUT 这个tcp 参数, 今天特意学习下
+深入  TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?  TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的
+什么场景用?  client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:
+TCP_USER_TIMEOUT &amp;gt;= TCP_KEEPIDLE + TCP_KEEPINTVL * TCP_KEEPCNT. 文章学习 文章: https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/
+TCP_USER_TIMEOUT: 文章里讲到 linux kernel 5.2 并没有效果, 对 client connect sync retry 没有限制
+TCP_DEFER_ACCEPT:
+	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab 因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况 java tcp_so_timeout</description>
+            <content type="html"><![CDATA[<h3 id="背景">背景</h3>
+<p>最近小伙伴讲到 <code>TCP_USER_TIMEOUT</code> 这个tcp 参数, 今天特意学习下</p>
+<h3 id="深入">深入</h3>
+<ol>
+<li>TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?</li>
+</ol>
+<p>TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的</p>
+<ol start="2">
+<li>什么场景用?</li>
+</ol>
+<p>client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:</p>
+<pre><code>TCP_USER_TIMEOUT &gt;= TCP_KEEPIDLE + TCP_KEEPINTVL * TCP_KEEPCNT. 
+</code></pre><h3 id="文章学习">文章学习</h3>
+<p>文章: <a href="https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/">https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/</a></p>
+<p>TCP_USER_TIMEOUT: 文章里讲到  linux kernel 5.2 并没有效果, 对 client connect  sync retry 没有限制</p>
+<p>TCP_DEFER_ACCEPT:</p>
+<pre><code>	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab
+	因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况
+</code></pre><p>java tcp_so_timeout</p>
+<p>tcp keepalive 的学习</p>
+<pre><code>SO_KEEPALIVE = 1 - Let's enable keepalives.
+TCP_KEEPIDLE = 5 - Send first keepalive probe after 5 seconds of idleness.
+TCP_KEEPINTVL = 3 - Send subsequent keepalive probes after 3 seconds.
+TCP_KEEPCNT = 3 - Time out after three failed probes.
+</code></pre><p>不同场景的讨论:</p>
+<ul>
+<li>
+<p>空闲连接下, TCP_USER_TIMEOUT 会影响到 KEEPALIVE, 导致 keepalive 的连接被关闭. 也就是说 心跳消息不会重置  TCP_USER_TIMEOUT 的超时	计算; 如果 TCP_USER_TIMEOUT 设置的特别大, 还会使 TCP_KEEPCNT 无效.</p>
+</li>
+<li>
+<p>send unack 消息的连接,  TCP_USER_TIMEOUT 会影响到 KEEPALIVE, 导致连接因为长期没有接收到 相应而关闭</p>
+</li>
+<li>
+<p>server 处理慢, client sender 被流控. 这个时候 server read buffer 被填满然后流控了, 返回滑动窗口 0, sender send buffer 也是满的, 这个时候 TCP_USER_TIMEOUT 会暂停直到 win不为0 才重新计算.</p>
+</li>
+</ul>
+<p>所以总结下来, TCP_USER_TIMEOUT 是不受重传影响的, 重传不会导致 TCP_USER_TIMEOUT 更新. 文章中还提供, 对于慢连接(server处理慢), 不在使用应用的超时, 而是使用 TCP_USER_TIMEOUT, 这样更加有效</p>
+<p>推荐配置:</p>
+<ol>
+<li>Enable TCP keepalives</li>
+<li>Set TCP_USER_TIMEOUT to TCP_KEEPIDLE + TCP_KEEPINTVL * TCP_KEEPCNT.</li>
+<li>一般使用 TCP keepalives and user-timeout 足够了, 如果希望降低资源及时清理超时的连接, 可以 ioctl (统计unsent+unacked) 和 TCP_INFO (tcp unsent)</li>
+</ol>
+<h3 id="学习">学习</h3>
+<p>对于我们而言, 这个有什么意义?
+主要是 TCP_USER_TIMEOUT, 没有设置的情况下, 如果下游主机直接挂了, client 没有感知, 那么 client 还在不断的发送数据 直到 sendbuffer 满了, 这个时候 write timeout 超时 才会导致连接关闭, 但是这个时间 已经很长了, 对业务是有损的. 因此 通过设置 TCP_USER_TIMEOUT 能够解决问题</p>
+]]></content>
+        </item>
         
         <item>
             <title>Mosn_base</title>

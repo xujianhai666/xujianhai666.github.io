@@ -6,10 +6,19 @@
     <description>Recent content in Tags on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Fri, 24 Apr 2020 21:07:36 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 28 Apr 2020 15:40:34 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>tcp</title>
+      <link>https://xujianhai.fun/tags/tcp/</link>
+      <pubDate>Tue, 28 Apr 2020 15:40:34 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/tcp/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>mosn</title>
@@ -89,15 +98,6 @@
       <pubDate>Thu, 26 Mar 2020 23:33:04 +0800</pubDate>
       
       <guid>https://xujianhai.fun/tags/rocketmq/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>golang timer</title>
-      <link>https://xujianhai.fun/tags/golang-timer/</link>
-      <pubDate>Wed, 25 Mar 2020 10:23:01 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/golang-timer/</guid>
       <description></description>
     </item>
     
