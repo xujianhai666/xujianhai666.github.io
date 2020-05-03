@@ -2977,6 +2977,17 @@ web: 浏览器观察</p>
 <p>pprof很好用, 但是也存在缺点: 不是很直观, 调用关系一般都比较深, 可以使用火焰图.</p>
 <pre><code>go-torch -u http://$host:$port -t 30
 </code></pre><p>运行命令后会生成一个 svg 图片, 然后点击打开就可以了</p>
+<h2 id="go-tool-trace">go tool trace</h2>
+<p>参考文档: <a href="https://colobu.com/2019/05/22/profilinggo/">https://colobu.com/2019/05/22/profilinggo/</a>  可以查看每个p的情况</p>
+<pre><code>curl -o trace.out http://localhost:8000/debug/pprof/trace?seconds=15
+go tool trace trace.out
+</code></pre><h2 id="gc-优化">gc 优化:</h2>
+<p>开启gc追踪, 怎么用？</p>
+<pre><code>GODEBUG=gctrace=1
+</code></pre><p>gctrace？
+go build &ndash;gcflags=-m libs/httpclient/httpclient.go</p>
+<p>逃逸分析</p>
+<p><a href="https://cloud.tencent.com/developer/article/1165854">https://cloud.tencent.com/developer/article/1165854</a></p>
 <h2 id="常见的detection">常见的detection:</h2>
 <ul>
 <li>goroutine 跑飞了</li>
