@@ -179,7 +179,7 @@
 <p>写入的执行流程如下:</p>
 <ol>
 <li>client -&gt; leader: 客户端请求leader写入kv</li>
-<li>leader append 本地日志</li>
+<li>leader append 本地日志(commitlog)</li>
 <li>leader 并行发送日志给 follower</li>
 <li>follower收到日志, 写入本地 commit log, 并 apply 本地的 FSM, 返回成功给 leader</li>
 <li>leader收到follower超过半数以上的成功响应, 本地apply 日志到 FSM.</li>

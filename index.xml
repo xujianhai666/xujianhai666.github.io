@@ -143,18 +143,15 @@ rocketmq 开源的版本并没有ack的概念
     </item>
     
     <item>
-      <title>Rocketmq_search</title>
-      <link>https://xujianhai.fun/posts/rocketmq_search/</link>
-      <pubDate>Wed, 25 Mar 2020 18:22:56 +0800</pubDate>
+      <title>Rocketmq_dledger</title>
+      <link>https://xujianhai.fun/posts/rocketmq_dledger/</link>
+      <pubDate>Thu, 26 Mar 2020 17:49:31 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/rocketmq_search/</guid>
-      <description>背景 最近基于golang做了 消息查询的功能, 这里做一些记录
-原理 rocketmq的消息查询, 支持两种模式: offsetMsgId 和 msgkey、uniqueKey, 我这里避免了 msgid 的命名, 因为在 rocketmq client的实现过程中, msgid 存在很大的差异.
-基本概念 offsetMsgId
-offsetMsgId 本质上是 rocketmq commitLog 生成的, 生成格式如下:
- public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) { input.flip(); int msgIDLength = addr.limit() == 8 ? 16 : 28; input.limit(msgIDLength); input.put(addr); input.putLong(offset); return UtilAll.bytes2string(input.array()); } 可以发现, offsetMsgId 是基于commitLog 所在的地址 + 消息的offset 组成, 保证了 唯一性. 因此通过offsetMsgId 可以借助这个特性.
-msgkey
-在消息发送的时候, 发送的消息是可以指定消息的key的, 需要注意的是, msgKey可以设置多个.</description>
+      <guid>https://xujianhai.fun/posts/rocketmq_dledger/</guid>
+      <description>Preface RocketMQ 去年实现了基于raft协议的 commitlog 存储库, 解决master-slave架构下 人工选主、切主 的故障转移的运维负担, 以及故障转移过程中数据丢失的问题.
+raft 写入 raft 协议的写入如下:
+ 1. client -&amp;gt; leader: 客户端请求leader写入kv 2. leader append 本地日志(commitlog) 3. leader 并行发送日志给 follower 4. follower收到日志, 写入本地 commit log, 并 apply 本地的 FSM, 返回成功给 leader 5. leader收到follower超过半数以上的成功响应, 本地apply 日志到 FSM. 读取 raft 协议的读取如下:
+ 1. client -&amp;gt; leader: 客户端请求leader写入kv 2. leader 通过 lease 检查自己是否是 leader, 3. 检查是leader的情况下, 检查本地 apply index 和 客户端的 index, apply index大的话, 读取本地的状态机的数据 + apply index返回 4.</description>
     </item>
     
   </channel>

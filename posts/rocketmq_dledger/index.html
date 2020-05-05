@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="Preface RocketMQ 去年实现了基于raft协议的 commitlog 存储库, 解决master-slave架构下 人工选主、切主 的故障转移的运维负担, 以及故障转移过程中数据丢失的问题.
+raft 写入 raft 协议的写入如下:
+ 1. client -&amp;gt; leader: 客户端请求leader写入kv 2. leader append 本地日志(commitlog) 3. leader 并行发送日志给 follower 4. follower收到日志, 写入本地 commit log, 并 apply 本地的 FSM, 返回成功给 leader 5. leader收到follower超过半数以上的成功响应, 本地apply 日志到 FSM. 读取 raft 协议的读取如下:
+ 1. client -&amp;gt; leader: 客户端请求leader写入kv 2. leader 通过 lease 检查自己是否是 leader, 3. 检查是leader的情况下, 检查本地 apply index 和 客户端的 index, apply index大的话, 读取本地的状态机的数据 &#43; apply index返回 4." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, untagged" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/rocketmq_dledger/" />
+
+
+    <title>
+        
+            Rocketmq_dledger :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Rocketmq_dledger">
+<meta itemprop="description" content="Preface RocketMQ 去年实现了基于raft协议的 commitlog 存储库, 解决master-slave架构下 人工选主、切主 的故障转移的运维负担, 以及故障转移过程中数据丢失的问题.
+raft 写入 raft 协议的写入如下:
+ 1. client -&gt; leader: 客户端请求leader写入kv 2. leader append 本地日志(commitlog) 3. leader 并行发送日志给 follower 4. follower收到日志, 写入本地 commit log, 并 apply 本地的 FSM, 返回成功给 leader 5. leader收到follower超过半数以上的成功响应, 本地apply 日志到 FSM. 读取 raft 协议的读取如下:
+ 1. client -&gt; leader: 客户端请求leader写入kv 2. leader 通过 lease 检查自己是否是 leader, 3. 检查是leader的情况下, 检查本地 apply index 和 客户端的 index, apply index大的话, 读取本地的状态机的数据 &#43; apply index返回 4.">
+<meta itemprop="datePublished" content="2020-03-26T17:49:31&#43;08:00" />
+<meta itemprop="dateModified" content="2020-03-26T17:49:31&#43;08:00" />
+<meta itemprop="wordCount" content="593">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="untagged," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Rocketmq_dledger"/>
+<meta name="twitter:description" content="Preface RocketMQ 去年实现了基于raft协议的 commitlog 存储库, 解决master-slave架构下 人工选主、切主 的故障转移的运维负担, 以及故障转移过程中数据丢失的问题.
+raft 写入 raft 协议的写入如下:
+ 1. client -&gt; leader: 客户端请求leader写入kv 2. leader append 本地日志(commitlog) 3. leader 并行发送日志给 follower 4. follower收到日志, 写入本地 commit log, 并 apply 本地的 FSM, 返回成功给 leader 5. leader收到follower超过半数以上的成功响应, 本地apply 日志到 FSM. 读取 raft 协议的读取如下:
+ 1. client -&gt; leader: 客户端请求leader写入kv 2. leader 通过 lease 检查自己是否是 leader, 3. 检查是leader的情况下, 检查本地 apply index 和 客户端的 index, apply index大的话, 读取本地的状态机的数据 &#43; apply index返回 4."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-03-26 17:49:31 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/rocketmq_dledger/">Rocketmq_dledger</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="preface">Preface</h2>
+<p>RocketMQ 去年实现了基于raft协议的 commitlog 存储库, 解决master-slave架构下 人工选主、切主 的故障转移的运维负担, 以及故障转移过程中数据丢失的问题.</p>
+<h2 id="raft">raft</h2>
+<h3 id="写入">写入</h3>
+<p>raft 协议的写入如下:</p>
+<pre><code>    1. client -&gt; leader: 客户端请求leader写入kv
+    2. leader append 本地日志(commitlog)
+    3. leader 并行发送日志给 follower 
+    4. follower收到日志, 写入本地 commit log, 并 apply 本地的 FSM, 返回成功给 leader  
+    5. leader收到follower超过半数以上的成功响应, 本地apply 日志到 FSM.  
+</code></pre><h3 id="读取">读取</h3>
+<p>raft 协议的读取如下:</p>
+<pre><code>    1. client -&gt; leader: 客户端请求leader写入kv 
+    2. leader 通过 lease 检查自己是否是 leader,
+    3. 检查是leader的情况下, 检查本地 apply index 和 客户端的 index, apply index大的话, 读取本地的状态机的数据 + apply index返回
+    4. 不是leader的情况下, 就请求leader获取最新的 apply index, 和 客户单的index 比较,  apply index 大的话, 读取本地的状态机的数据 + apply index 返回
+
+</code></pre><h3 id="参考">参考</h3>
+<ul>
+<li>(官网)[https://raft.github.io/]</li>
+<li>(论文)[https://raft.github.io/raft.pdf]</li>
+<li>(可视化动图)[http://thesecretlivesofdata.com/raft/]</li>
+<li>(raft大规模使用)[https://zhuanlan.zhihu.com/p/23872141]</li>
+</ul>
+<h2 id="dledger-commitlog">dledger commitlog</h2>
+<h3 id="dledger-logic">dledger logic</h3>
+<p>消息系统应用raft 协议, 需要考虑到一个问题, 就是 RMQ 的commitlog 本身就是系统的最终状态, 这个和 raft 协议的 状态机重叠, 因此, 可以使用 commitlog 替代 raft中的状态机实现. 对于master身份的标志, 也是基于raft 的 leader-follower-condidate 实现, 故障转移也是基于 raft的自动选主</p>
+<ol>
+<li>复制模型</li>
+</ol>
+<p>异步复制
+并发复制</p>
+<ol start="2">
+<li>可靠性</li>
+</ol>
+<p>对于网络分区部分节点term非常大但是日志量很低的场景, 添加了两个阶段: WAIT_TO_REVOTE 和 WAIT_TO_VOTE_NEXT, 投票的时候, 先进入 WAIT_TO_REVOTE, 这个阶段 term 不会递增, 只有有效投票数超过半数, 节点状态才会进入 WAIT_TO_VOTE_NEXT, 这个时候term 才会增加. 并且通过了构建的jepsen测试</p>
+<h3 id="dledger-impl">dledger impl</h3>
+<p><em>存储</em></p>
+<p>DLedgerStore 提供了内存和文件持久化两种方式, 其中, 我们需要理解的几个概念:</p>
+<ul>
+<li>DLedgerEndTerm:</li>
+<li>DLedgerBeginIndex: 第一个数据文件的ledgerIndex</li>
+<li>DLedgerEndIndex: 最新添加的日志的index, 只有leader才能递增</li>
+<li>committedIndex: 提交的index</li>
+<li>MemberState: currTerm voteLeader</li>
+</ul>
+<p>MemberState存储一下参数:</p>
+<ul>
+<li>ledgerEndIndex</li>
+<li>ledgerEndTerm</li>
+</ul>
+<p>内存的实现比较简单, 没有复杂的逻辑管理, 只是简单的添加. DLedgerMmapFileStore 通过mmap实现文件存储, 分成 数据文件 和索引文件, 因为数据文件的数据大小是变化的, 因此需要索引文件进行索引, 方便ledgerIndex 进行索引. 因为 commitlog 的特殊性, 需要定期进行刷新和删除旧文件. 刷新也借鉴 commitlog的设计, 做了一个checkpoint. 删除服务分两个维度操作, 一个是 storeDir 的磁盘占比, 另一个是 data 目录的磁盘占比, 前者包括了索引的磁盘占比。</p>
+<p>灾备: 借鉴了rmq的设计, 先load完整的文件, 在recover: 也是从倒数三个文件检查, 从后向前找正确的文件(check文件的头数据和相应索引的数据), 然后遍历数据文件的每一个数据, 数据检查有两种选择的方式: needWriteIndex. 在recover的时候是否写入索引, 不写入索引的时候, 就检查数据内容和索引.</p>
+<p>文件名就是数据的绝对偏移. 数据文件内容的格式:</p>
+<pre><code>magic(int)
+all data size(int)
+entryIndex(long)
+entryTerm(long)
+pos(long)  // 数据的绝对偏移
+channel(int)
+chain crc(int)
+body crc(int)
+</code></pre><p>索引文件的内容格式:</p>
+<pre><code>magic(int)
+pos(long) // 数据的绝对偏移
+data size(int)
+entry index(long)
+entry term(long)
+</code></pre><p><em>append</em></p>
+<p>leader处理请求的流程如下:</p>
+<pre><code>DLedgerServer#handleAppend -&gt; DLedgerMmapFileStore/DLedgerMemoryStore#appendAsLeader + DLedgerEntryPusher#waitAck -&gt; DLedgerEntryPusher$EntryDispatcher(分发请求吧和处理响应, 一个follower一个) + DLedgerEntryPusher$QuorumAckChecker(committed offst移动)  
+</code></pre><p>EntryDispatcher 的流程如下:</p>
+<pre><code>DLedgerEntryPusher$EntryDispatcher: getPeerWaterMark? -&gt; DLedgerRpcService.push: updatePeerWaterMark + quorumAckChecker(更新term peerId ack的点位, 更新 quorm ack, 推进 quorum commited index, 将ack的内容请求响应送回去)
+</code></pre><p>可以发现, 主要由以下几个模块:</p>
+<ul>
+<li>DLedgerEntryPusher$EntryDispatcher: 负责rpc发送请求 到follower. 每个follower一个 EntryDispatcher</li>
+<li>DLedgerEntryPusher$QuorumAckChecker: 负责follower ack 的记录以及 leader committed index 的推进 (需要半数ack)</li>
+</ul>
+<p>follower 对于append请求如下:</p>
+<pre><code>DLedgerRpcNettyService#processRequest-&gt; DLedgerRpcNettyService#handlePush-&gt;DLedgerServer#handlePush-&gt;DLedgerEntryPusher$EntryHandler#handlePush-&gt; 放到map, 异步处理 -&gt; DLedgerEntryPusher$EntryHandler$#dowork (单独的线程) -&gt; #handleDoAppend -&gt;  dLedgerStore.appendAsFollower + dLedgerStore#updateCommittedIndex    
+</code></pre><p>上面只是专门写了 单个请求, 其实还是支持 batch 处理的.</p>
+<p>EntryHandler#dowork 还有特殊情况的处理</p>
+<p>对于写文件, DLedgerMmapFileStore#appendAsLeader 会同时写入数据文件和索引文件, 同时更新 ledgerBeginIndex = ledgerEndIndex; 对于follower, 调用 DLedgerMmapFileStore#appendAsFollower, 也是写入数据文件和索引文件, 但是数据文件的元数据直接使用, 不需要像master一样进行更新</p>
+<p><em>get</em></p>
+<p>调用路径:</p>
+<pre><code>DLedgerRpcNettyService#processRequest -&gt; #handleGet -&gt; DLedgerServer#handleGet -&gt; DLedgerMmapFileStore#get: 从索引文件获取pos和size, 再从数据文件读取 
+</code></pre><p><em>特殊情况: truncate</em></p>
+<p>当新的leader当选的时候, 会要求 follower truncate. 整理逻辑如代码注释:</p>
+<pre><code>     * The push has 4 types:
+     *   APPEND : append the entries to the follower
+     *   COMPARE : if the leader changes, the new leader should compare its entries to follower's
+     *   TRUNCATE : if the leader finished comparing by an index, the leader will send a request to truncate the follower's ledger
+     *   COMMIT: usually, the leader will attach the committed index with the APPEND request, but if the append requests are few and scattered,
+     *           the leader will send a pure request to inform the follower of committed index.
+     *
+     *   The common transferring between these types are as following:
+     *
+     *   COMPARE ---- TRUNCATE ---- APPEND ---- COMMIT
+     *   ^                             |
+     *   |---&lt;-----&lt;------&lt;-------&lt;----|
+</code></pre><p>leader路径:</p>
+<pre><code>DLedgerEntryPusher$EntryDispatcher#doWork -&gt; #doCompare -&gt;#changeState + #doTruncate( -&gt; #changeState) 
+</code></pre><p>DLedgerEntryPusher$EntryDispatcher 的初始状态就是 COMPARE, 因此 dowork 会先进行 compare 操作, 给follower发送compare 操作, 对于有冗余数据的follower, 需要发送truncate请求, 才能进入 append状态, 否则直接进入 append 状态.</p>
+<p>存在问题, 没看到 follower 同步leader 老数据的流程 &hellip; ?</p>
+<p>follower</p>
+<pre><code>DLedgerEntryPusher$EntryHandler#handlePush -&gt; #doWork -&gt; DLedgerEntryPusher$EntryHandler#handleDoTruncate -&gt; DLedgerMmapFileStore#truncate 
+</code></pre><p><em>pull</em>
+没有实现pull请求. DLedgerRpcNettyService#pull 没有调用方</p>
+<p>DLedgerRpcNettyService#processRequest -&gt; #handlePull -&gt; DledgerServer#handlePull</p>
+<p><em>选主</em></p>
+<p>主要的逻辑在 DLedgerLeaderElector 中, 心跳处理、状态管理(StateMaintainer)、投票. 对term 比较大的请求, 都是退化成candidate重新处理.</p>
+<p>有一个leadership transfer 逻辑很奇怪, 发起者貌似在cmd client.</p>
+<pre><code>DLedgerRpcNettyService#handleLeadershipTransfer-&gt; DLedgerServer#handleLeadershipTransfer -&gt; DLedgerLeaderElector#handleLeadershipTransfer/handleTakeLeadership -&gt; DLedgerRpcNettyService#leadershipTransfer -&gt;  DLedgerRpcNettyService#leadershipTransfer
+</code></pre><p><em>亮点</em></p>
+<ul>
+<li>ResettableCountDownLatch: 支持重置, AbstractQueuedSynchronizer 提供了接口, 这里进行了扩展</li>
+<li>cmdline: 支持了命令行</li>
+<li>MmapFileList 的抽象, 简化了底层的目录的封装</li>
+</ul>
+<h3 id="dledger-commitlog-impl">dledger commitlog impl</h3>
+<p>基于 Dledger 的commitlog实现位于: org.apache.rocketmq.store.dledger.DLedgerCommitLog . 为了简化实现, 直接继承了  org.apache.rocketmq.store.CommitLog.</p>
+<p>为了兼容老版本进行升级, 使用了一个特殊的字段: dividedCommitlogOffset, 是以 DledgerFilterStore 的第一个文件的起始位置 计算出来的, 小于这个offset, 就是老式的 mappedFileQueue 存储方式, 否则就是新版.</p>
+<p>dledger based commitlog 的实现比较简单, 是直接依赖 完善的 dledger 实现, 读写和recover. 这里对几个点说明下:</p>
+<ol>
+<li>日志格式</li>
+</ol>
+<p>和老版本一致</p>
+<ol start="2">
+<li>读写</li>
+</ol>
+<p>写入新版本走的是 raft 协议, 由 Dledger 实现. 老版本经过主从复制实现 (半同步复制和异步复制)</p>
+<p>读取新版本走的是 raft 协议, 由 Dledger 实现, 会判断下 offset 是否是已经提交, 只读取已经提交的内容. 老版本直接读取.</p>
+<ol start="3">
+<li>选主</li>
+</ol>
+<p>无感知</p>
+<ol start="4">
+<li>日志复制</li>
+</ol>
+<p>新版本走的是raft 协议, 由 Dledger 实现. 老版本走的半同步/异步复制</p>
+<h3 id="参考-1">参考</h3>
+<p><a href="https://juejin.im/post/5d53bbf76fb9a06b1417dc16">https://juejin.im/post/5d53bbf76fb9a06b1417dc16</a>
+<a href="https://raft.github.io/raft.pdf">https://raft.github.io/raft.pdf</a>
+<a href="https://web.stanford.edu/~ouster/cgi-bin/papers/OngaroPhD.pdf">https://web.stanford.edu/~ouster/cgi-bin/papers/OngaroPhD.pdf</a></p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/untagged">untagged</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>593 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-03-26 17:49 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/rocketmq_nomessage/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Rocketmq_nomessage</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/rocketmq_search/">
+                                <span class="button__text">Rocketmq_search</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
