@@ -4,12 +4,27 @@
   
   <url>
     <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-04-28T15:40:34+08:00</lastmod>
+    <lastmod>2020-05-04T16:02:11+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/rmq_ha/</loc>
+    <lastmod>2020-05-04T16:02:11+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/rocketmq/</loc>
+    <lastmod>2020-05-04T16:02:11+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-04-28T15:40:34+08:00</lastmod>
+    <lastmod>2020-05-04T16:02:11+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2020-05-04T16:02:11+08:00</lastmod>
   </url>
   
   <url>
@@ -19,11 +34,6 @@
   
   <url>
     <loc>https://xujianhai.fun/posts/tcp_user_timeout/</loc>
-    <lastmod>2020-04-28T15:40:34+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
     <lastmod>2020-04-28T15:40:34+08:00</lastmod>
   </url>
   
@@ -100,11 +110,6 @@
   <url>
     <loc>https://xujianhai.fun/posts/mesh_file/</loc>
     <lastmod>2020-03-28T23:36:12+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/rocketmq/</loc>
-    <lastmod>2020-03-26T23:33:04+08:00</lastmod>
   </url>
   
   <url>

@@ -6,10 +6,20 @@
     <description>Recent content in rocketmq on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 26 Mar 2020 23:33:04 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 04 May 2020 16:02:11 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/rocketmq/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rmq_ha</title>
+      <link>https://xujianhai.fun/posts/rmq_ha/</link>
+      <pubDate>Mon, 04 May 2020 16:02:11 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rmq_ha/</guid>
+      <description>Preface 之前分析了 基于raft的DLedger实现, 这里分析下老版本的master-slave 主从复制 以及 刷盘机制
+抽象  GroupCommitRequest: 如果是 半同步, 即MASTER_SYNC 模式, 会对写入请求封装成 GroupCommitRequest 触发同步 HAService$GroupTransferService: 用来检查 GroupCommitRequest 是否同步成功/超时. 同步操作依赖底层统一的数据同步实现 HAService$HAClient: slave用来创建和master的连接, 上报 offset 和 获取写入数据到 commitlog HAService$AcceptSocketService: 用来接收slave创建的连接, linux平台使用epoll, 只监听accept事件 HAConnection: master上表示slave创建的一个连接 HAConnection$ReadSocketService: 专门负责读取 slave 提交的ackOffset 的线程, 只监听read事件 HAConnection$WriteSocketService: 负责发送同步数据, 也会在数据包中包含心跳的头(间歇), 只监听write事件  replicaRequest 流程 master 因为后面的版本支持了 future 模式, 因此 入口有两个, 分别对应 CommitLog#putMessage 和 CommitLog#asyncPutMessage, 最终都会进入 CommitLog#submitReplicaRequest. replicaRequest 提交并不会触发任何同步行为, 因为同步本身是异步线程进行的, 提交的 replicaRequest 仅仅用来 检测 slave同步是否成功/超时, 相当于在另一个线程排队 (消息是顺序写入commitlog的, 因为replicaRequest 自带了顺序特性).</description>
+    </item>
     
     <item>
       <title>Rocketmq_nomessage</title>

@@ -6,10 +6,20 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 28 Apr 2020 15:40:34 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 04 May 2020 16:02:11 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Rmq_ha</title>
+      <link>https://xujianhai.fun/posts/rmq_ha/</link>
+      <pubDate>Mon, 04 May 2020 16:02:11 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/rmq_ha/</guid>
+      <description>Preface 之前分析了 基于raft的DLedger实现, 这里分析下老版本的master-slave 主从复制 以及 刷盘机制
+抽象  GroupCommitRequest: 如果是 半同步, 即MASTER_SYNC 模式, 会对写入请求封装成 GroupCommitRequest 触发同步 HAService$GroupTransferService: 用来检查 GroupCommitRequest 是否同步成功/超时. 同步操作依赖底层统一的数据同步实现 HAService$HAClient: slave用来创建和master的连接, 上报 offset 和 获取写入数据到 commitlog HAService$AcceptSocketService: 用来接收slave创建的连接, linux平台使用epoll, 只监听accept事件 HAConnection: master上表示slave创建的一个连接 HAConnection$ReadSocketService: 专门负责读取 slave 提交的ackOffset 的线程, 只监听read事件 HAConnection$WriteSocketService: 负责发送同步数据, 也会在数据包中包含心跳的头(间歇), 只监听write事件  replicaRequest 流程 master 因为后面的版本支持了 future 模式, 因此 入口有两个, 分别对应 CommitLog#putMessage 和 CommitLog#asyncPutMessage, 最终都会进入 CommitLog#submitReplicaRequest. replicaRequest 提交并不会触发任何同步行为, 因为同步本身是异步线程进行的, 提交的 replicaRequest 仅仅用来 检测 slave同步是否成功/超时, 相当于在另一个线程排队 (消息是顺序写入commitlog的, 因为replicaRequest 自带了顺序特性).</description>
+    </item>
     
     <item>
       <title>Tcp_user_timeout</title>
@@ -140,18 +150,6 @@ rocketmq 开源的版本并没有ack的概念
 更多的理解 乘这次机会, 重新梳理了 rocketmq 在 pullMessage 的响应逻辑的处理. 根据客户端处理的逻辑, 区分如下 (不涉及到transaction)
 1.NO_NEW_MSG
 当broker返回 ResponseCode.PULL_NOT_FOUND 的时候, 客户端会转义成 PullStatus.NO_NEW_MSG, 会执行如下操作:</description>
-    </item>
-    
-    <item>
-      <title>Rocketmq_dledger</title>
-      <link>https://xujianhai.fun/posts/rocketmq_dledger/</link>
-      <pubDate>Thu, 26 Mar 2020 17:49:31 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rocketmq_dledger/</guid>
-      <description>Preface RocketMQ 去年实现了基于raft协议的 commitlog 存储库, 解决master-slave架构下 人工选主、切主 的故障转移的运维负担, 以及故障转移过程中数据丢失的问题.
-raft 写入 raft 协议的写入如下:
- 1. client -&amp;gt; leader: 客户端请求leader写入kv 2. leader append 本地日志(commitlog) 3. leader 并行发送日志给 follower 4. follower收到日志, 写入本地 commit log, 并 apply 本地的 FSM, 返回成功给 leader 5. leader收到follower超过半数以上的成功响应, 本地apply 日志到 FSM. 读取 raft 协议的读取如下:
- 1. client -&amp;gt; leader: 客户端请求leader写入kv 2. leader 通过 lease 检查自己是否是 leader, 3. 检查是leader的情况下, 检查本地 apply index 和 客户端的 index, apply index大的话, 读取本地的状态机的数据 + apply index返回 4.</description>
     </item>
     
   </channel>
