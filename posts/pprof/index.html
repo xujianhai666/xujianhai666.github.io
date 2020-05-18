@@ -5,10 +5,11 @@
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="author" content="Zero xu ">
-<meta name="description" content="总述 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
-经常使用:  总入口 http://$host:$port/debug/pprof 查看goroutine信息: http://$host:$port/debug/pprof/goroutine?debug=1 查看内存使用 go tool pprof -inuse_space http://$host:$port/debug/pprof/heap go tool pprof web http://10.110.160.41:9314/debug/pprof/heap 查看cpu使用 go tool pprof http://$host:$port/debug/pprof/profile  除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔
-其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:
- top N: 查看排名前N个的函数 web: 进入web页面进行控制  pprof 还可以使用ui： go tool pprof -http :9090 http://$host:$port/debug/pprof/heap 指定代码路径, 可以查看相关代码: go tool pprof -call_tree -source_path ~/go/pkg/mod http://localhost:9301/debug/pprof/profile 指定采样间隔 go tool pprof &amp;ndash;seconds 25 http://localhost:9090/debug/pprof/profile cpu采样中, 常用的命令: top -cum top 20 -cum list funcname: 显示函数信息 web: 浏览器观察" />
+<meta name="description" content="Preface 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
+Tools 总入口 pprof的总的入口是 http://$host:$port/debug/pprof, 内存 cpu mutex 和 block 的检测都是在 这个入口的分类
+goroutine goroutine 的入口是 http://$host:$port/debug/pprof/goroutine?debug=1, 一般需要对比两个不同时段的 goroutine 数量来判断增量 是否合理
+goroutine 还支持 debug参数, 默认为0: 函数地址需要 pprof 还能解读, 还原函数名字; debug=1 可以在浏览器中查看; debug=2 unrecovered panic 的格式打印堆栈，可读性更高.
+内存 内存的常规入口: go tool pprof -inuse_space http://$host:$port/debug/pprof/heap, 这个命令有一个特别的参数 -inuse_space, 表示采样的对象是 正在使用的内存空间, 除此之外, 还有 -inuse_objects、-alloc_space、-alloc_objects. 如果是内存泄露, 可以根据 inuse_space 的占比和变化判断, 但是 也不是万能的, 有些时候, 一些 inuse_space 是因为高流量导致的." />
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
@@ -34,13 +35,14 @@
 
 
 <meta itemprop="name" content="Pprof">
-<meta itemprop="description" content="总述 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
-经常使用:  总入口 http://$host:$port/debug/pprof 查看goroutine信息: http://$host:$port/debug/pprof/goroutine?debug=1 查看内存使用 go tool pprof -inuse_space http://$host:$port/debug/pprof/heap go tool pprof web http://10.110.160.41:9314/debug/pprof/heap 查看cpu使用 go tool pprof http://$host:$port/debug/pprof/profile  除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔
-其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:
- top N: 查看排名前N个的函数 web: 进入web页面进行控制  pprof 还可以使用ui： go tool pprof -http :9090 http://$host:$port/debug/pprof/heap 指定代码路径, 可以查看相关代码: go tool pprof -call_tree -source_path ~/go/pkg/mod http://localhost:9301/debug/pprof/profile 指定采样间隔 go tool pprof &ndash;seconds 25 http://localhost:9090/debug/pprof/profile cpu采样中, 常用的命令: top -cum top 20 -cum list funcname: 显示函数信息 web: 浏览器观察">
+<meta itemprop="description" content="Preface 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
+Tools 总入口 pprof的总的入口是 http://$host:$port/debug/pprof, 内存 cpu mutex 和 block 的检测都是在 这个入口的分类
+goroutine goroutine 的入口是 http://$host:$port/debug/pprof/goroutine?debug=1, 一般需要对比两个不同时段的 goroutine 数量来判断增量 是否合理
+goroutine 还支持 debug参数, 默认为0: 函数地址需要 pprof 还能解读, 还原函数名字; debug=1 可以在浏览器中查看; debug=2 unrecovered panic 的格式打印堆栈，可读性更高.
+内存 内存的常规入口: go tool pprof -inuse_space http://$host:$port/debug/pprof/heap, 这个命令有一个特别的参数 -inuse_space, 表示采样的对象是 正在使用的内存空间, 除此之外, 还有 -inuse_objects、-alloc_space、-alloc_objects. 如果是内存泄露, 可以根据 inuse_space 的占比和变化判断, 但是 也不是万能的, 有些时候, 一些 inuse_space 是因为高流量导致的.">
 <meta itemprop="datePublished" content="2019-06-23T19:22:23&#43;08:00" />
 <meta itemprop="dateModified" content="2019-06-23T19:22:23&#43;08:00" />
-<meta itemprop="wordCount" content="143">
+<meta itemprop="wordCount" content="276">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -49,10 +51,11 @@
 <meta name="twitter:image" content="https://xujianhai.fun/"/>
 
 <meta name="twitter:title" content="Pprof"/>
-<meta name="twitter:description" content="总述 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
-经常使用:  总入口 http://$host:$port/debug/pprof 查看goroutine信息: http://$host:$port/debug/pprof/goroutine?debug=1 查看内存使用 go tool pprof -inuse_space http://$host:$port/debug/pprof/heap go tool pprof web http://10.110.160.41:9314/debug/pprof/heap 查看cpu使用 go tool pprof http://$host:$port/debug/pprof/profile  除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔
-其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:
- top N: 查看排名前N个的函数 web: 进入web页面进行控制  pprof 还可以使用ui： go tool pprof -http :9090 http://$host:$port/debug/pprof/heap 指定代码路径, 可以查看相关代码: go tool pprof -call_tree -source_path ~/go/pkg/mod http://localhost:9301/debug/pprof/profile 指定采样间隔 go tool pprof &ndash;seconds 25 http://localhost:9090/debug/pprof/profile cpu采样中, 常用的命令: top -cum top 20 -cum list funcname: 显示函数信息 web: 浏览器观察"/>
+<meta name="twitter:description" content="Preface 在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题. pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof
+Tools 总入口 pprof的总的入口是 http://$host:$port/debug/pprof, 内存 cpu mutex 和 block 的检测都是在 这个入口的分类
+goroutine goroutine 的入口是 http://$host:$port/debug/pprof/goroutine?debug=1, 一般需要对比两个不同时段的 goroutine 数量来判断增量 是否合理
+goroutine 还支持 debug参数, 默认为0: 函数地址需要 pprof 还能解读, 还原函数名字; debug=1 可以在浏览器中查看; debug=2 unrecovered panic 的格式打印堆栈，可读性更高.
+内存 内存的常规入口: go tool pprof -inuse_space http://$host:$port/debug/pprof/heap, 这个命令有一个特别的参数 -inuse_space, 表示采样的对象是 正在使用的内存空间, 除此之外, 还有 -inuse_objects、-alloc_space、-alloc_objects. 如果是内存泄露, 可以根据 inuse_space 的占比和变化判断, 但是 也不是万能的, 有些时候, 一些 inuse_space 是因为高流量导致的."/>
 
 
 
@@ -119,7 +122,7 @@
     <main class="post">
 
         <div class="post-info">
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>One minute
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
 
             
 
@@ -134,46 +137,55 @@
             
 
             <div class="post-content">
-                <h2 id="总述">总述</h2>
+                <h2 id="preface">Preface</h2>
 <p>在性能分析方面, golang提供了 pprof 工具, 帮助定位 内存、cpu、goroutine 的问题.
 pprof提供的功能在 runtime/pprof 的包中, 也提供了 http的接口, 参考 net/http/pprof</p>
-<h2 id="经常使用">经常使用:</h2>
+<h2 id="tools">Tools</h2>
+<h3 id="总入口">总入口</h3>
+<p>pprof的总的入口是 <code>http://$host:$port/debug/pprof</code>, 内存 cpu mutex 和 block 的检测都是在 这个入口的分类</p>
+<h3 id="goroutine">goroutine</h3>
+<p>goroutine 的入口是 <code>http://$host:$port/debug/pprof/goroutine?debug=1</code>, 一般需要对比两个不同时段的 goroutine 数量来判断增量 是否合理</p>
+<p>goroutine 还支持 debug参数, 默认为0: 函数地址需要 pprof 还能解读, 还原函数名字; debug=1 可以在浏览器中查看; debug=2 unrecovered panic 的格式打印堆栈，可读性更高.</p>
+<h3 id="内存">内存</h3>
+<p>内存的常规入口: <code>go tool pprof -inuse_space http://$host:$port/debug/pprof/heap</code>, 这个命令有一个特别的参数 <code>-inuse_space</code>, 表示采样的对象是 正在使用的内存空间, 除此之外, 还有 <code>-inuse_objects</code>、<code>-alloc_space</code>、<code>-alloc_objects</code>. 如果是内存泄露, 可以根据 <code>inuse_space</code> 的占比和变化判断, 但是 也不是万能的, 有些时候, 一些 inuse_space 是因为高流量导致的. 对于 频繁创建的一些对象 可以在 <code>alloc_space</code> 和 <code>alloc_object</code> 判断, 这种场景可以通过 复用对象池 来减少没意义的分配.</p>
+<h3 id="cpu">cpu</h3>
+<p>cpu 的常规入口: <code>go tool pprof http://$host:$port/debug/pprof/profile</code>, 一般很少直接使用, 都是配合火焰图一起使用, 使用如下: <code>go tool pprof -http :9090 http://$host:$port/debug/pprof/profile</code>, 在展示的时候可以使用 flame graph 选项.</p>
+<h3 id="block-profile">block profile</h3>
+<p>可以观察每个goroutine的情况, 堵塞、系统调用等统计, block profile 需要显示打开, 如下:</p>
+<pre><code>runtime.SetBlockProfileRate(100 * 1000 * 1000) // 100ms的block监控
+</code></pre><p>通过 pprof界面上的 block profile 跳转过去. golang 程序中很多会使用无锁channel进行同步 以及 底层网络fd监控, 会出现block profile数据</p>
+<h3 id="mutex-profile">mutex profile</h3>
+<p>可以观察程序锁的情况:</p>
+<pre><code>runtime.SetMutexProfileFraction(100 * 1000 * 1000) // 100ms的锁耗时监控
+</code></pre><p>通过 pprof界面上的 mutex profile 跳转过去. 正常情况下不会出现 mutex profile 的数据, 出现了都需要重点解决下</p>
+<p>参考: <a href="https://talks.golang.org/2017/state-of-go.slide#23">https://talks.golang.org/2017/state-of-go.slide#23</a></p>
+<h3 id="其他的小技巧">其他的小技巧</h3>
 <ol>
-<li>总入口
-http://$host:$port/debug/pprof</li>
-<li>查看goroutine信息:
-http://$host:$port/debug/pprof/goroutine?debug=1</li>
-<li>查看内存使用
-go tool pprof -inuse_space http://$host:$port/debug/pprof/heap
-go tool pprof web http://10.110.160.41:9314/debug/pprof/heap</li>
-<li>查看cpu使用
-go tool pprof http://$host:$port/debug/pprof/profile</li>
+<li>有时候我们希望指定采样的时候, 可以在 http的请求参数后面添加: ?seconds=60, 或者在命令参数中指定 <code>--seconds 25 </code>, 比如cpu采样: <code>go tool pprof --seconds 25 http://localhost:9090/debug/pprof/profile</code></li>
+<li>纯粹的命令行展示经常对观察不太友好, 我们需要http 这种可以火焰图可视化的辅助, 命令参数中需要添加 <code> -http :9090</code>, 比如内存的可视化: <code>go tool pprof -http :9090 http://$host:$port/debug/pprof/heap </code></li>
+<li>命令行常用指令:</li>
 </ol>
-<p>除此之外, 还可以用 ?seconds=60 放在url后面, 表示采样的时间间隔</p>
-<p>其中, 2 和 3 都是在 交互式命令行中, 可以使用一下命令:</p>
-<ul>
-<li>top N: 查看排名前N个的函数</li>
-<li>web: 进入web页面进行控制</li>
-</ul>
-<p>pprof 还可以使用ui：
-go tool pprof -http :9090 http://$host:$port/debug/pprof/heap
-指定代码路径, 可以查看相关代码:
-go tool pprof -call_tree -source_path ~/go/pkg/mod  http://localhost:9301/debug/pprof/profile
-指定采样间隔
-go tool pprof &ndash;seconds 25 http://localhost:9090/debug/pprof/profile
-cpu采样中, 常用的命令:
-top -cum
-top 20 -cum
-list funcname: 显示函数信息
-web: 浏览器观察</p>
-<p>pprof很好用, 但是也存在缺点: 不是很直观, 调用关系一般都比较深, 可以使用火焰图.</p>
-<pre><code>go-torch -u http://$host:$port -t 30
-</code></pre><p>运行命令后会生成一个 svg 图片, 然后点击打开就可以了</p>
-<h2 id="go-tool-trace">go tool trace</h2>
-<p>参考文档: <a href="https://colobu.com/2019/05/22/profilinggo/">https://colobu.com/2019/05/22/profilinggo/</a>  可以查看每个p的情况</p>
-<pre><code>curl -o trace.out http://localhost:8000/debug/pprof/trace?seconds=15
+<pre><code>- top N: 查看排名前N个的函数
+- web: 生成svg, 进入web页面展示
+- list funcname: 显示函数信息
+- top 20 -cum: 累计的top (会叠加被调用函数的统计维度, 比如cpu不仅仅是当前函数, 还包括调用的其他函数的计时, 通过cum进行排序)
+</code></pre><ol start="4">
+<li>
+<p>分析cpu看到有问题的函数名的时候, 我们希望看到对应的代码, 这种就需要指定代码路径和调用栈了, 比如这样: <code>go tool pprof -call_tree -source_path ~/go/pkg/mod  http://localhost:9301/debug/pprof/profile</code></p>
+</li>
+<li>
+<p>火焰图除了使用pprof 的http, 也可以使用 go-torch 生成, 比如 <code>go-torch -u http://$host:$port -t 30</code>, 运行命令后会生成一个 svg 图片, 然后点击打开就可以了</p>
+</li>
+<li>
+<p>占用cpu/mem 多, 并不一定有问题, 很有可能是高流量导致的, 如果无法sync.pool复用, 可以忽略掉</p>
+</li>
+</ol>
+<h2 id="trace">trace</h2>
+<p>可以观察每个p、g的情况, 使用如下</p>
+<pre><code>curl -o trace.out http://localhost:8000/debug/pprof/trace?seconds=15 
 go tool trace trace.out
-</code></pre><h2 id="gc-优化">gc 优化:</h2>
+</code></pre><p>参考文档: <a href="https://colobu.com/2019/05/22/profilinggo/">https://colobu.com/2019/05/22/profilinggo/</a>  可以查看每个p的情况</p>
+<h2 id="gc-优化">gc 优化:</h2>
 <p>开启gc追踪, 怎么用？</p>
 <pre><code>GODEBUG=gctrace=1
 </code></pre><p>gctrace？
@@ -186,6 +198,8 @@ go build &ndash;gcflags=-m libs/httpclient/httpclient.go</p>
 <li>heap跑飞了</li>
 <li>cpu利用率过高</li>
 </ul>
+<h2 id="更新">更新</h2>
+<p>官方有相关文档的介绍: <a href="https://github.com/golang/go/wiki/Performance">https://github.com/golang/go/wiki/Performance</a></p>
 <h2 id="参考">参考</h2>
 <ol>
 <li><a href="https://golang.org/pkg/runtime/pprof/">runtime/pprof</a></li>
@@ -204,7 +218,7 @@ go build &ndash;gcflags=-m libs/httpclient/httpclient.go</p>
 
         <div class="post-info">
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>143 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>276 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-06-23 19:22 &#43;0800</p>
         </div>

@@ -46,7 +46,7 @@ TCP_DEFER_ACCEPT:
 	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab 因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况 java tcp_so_timeout">
 <meta itemprop="datePublished" content="2020-04-28T15:40:34&#43;08:00" />
 <meta itemprop="dateModified" content="2020-04-28T15:40:34&#43;08:00" />
-<meta itemprop="wordCount" content="233">
+<meta itemprop="wordCount" content="271">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -189,7 +189,15 @@ TCP_KEEPCNT = 3 - Time out after three failed probes.
 <h3 id="学习">学习</h3>
 <p>对于我们而言, 这个有什么意义?
 主要是 TCP_USER_TIMEOUT, 没有设置的情况下, 如果下游主机直接挂了, client 没有感知, 那么 client 还在不断的发送数据 直到 sendbuffer 满了, 这个时候 write timeout 超时 才会导致连接关闭, 但是这个时间 已经很长了, 对业务是有损的. 因此 通过设置 TCP_USER_TIMEOUT 能够解决问题</p>
-
+<h3 id="补充">补充</h3>
+<p>在 grpc 的实现中, 当开启keepalive的时候, 会将超时设置到 TPCUserTimeout 中</p>
+<pre><code>	if kp.Time != infinity {
+		if err = syscall.SetTCPUserTimeout(conn, kp.Timeout); err != nil {
+			return nil, connectionErrorf(false, err, &quot;transport: failed to set TCP_USER_TIMEOUT: %v&quot;, err)
+		}
+		keepaliveEnabled = true
+	}
+</code></pre>
             </div>
         </article>
 
@@ -200,7 +208,7 @@ TCP_KEEPCNT = 3 - Time out after three failed probes.
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/tcp">tcp</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>233 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>271 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-04-28 15:40 &#43;0800</p>
         </div>

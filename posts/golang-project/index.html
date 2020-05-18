@@ -38,7 +38,7 @@
 . ├── LICENSE.md ├── Makefile ├── README.md ├── build │ ├── README.md │ └── ci ├── cmd │ ├── README.md │ └── _your_app_ ├── deployments │ └── README.md ├── docs │ └── README.md ├── examples │ └── README.md ├── githooks │ └── README.md ├── internal │ ├── README.md │ ├── app │ │ └── _your_app_ │ └── pkg │ └── _your_private_lib_ ├── pkg │ ├── README.">
 <meta itemprop="datePublished" content="2019-06-02T22:59:19&#43;08:00" />
 <meta itemprop="dateModified" content="2019-06-02T22:59:19&#43;08:00" />
-<meta itemprop="wordCount" content="256">
+<meta itemprop="wordCount" content="258">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -195,6 +195,10 @@ func Fprint(w io.Writer, a ...interface{}) (n int, err error) {
 <p>线上代码尽量先本地build, build的同时, 进行一次竞态检查
 参考: <a href="https://blog.golang.org/race-detector">https://blog.golang.org/race-detector</a>
 常用命令: go build -race xxx</p>
+<h2 id="代码风格">代码风格</h2>
+<ul>
+<li><a href="https://gocn.vip/topics/9600">https://gocn.vip/topics/9600</a></li>
+</ul>
 <h2 id="代码整洁">代码整洁</h2>
 <h2 id="channel--pipeline">channel &amp; pipeline</h2>
 <p>pipeline: 多个channel串联实现任务处理, <a href="https://blog.golang.org/pipelines">官方blog</a></p>
@@ -232,7 +236,7 @@ msp、gogoproto 是常用的两个, 并且性能很好.
 
         <div class="post-info">
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>256 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>258 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-06-02 22:59 &#43;0800</p>
         </div>

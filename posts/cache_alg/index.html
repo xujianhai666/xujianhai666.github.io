@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="Preface 最近寻思着cache的常见算法进行总结, 同时也考验面试者对cache的深度. 在看相关实现之前, 我们需要理清楚几个问题:
+  lru: 最近最少使用, 最近使用的都会排在前面, 如果使用没有频度差异, 这个算法是okay的. 但是如果说使用频度有差异, 一些数据频繁被使用, 但是短期一次性数据大量使用, 这些频繁使用的数据就会从 lru中刷出去, 到后面再次使用的时候, 就需要从其他地方(磁盘、远程访问) 获取, 不符合预期. 如果经常有这种现象, lru就符合预期了
+  lfu: 为了解决频繁度的问题, 引入了 最近最不频繁的实现, 通过记录 获取次数 的概念, 驱逐使用频次最小的数据, 但是这个还是存在问题, 就是一些数据短期频繁使用, 后面就再不使用了, 这样这个数据就会在很后面才被删除. 需要一个衰变的机制, 让计数拥有一个衰败原理
+  有些时候有人把 fifo 也算作 缓存算法, 其实不然, fifo 如果算作缓存算法, 效果其实和 lru 类似.
+个人想法优化, 需要考虑以下亮点:
+ 一段时间内, 大量数据被读取, 使用有限次数后(假设一次) 就不用了 一段时间内, 数据被经常使用, 使用次数很高, 然后就不使用了  使用时间窗口 &#43; lfu 就可以了. 每个元素维护一个 滑动窗口计数. 通过滑动窗口处理 短时间大量使用的场景." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, cache" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/cache_alg/" />
+
+
+    <title>
+        
+            Cache_alg :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Cache_alg">
+<meta itemprop="description" content="Preface 最近寻思着cache的常见算法进行总结, 同时也考验面试者对cache的深度. 在看相关实现之前, 我们需要理清楚几个问题:
+  lru: 最近最少使用, 最近使用的都会排在前面, 如果使用没有频度差异, 这个算法是okay的. 但是如果说使用频度有差异, 一些数据频繁被使用, 但是短期一次性数据大量使用, 这些频繁使用的数据就会从 lru中刷出去, 到后面再次使用的时候, 就需要从其他地方(磁盘、远程访问) 获取, 不符合预期. 如果经常有这种现象, lru就符合预期了
+  lfu: 为了解决频繁度的问题, 引入了 最近最不频繁的实现, 通过记录 获取次数 的概念, 驱逐使用频次最小的数据, 但是这个还是存在问题, 就是一些数据短期频繁使用, 后面就再不使用了, 这样这个数据就会在很后面才被删除. 需要一个衰变的机制, 让计数拥有一个衰败原理
+  有些时候有人把 fifo 也算作 缓存算法, 其实不然, fifo 如果算作缓存算法, 效果其实和 lru 类似.
+个人想法优化, 需要考虑以下亮点:
+ 一段时间内, 大量数据被读取, 使用有限次数后(假设一次) 就不用了 一段时间内, 数据被经常使用, 使用次数很高, 然后就不使用了  使用时间窗口 &#43; lfu 就可以了. 每个元素维护一个 滑动窗口计数. 通过滑动窗口处理 短时间大量使用的场景.">
+<meta itemprop="datePublished" content="2020-05-17T12:33:18&#43;08:00" />
+<meta itemprop="dateModified" content="2020-05-17T12:33:18&#43;08:00" />
+<meta itemprop="wordCount" content="546">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="cache," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Cache_alg"/>
+<meta name="twitter:description" content="Preface 最近寻思着cache的常见算法进行总结, 同时也考验面试者对cache的深度. 在看相关实现之前, 我们需要理清楚几个问题:
+  lru: 最近最少使用, 最近使用的都会排在前面, 如果使用没有频度差异, 这个算法是okay的. 但是如果说使用频度有差异, 一些数据频繁被使用, 但是短期一次性数据大量使用, 这些频繁使用的数据就会从 lru中刷出去, 到后面再次使用的时候, 就需要从其他地方(磁盘、远程访问) 获取, 不符合预期. 如果经常有这种现象, lru就符合预期了
+  lfu: 为了解决频繁度的问题, 引入了 最近最不频繁的实现, 通过记录 获取次数 的概念, 驱逐使用频次最小的数据, 但是这个还是存在问题, 就是一些数据短期频繁使用, 后面就再不使用了, 这样这个数据就会在很后面才被删除. 需要一个衰变的机制, 让计数拥有一个衰败原理
+  有些时候有人把 fifo 也算作 缓存算法, 其实不然, fifo 如果算作缓存算法, 效果其实和 lru 类似.
+个人想法优化, 需要考虑以下亮点:
+ 一段时间内, 大量数据被读取, 使用有限次数后(假设一次) 就不用了 一段时间内, 数据被经常使用, 使用次数很高, 然后就不使用了  使用时间窗口 &#43; lfu 就可以了. 每个元素维护一个 滑动窗口计数. 通过滑动窗口处理 短时间大量使用的场景."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-05-17 12:33:18 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/cache_alg/">Cache_alg</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="preface">Preface</h2>
+<p>最近寻思着cache的常见算法进行总结, 同时也考验面试者对cache的深度. 在看相关实现之前, 我们需要理清楚几个问题:</p>
+<ol>
+<li>
+<p>lru: 最近最少使用, 最近使用的都会排在前面, 如果使用没有频度差异, 这个算法是okay的. 但是如果说使用频度有差异, 一些数据频繁被使用, 但是短期一次性数据大量使用, 这些频繁使用的数据就会从 lru中刷出去, 到后面再次使用的时候, 就需要从其他地方(磁盘、远程访问) 获取, 不符合预期. 如果经常有这种现象, lru就符合预期了</p>
+</li>
+<li>
+<p>lfu: 为了解决频繁度的问题, 引入了 最近最不频繁的实现, 通过记录 获取次数 的概念, 驱逐使用频次最小的数据, 但是这个还是存在问题, 就是一些数据短期频繁使用, 后面就再不使用了, 这样这个数据就会在很后面才被删除. 需要一个衰变的机制, 让计数拥有一个衰败原理</p>
+</li>
+</ol>
+<p>有些时候有人把 fifo 也算作 缓存算法, 其实不然, fifo 如果算作缓存算法, 效果其实和 lru 类似.</p>
+<p>个人想法优化, 需要考虑以下亮点:</p>
+<ol>
+<li>一段时间内, 大量数据被读取, 使用有限次数后(假设一次) 就不用了</li>
+<li>一段时间内, 数据被经常使用, 使用次数很高, 然后就不使用了</li>
+</ol>
+<p>使用时间窗口 + lfu 就可以了. 每个元素维护一个 滑动窗口计数. 通过滑动窗口处理 短时间大量使用的场景. mysql 使用时间阈值 + lru 的概念, 在时间阈值内的数据获取不会移动到头部, 但是并没有解决使用频度的问题.  滑动窗口实现了 衰变的效果.</p>
+<h2 id="mysql">Mysql</h2>
+<h3 id="buffer-pool">buffer pool</h3>
+<p>mysql 内部使用 buffer pool 缓存读取的 数据和索引, 来保证经常使用的数据在缓存中, 以加快处理速度. 建议80%. 鉴于mysql pages的设计思路, buffer pool 也是用page组织的链表结构. mysql lru buffer pool 为了解决 lru 中大量临时读取的数据导致热数据被清除的问题, mysql lru buffer pool 并不是将数据立即插入到 链表头部, 而是插入中 5/8 的位置, 并且根据这个位置, 将buffer pool 划分成了 young sublist 和 old sublist. young sublist 存放的都是最近被获取的数据, 很少被获取的数据放在 old sublist.</p>
+<p>当mysql读取数据的时候, 只是放到 buffer pool 的midpoint(old sublist), 只有被读取的时候, 才会放到 young sublist.</p>
+<p>为什么这么设计呢? 因为mysql 是有 read-ahead 策略的, 每次都会读取冗余的数据到buffer pool, 通过这样的策略, 当大量读取数据的时候, 能够保证将不需要的数据先驱逐(没有被读取的), 而不是之前的热点数据被驱逐.</p>
+<p>这样的设计 保证只有读取的数据在链表中. 这个是解决 read-ahead 问题的. 但是 并没有解决频繁度的问题.</p>
+<p>难道mysql 这么烂, 其实 buffer pool 也支持频繁访问的特性, 避免大量一次读取的数据驱逐了热点数据, mysql维护了一个时间窗口 <code>innodb_old_blocks_time</code>, 这个时间窗口是从第一次获取开始计算的, 在这个时间窗口内获取的数据不会移动到链表的头部.</p>
+<p>buffer pool 重启后, 怎么保证状态buffer pool保存之前的热点数据呢? 可以参考: <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-preload-buffer-pool.html">https://dev.mysql.com/doc/refman/8.0/en/innodb-preload-buffer-pool.html</a></p>
+<p>更多参考: <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-buffer-pool.html">https://dev.mysql.com/doc/refman/8.0/en/innodb-buffer-pool.html</a> , 值得注意的是, mysql 支持 多 buffer pool 实现, 可以配置.</p>
+<h2 id="redis">Redis</h2>
+<p>分析版本是: <code>Redis 6.0.0 GA.</code>, redis 3.0 对lru采用提供了pool池化要驱逐的实例的策略. redis 4.0 提供了 lfu.</p>
+<h3 id="lru--lfu">lru &amp; lfu</h3>
+<p>redis 作者认为 lru 的双链表实现太耗内存, 因为需要 pre、next 两个指针, 因此在早期实现的lru使用了概率模型(采样), 虽然没有使用 pre/next 两个指针, 但是用了一个 24bit 表示对象的 获取时间+频度, 其中获取时间使用了 16bit, 表示 xxx, 8bit 表示频度, 也就是redisObject 最多表示 255 的使用次数. redis object 的定义如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-server.h" data-lang="server.h"><span style="color:#75715e">#</span><span style="color:#75715e">define LRU_BITS 24</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> redisObject {
+    <span style="color:#66d9ef">unsigned</span> type:<span style="color:#ae81ff">4</span>;
+    <span style="color:#66d9ef">unsigned</span> encoding:<span style="color:#ae81ff">4</span>;
+    <span style="color:#66d9ef">unsigned</span> lru:LRU_BITS; <span style="color:#75715e">/* LRU time (relative to global lru_clock) or
+</span><span style="color:#75715e">                            * LFU data (least significant 8 bits frequency
+</span><span style="color:#75715e">                            * and most significant 16 bits access time). */</span>
+    <span style="color:#66d9ef">int</span> refcount;
+    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>ptr;
+} robj;
+</code></pre></div><p>redis server 对外提供 lookupKeyRead 和 lookupKeyWrite 两种API, 这两个最终调用 <code>lookupKey</code>, 如下:</p>
+<pre><code>robj *lookupKey(redisDb *db, robj *key, int flags) {
+    dictEntry *de = dictFind(db-&gt;dict,key-&gt;ptr);
+    if (de) {
+        robj *val = dictGetVal(de);
+
+        /* Update the access time for the ageing algorithm.
+         * Don't do it if we have a saving child, as this will trigger
+         * a copy on write madness. */
+        if (!hasActiveChildProcess() &amp;&amp; !(flags &amp; LOOKUP_NOTOUCH)){
+            if (server.maxmemory_policy &amp; MAXMEMORY_FLAG_LFU) {
+                updateLFU(val);
+            } else {
+                val-&gt;lru = LRU_CLOCK();
+            }
+        }
+        return val;
+    } else {
+        return NULL;
+    }
+}
+</code></pre><p>可以发现, 在 查询的时候, 根据策略, 如果开启了lfu, 则更新计数和获取次数 (函数updateLFU的实现), 否则根据 lru策略只更新 上次获取时间.</p>
+<h3 id="lru">lru</h3>
+<p>在lru策略中, 关注下 采样特性.</p>
+<p>lru 采样, 在lru 3.0 之后, 添加了 pool 实现, 避免每次清除都进行随机选择. pool 实现中, 会每次选取一个 lru值 小于pool中最小lru 的值放入 pool. pool满了之后, 就会驱逐 pool 中lru最大的值. 驱逐的时候, 从pool中删除lru最小的val.</p>
+<h3 id="lfu">lfu</h3>
+<p>相对于常见的lfu, 提供了 计数饱和 和 计数衰变 两个概念. 如下:</p>
+<ul>
+<li>计数饱和  // 最大计数255.</li>
+<li>每分钟进行衰变 //</li>
+</ul>
+<p>和 lru 类似, 也是基于采样 + pool 实现的, pool中存储的是 频率的反向存储, 除此之外, 相关的配置如下</p>
+<pre><code>lfu-log-factor 10  //  减缓增速
+lfu-decay-time 1   //  单位分钟, 多久进行衰变
+</code></pre><p>通过 lfu-log-factor 避免增长过快, 算法如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-evict.c" data-lang="evict.c"><span style="color:#75715e">#</span><span style="color:#75715e">define LFU_INIT_VAL 5</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>uint8_t <span style="color:#a6e22e">LFULogIncr</span>(uint8_t counter) {
+    <span style="color:#66d9ef">if</span> (counter <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">255</span>) <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">255</span>;
+    <span style="color:#66d9ef">double</span> r <span style="color:#f92672">=</span> (<span style="color:#66d9ef">double</span>)rand()<span style="color:#f92672">/</span>RAND_MAX;
+    <span style="color:#66d9ef">double</span> baseval <span style="color:#f92672">=</span> counter <span style="color:#f92672">-</span> LFU_INIT_VAL;
+    <span style="color:#66d9ef">if</span> (baseval <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) baseval <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">double</span> p <span style="color:#f92672">=</span> <span style="color:#ae81ff">1.0</span><span style="color:#f92672">/</span>(baseval<span style="color:#f92672">*</span>server.lfu_log_factor<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">if</span> (r <span style="color:#f92672">&lt;</span> p) counter<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
+    <span style="color:#66d9ef">return</span> counter;
+}
+</code></pre></div><p>总体上而言, 就是通过随机数 降低counter增长, 最大255. key 一开始的频度的值是 COUNTER_INIT_VAL:5. 通过随机数来模拟 幂律分布, 参考: <a href="https://mathworld.wolfram.com/RandomNumber.html">https://mathworld.wolfram.com/RandomNumber.html</a> .</p>
+<p>在衰减的时候, 当前值 &lt; 2 * COUNTER_INIT_VAL, 则减1, 如果 当前值 &gt; 2 * COUNTER_INIT_VAL, 则减半. 通过衰减解决 短期高频率使用.</p>
+<p>需要注意的是, pool中采样的key如果过期了, 并不会删除 pool 中的元素, 所以, pool可能持有不存在的key (参看 evictionPoolAlloc)</p>
+<p>补充:</p>
+<p>有些redis 使用者经常将 ttl数据和 非ttl数据放在了一个实例, 但是官方建议放到两个实例. 都采用allkey的策略, allkeys 系列的策略 (lru、random), 如果是混了, 采用 volatile 系列策略 (lru、random、ttl). lfu 只有 allkeys-lfu 和 volatile-lfu.</p>
+<p>实现参考: evict.c</p>
+<p>参考:</p>
+<ul>
+<li><a href="http://antirez.com/news/109">http://antirez.com/news/109</a></li>
+<li><a href="https://redis.io/topics/lru-cache">https://redis.io/topics/lru-cache</a></li>
+</ul>
+<h2 id="缓存算法">缓存算法</h2>
+<p>这个是补充内容, 记录一些缓存策略:</p>
+<ul>
+<li>Cache Aside: 同时更新缓存和数据库</li>
+<li>Read/Write Through: 先更新缓存, 缓存负责同步更新数据库 (应用程序只和缓存交互)</li>
+<li>Write Behind Caching: 先更新缓存, 在异步的更新数据库 (应用程序只和缓存交互, 重点在异步更新)</li>
+</ul>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/cache">cache</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>546 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-05-17 12:33 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/rmq_ha/">
+                                <span class="button__text">Rmq_ha</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
