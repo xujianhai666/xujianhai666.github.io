@@ -6,10 +6,128 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 17 May 2020 12:33:18 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 08 Jun 2020 13:11:08 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Python_tool</title>
+      <link>https://xujianhai.fun/posts/python_tool/</link>
+      <pubDate>Mon, 08 Jun 2020 13:11:08 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/python_tool/</guid>
+      <description>火焰图 pyframe https://github.com/uber/pyflame https://pyflame.readthedocs.io/en/latest/
+不侵入代码, 支持诊断多线程. 支持 火焰图、线程应用、stack trace. 但是不支持web导出, 需要自己做
+vprof https://github.com/nvdv/vprof
+支持cpu火焰图、内存火焰图，代码执行时间、web导出, 看上去很丰富
+profile_online https://github.com/rfyiamcool/profiler_online
+比较简单, 只支持火焰图, 支持web导出
+py-spy https://github.com/benfred/py-spy
+打印堆栈、火焰图、top</description>
+    </item>
+    
+    <item>
+      <title>Mit_6</title>
+      <link>https://xujianhai.fun/posts/mit_6.824/</link>
+      <pubDate>Sat, 06 Jun 2020 10:23:10 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/mit_6.824/</guid>
+      <description>序 记录学习 mit 6.824 课程的经历
+MapReduce 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
+模型 如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.
+分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)
+map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散
+hadoop 架构
+将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.
+问题  难以实时计算(处理存储在磁盘上的离线数据) 不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark) 难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)  GFS 架构 根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB.</description>
+    </item>
+    
+    <item>
+      <title>Kafka_group_coordinator</title>
+      <link>https://xujianhai.fun/posts/kafka_group_coordinator/</link>
+      <pubDate>Sat, 30 May 2020 21:27:58 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_group_coordinator/</guid>
+      <description>preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
+coordinator coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
+coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
+客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer.</description>
+    </item>
+    
+    <item>
+      <title>Linux_iouring</title>
+      <link>https://xujianhai.fun/posts/linux_iouring/</link>
+      <pubDate>Tue, 26 May 2020 22:32:44 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/linux_iouring/</guid>
+      <description>Preface 最近内部经常讨论 io_uring, 这块不是很了解, 特别记录下
+回顾io linux io 模型中主要区分四种类型区分: 同步io 非同步io 和 阻塞io 非阻塞io, 通过不同的组合, 有不同的模型. 如下:
+ 同步io + 阻塞io: 用户进程会被阻塞在 recvfrom. 同步io + 非阻塞io: recvfrom 会返回 错误表示数据还没有到来, 不会阻塞. O_NONBLOCK 参数 同步io + 阻塞io: io多路复用: select/poll/epoll, 虽然读写不会阻塞在recvfrom, 但是会阻塞在select调用. 信号驱动: 接收到信号之后需要自己操作 异步io: 内核操作完通知. 操作系统提供了 libaio  有人还将 异步io + epoll 进行了实现: http://m.blog.chinaunix.net/uid-16979052-id-3840266.html
+io_uring   定位: 更高 IOPS 的 async syscall api. (io层的异步api, 主打高性能)
+  特点&amp;amp;主要概念
+ 基于ringbuffer 的设计, 提交队列和完成队列只存储索引, SQEs(submission queue entries) 存储请求, 这样提交的请求可以内存不连续 用户态和系统态 通过 mmap 共享 提交队列 和 完成队列, 减少地址映射开销 在poll模式下, IO提交和收割 可以由 kernel 完成, 不需要系统调用, 系统会启动一个 SQ Poll 的内核线程不断poll (没有请求会睡眠), 处理 sq 和 cq 非poll模式下, io_uring_enter 会阻塞, 完成 SQ Poll 线程的任务 提供了polling和非polling两种模式, 和底层实现有关, 非polling性能比 libaio 提升不了多少, polling 模式和 SPDK 非常接近.</description>
+    </item>
+    
+    <item>
+      <title>Kafka_controller</title>
+      <link>https://xujianhai.fun/posts/kafka_controller/</link>
+      <pubDate>Tue, 26 May 2020 11:45:58 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_controller/</guid>
+      <description>Preface kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考
+Redesign 网上关于 redesign(https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.
+从文章内容上来看, 主要存在以下问题:
+ 每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除) controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发) 并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作) controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步) 控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失) controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求) zkClinet 没有状态管理 导致了什么问题?</description>
+    </item>
+    
+    <item>
+      <title>Kafka_socket</title>
+      <link>https://xujianhai.fun/posts/kafka_socket/</link>
+      <pubDate>Sat, 23 May 2020 17:13:38 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_socket/</guid>
+      <description>Preface 最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,
+深入 直接看下 socketServer 的注释 学习下理论.
+acceptor /***Handles new connections, requests and responses to and from broker. *Kafka supports two types of request planes : *- data-plane : *- Handles requests from clients and other brokers in the cluster. *- The threading model is *1 Acceptor thread per listener, that handles new connections. *It is possible to configure multiple data-planes by specifying multiple &amp;#34;,&amp;#34; separated endpoints for &amp;#34;listeners&amp;#34; in KafkaConfig.</description>
+    </item>
+    
+    <item>
+      <title>Conn_close</title>
+      <link>https://xujianhai.fun/posts/conn_close/</link>
+      <pubDate>Sat, 23 May 2020 11:08:50 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/conn_close/</guid>
+      <description>preface 最近讨论解决服务状态不正确的问题, 涉及到一个连接关闭的手段, 但是网上说法很多, 很难有一篇完整的手段描述, 特别记忆
+实现 首先, 我们使用nc模拟网络的收发. 启动server:
+nc -l -p 4444 启动client:
+nc localhost 4444 -p 5555 使用tcpdump 查看效果:
+sudo tcpdump port 4444 -i lo -xnn -S sudo tcpdump port 5555 -i lo -xnn -S 结果如下:
+查看下连接的状态:
+ss -ant | grep -E &#39;4444|5555&#39; 如下图: 根据参考的文档, 正确关闭的姿势如下(亲测有效):
+sudo iptables -A INPUT -p tcp --dport 4444 -j REJECT --reject-with tcp-reset iptables -nL // n 数字化输出地址和端口, L 列出所有规则 iptables -F // 删除所有规则 iptables -A OUTPUT -p tcp --dport 5555 -j REJECT --reject-with tcp-reset iptables -nL 注意:</description>
+    </item>
+    
+    <item>
+      <title>Kafka_seq</title>
+      <link>https://xujianhai.fun/posts/kafka_seq/</link>
+      <pubDate>Fri, 22 May 2020 18:07:04 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_seq/</guid>
+      <description>Preface 最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: sendAndReceive, 比如:
+func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) { var response *ProduceResponse var err error if request.RequiredAcks == NoResponse { err = b.sendAndReceive(request, nil) } else { response = new(ProduceResponse) err = b.sendAndReceive(request, response) // 同步阻塞了 } if err != nil { return nil, err } return response, nil } 这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应.</description>
+    </item>
+    
+    <item>
+      <title>Docker_net</title>
+      <link>https://xujianhai.fun/posts/docker_net/</link>
+      <pubDate>Thu, 21 May 2020 21:38:15 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/docker_net/</guid>
+      <description>Preface 最近小组讨论到 &amp;ldquo;too many open files&amp;rdquo; 和 网络模式, 说 bridger 可以实现pod间socket文件句柄的隔离, 引发了一些思考
+network 这里讲到的 network 是 docker 层面的, docker 一共支持四种模式:
+ bridger: docker 默认的方式, docker容器有独立的 network namespace、ip和子网, 这种模式下, 主机上会启动一个docker0的虚拟网桥(占有一个网段), 类似物理交换机, 所有的docker容器都会连接到这个网桥上, 分配网段中的ip. host: 使用宿主机的ip和端口, 能看到host上所有的设备 none: 没有网络配置、网卡、ip、路由 container: 容器之间共享一个 network namespace  参考 https://www.docker.org.cn/dockerppt/111.html</description>
+    </item>
     
     <item>
       <title>Cache_alg</title>
@@ -23,130 +141,6 @@
   有些时候有人把 fifo 也算作 缓存算法, 其实不然, fifo 如果算作缓存算法, 效果其实和 lru 类似.
 个人想法优化, 需要考虑以下亮点:
  一段时间内, 大量数据被读取, 使用有限次数后(假设一次) 就不用了 一段时间内, 数据被经常使用, 使用次数很高, 然后就不使用了  使用时间窗口 + lfu 就可以了. 每个元素维护一个 滑动窗口计数. 通过滑动窗口处理 短时间大量使用的场景.</description>
-    </item>
-    
-    <item>
-      <title>Rmq_ha</title>
-      <link>https://xujianhai.fun/posts/rmq_ha/</link>
-      <pubDate>Mon, 04 May 2020 16:02:11 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/rmq_ha/</guid>
-      <description>Preface 之前分析了 基于raft的DLedger实现, 这里分析下老版本的master-slave 主从复制 以及 刷盘机制
-抽象  GroupCommitRequest: 如果是 半同步, 即MASTER_SYNC 模式, 会对写入请求封装成 GroupCommitRequest 触发同步 HAService$GroupTransferService: 用来检查 GroupCommitRequest 是否同步成功/超时. 同步操作依赖底层统一的数据同步实现 HAService$HAClient: slave用来创建和master的连接, 上报 offset 和 获取写入数据到 commitlog HAService$AcceptSocketService: 用来接收slave创建的连接, linux平台使用epoll, 只监听accept事件 HAConnection: master上表示slave创建的一个连接 HAConnection$ReadSocketService: 专门负责读取 slave 提交的ackOffset 的线程, 只监听read事件 HAConnection$WriteSocketService: 负责发送同步数据, 也会在数据包中包含心跳的头(间歇), 只监听write事件  replicaRequest 流程 master 因为后面的版本支持了 future 模式, 因此 入口有两个, 分别对应 CommitLog#putMessage 和 CommitLog#asyncPutMessage, 最终都会进入 CommitLog#submitReplicaRequest. replicaRequest 提交并不会触发任何同步行为, 因为同步本身是异步线程进行的, 提交的 replicaRequest 仅仅用来 检测 slave同步是否成功/超时, 相当于在另一个线程排队 (消息是顺序写入commitlog的, 因为replicaRequest 自带了顺序特性).</description>
-    </item>
-    
-    <item>
-      <title>Tcp_user_timeout</title>
-      <link>https://xujianhai.fun/posts/tcp_user_timeout/</link>
-      <pubDate>Tue, 28 Apr 2020 15:40:34 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/tcp_user_timeout/</guid>
-      <description>背景 最近小伙伴讲到 TCP_USER_TIMEOUT 这个tcp 参数, 今天特意学习下
-深入  TCP_USER_TIMEOUT 用来做什么？和其他参数会不会相互作用?  TCP_USER_TIMEOUT 是用来超时检测. 当上个健康的package 发出去一段时间后依旧没有消息返回, 会触发 TCP_USER_TIMEOUT 机制. 当时这个不是100%触发, 比如 下游 recv buffer 满了, 导致 client send buffer 也堵塞重传 (swnd=0), 这个时候 TCP_USER_TIMEOUT 是不会计数的
-什么场景用?  client 最好都添加上, 但是如果有 keepalive 的设计, 需要保证:
-TCP_USER_TIMEOUT &amp;gt;= TCP_KEEPIDLE + TCP_KEEPINTVL * TCP_KEEPCNT. 文章学习 文章: https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/
-TCP_USER_TIMEOUT: 文章里讲到 linux kernel 5.2 并没有效果, 对 client connect sync retry 没有限制
-TCP_DEFER_ACCEPT:
-	final-ack 没有传递的时候, server 还是会将 fd 将 sync-recv 移动到 estab 因此, 设计了 TCP_DEFER_ACCEPT 来避免这个情况 java tcp_so_timeout</description>
-    </item>
-    
-    <item>
-      <title>Mosn_base</title>
-      <link>https://xujianhai.fun/posts/mosn_base/</link>
-      <pubDate>Fri, 24 Apr 2020 21:07:36 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/mosn_base/</guid>
-      <description>背景 最近调研 rocketmq + mosn 的推广形式, 这里对mosn 进行研究
-原理分析 mosn是 Go 语言开发的网络代理软件, 可以和 xds api 的service mesh 体系集成. 其中, 支持 核心转发(TCP/TProxy)、多协议代理(dubbo/tars/sofarpc/http1.1/http2)、核心路由(各种路由方式)、后端管理&amp;amp;负载均衡、tls、进程管理(平滑升级)、自定义扩展协议.
-我按照官方的example, 很轻易的运行了一个效果, 还是很不错的.
-核心问题 可观测性
-泛指 metrics 、trace日志、消息轨迹 等基本的服务治理功能
-扩展性
-对于业务方而言, 最重要的是扩展性, 可以轻易的支持自定义协议. 按照mosn的说法, 应该是很方便的. 不仅仅置 协议扩展, 还可以filter 扩展 以及 extension实现.
- 多协议:  文章参考 https://mosn.io/zh/docs/concept/multi-protocol/ sofabolt 接入的例子: https://github.com/mosn/mosn/tree/master/pkg/protocol/xprotocol/bolt demo: https://github.com/mosn/mosn/tree/master/examples/codes/sofarpc-with-xprotocol-sample
- extension  支持 streamFilter 和 plugin, plugin 有多进程方式 和 动态库两种实现. 文章参考: https://mosn.io/zh/docs/concept/extensions/
-Stream Filter Demo: https://github.com/mosn/mosn/tree/master/examples/codes/mosn-extensions/simple_streamfilter Demo Readme：https://github.</description>
-    </item>
-    
-    <item>
-      <title>Mysql_basic</title>
-      <link>https://xujianhai.fun/posts/mysql_basic/</link>
-      <pubDate>Sat, 11 Apr 2020 20:51:59 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/mysql_basic/</guid>
-      <description>背景 假设一个面试者过来面试, 想要考察mysql方面, 我该怎么考察呢? 从整体上而言, mysql 还是偏基础概念, 比如 事务和锁.
-理解与概念 首先需要确保候选人理解以下的基本概念:
- 索引  InnoDB支持的几种索引类型:
- hash索引 B+索引 全文索引  B+数中的索引类型:
- 聚簇索引: 节点页只包含了索引列，叶子页包含了行的全部数据 覆盖索引: 一个查询语句的执行只用从索引中就能够取得，不必从数据表中读 联合索引: 表上的多个列进行索引. 最左前缀: 最常用的在最左边  慢查询优化经验. 索引没有被使用的情况 遇到过? 如何判断索引生效?
- explain 的使用  事务  什么是事务 以及 事务的四个特征: acid
-事务的隔离级别: 读未提交 、读已提交(解决脏读)、可重复读(解决不可重复读)、可串行化(幻读: 插入了新数据)
-InnoDB 怎么解决幻读的? mvcc + 间隙锁(gap lock)、next-key lock, mysql的读已提交
-什么是gap lock、next-key lock?
-当我们用范围条件进行查询, InnoDB 除了给 符合条件的数据的索引加锁, 还会给 在条件范围内但并不存在的记录 进行加锁,
-代理  如何自己设计一个代理, 怎么设计?</description>
-    </item>
-    
-    <item>
-      <title>Redis_basic</title>
-      <link>https://xujianhai.fun/posts/redis_basic/</link>
-      <pubDate>Wed, 08 Apr 2020 09:07:46 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/redis_basic/</guid>
-      <description>背景 最近和小伙伴重新讨论了下 redis 相关的一些知识点, 发现自己很多已经遗忘了, 今天重新学习下. (最早的redis知识点还是从 “” 学习的)
-原理 数据类型/对象 redis支持的数据结构:
- string (sds 采用预分配冗余空间的方式来减少内存的频繁分配, 获取字符串长度也更快) list (双向列表, 可以模拟队列/堆栈; 存储: ziplist, 元素较少使用一块连续的内存空间, 普通列表的附加指针空间大) hash (渐进式rehash, hash碰撞扩容在大数据量的时候耗时很长, 渐进式rehash, 不是立即迁移, 而是在后续的定时任务以及hash结构的读写指令进行迁移, golang sync.map 类似) set: 基于hash实现, value 指向的都是同一个对象 zset/sortedset: hash+跳跃列表, hash 保存的是权重, 跳跃列表给value排序, zrange 的排序方式是 升序, 部分场景是希望最新的排前面, 需要降序 bitmap: bit的操作, 上层 布隆过滤器. 用于验证场景, 签到、是否已经执行. 最大 2^32 Geo: Redis 3.2, 处理地理位置信息 HyperLogLog: 统计计数: 统计uv. 是一种概率数据结构，它使用概率算法来统计集合的近似基数. 参考分析: https://www.zhihu.com/question/53416615 Streams: 流式pub/sub  编码&amp;amp;数据结构 目前支持的编码格式:</description>
-    </item>
-    
-    <item>
-      <title>Cpp_basic</title>
-      <link>https://xujianhai.fun/posts/cpp_basic/</link>
-      <pubDate>Sun, 05 Apr 2020 19:36:11 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/cpp_basic/</guid>
-      <description>背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
-基础 锁 std::mutex 是基础的锁, 但是使用 std::mutex 很容易经常忘记解锁, 而且缺乏一些常用的特性: 延迟加锁、尝试加锁. 为此, cpp提供了 std::unique_lock 和 std::lock_gurad , 都是简化锁的使用, std::local_guard 是通过栈上变量的 构造和析构 解决加锁和解锁逻辑, std::unique_lock 则提供了更多的特性: 延迟锁定、递归锁定、有时限尝试、所有权转移等.
-std::scoped_lock: raii风格的互斥包装器, 创建对象的时候 会获取 互斥的所有权, 离开的时候 逆序释放. 相当于两步操作的封装 (std::lock(a, b), std::lock_quard g1(a1, std::adopt_lock), std::lock_gurad g2(a2, std::adopt_lock))
-https://zh.cppreference.com/w/cpp/thread/lock https://zh.cppreference.com/w/cpp/thread/mutex https://zh.cppreference.com/w/cpp/thread/lock_guard https://zh.cppreference.com/w/cpp/thread/unique_lock http://www.cplusplus.com/reference/mutex/unique_lock/ https://zh.cppreference.com/w/cpp/thread/scoped_lock
-补充, std::lock 是一个函数, 用来对多个互斥量上锁, 还有尝试加锁的函数: std::try_lock 更多线程相关的信息: https://zh.cppreference.com/w/cpp/thread
-智能指针 为了避免在处理指针导致指针对象泄露, cpp提供了多种智能指针的处理方式. 除了 auto, 更常见的是 std::shared_pter 和 std::unique_ptr.
-std::shared_ptr: 通过指针保持对象共享所有权的智能指针, 多个 shared_ptr 对象可占有同一对象, 当最后的shared_ptr 被销毁或者被赋值为其他指针就会释放、销毁 对象 并释放内存.</description>
-    </item>
-    
-    <item>
-      <title>Proxy_sam</title>
-      <link>https://xujianhai.fun/posts/proxy_sam/</link>
-      <pubDate>Sun, 05 Apr 2020 09:42:10 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/proxy_sam/</guid>
-      <description>背景 最近在研究service mesh相关的实现, 除了知名的 envoy-proxy(c++写的), go写的知名mesh就是 mosn, 在饿了么, 也实现了mesh的产品: samaritan
-设计 整体设计 samaritan 本质上是一个proxy, 通过 unix domain socket 和应用进程交互. samaritan-proxy 的设计有以下几个重要模块:
- instance: 一个samaritan-proxy就是一个实例 controller: 负责配置信息的变更和处理, 配置变更会启动一个proc Proc: 服务名绑定的 流量处理和转发抽象, 每一个 procName 对应一个Proc. 比如 redis的实现 就是一个 Proc. Proc 独立监听 网络端口和网络包处理 admin: 运维管理接口, 比如 获取配置、stats统计、pprof. admin端口是重用的. config: 动态配置实现, 获取动态配置 放到 event channel, 订阅者监听 event channel 处理配置变更  需要注意的是, proc 的协议相关实现 需要实现注册到 controller#procs 的map中, 注册目前依赖 Bootstrap#StaticServices 的配置信息.
-主流程 先关注主流程, 协议启动:
-Controller#handleEvent -&amp;gt; handleSvcAdd -&amp;gt; #tryEnsureProc -&amp;gt; newProc(controller.</description>
-    </item>
-    
-    <item>
-      <title>Qmq_delay</title>
-      <link>https://xujianhai.fun/posts/qmq_delay/</link>
-      <pubDate>Fri, 03 Apr 2020 14:02:08 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/qmq_delay/</guid>
-      <description>背景 最近在调研延迟消息的设计和研发, 其中, 目前开源并在线上大规模使用的主要是 去哪儿的qmq, 本文主要针对 qmq 中的延迟消息实现进行分析
-问题 作为一款延迟消息服务, 需要解决一下问题:
- 延迟消息的底层存储 延迟消息的投递方式 延迟消息怎么保证稳定的到期 延迟消息到期怎么投递 延迟消息是否可以取消 主从同步  设计 qmq 的延迟设计中, 所有的消息投递到 message log, message log 相当于 wal, 会有一个IterateOffsetManager 异步读取 message log 构建 schedule log 和 hash wheel, schedule log 是每个目标到期时间的文件, 默认每分钟一个文件, 时间间隔可以定制. hash wheel 是内存的多层时间轮, 所有后续的延迟消息 以及 到期的schedule log文件的消息 都会加载到内存中. 消息到期后, 会投递给 正常的消息服务的broker (投递会目标subject)
-底层存储 qmq 本身设计了一套文件存储形式, 延迟功能基于这套存储进行了封装和实现, 除此之外, 延迟功能在内存中也维护了一份 时间轮的消息索引, 这里主要分析文件侧实现. 在延迟消息存储的设计中, 主要是以下模块:
-  LogSegment&amp;amp;LogManager: qmq底层文件存储 和 文件目录管理(以及recover) 的实现, 延迟消息和普通消息基于这个做定制化.</description>
-    </item>
-    
-    <item>
-      <title>Mesh_file</title>
-      <link>https://xujianhai.fun/posts/mesh_file/</link>
-      <pubDate>Sat, 28 Mar 2020 23:36:12 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/mesh_file/</guid>
-      <description>记录 service mesh 的一些相关资料:
- http://www.360doc.com/content/19/0907/06/46368139_859593650.shtml  </description>
     </item>
     
   </channel>

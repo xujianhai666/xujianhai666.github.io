@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>iptables on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/iptables/</link>
+    <description>Recent content in iptables on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 23 May 2020 11:08:50 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/iptables/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Conn_close</title>
+      <link>https://xujianhai.fun/posts/conn_close/</link>
+      <pubDate>Sat, 23 May 2020 11:08:50 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/conn_close/</guid>
+      <description>preface 最近讨论解决服务状态不正确的问题, 涉及到一个连接关闭的手段, 但是网上说法很多, 很难有一篇完整的手段描述, 特别记忆
+实现 首先, 我们使用nc模拟网络的收发. 启动server:
+nc -l -p 4444 启动client:
+nc localhost 4444 -p 5555 使用tcpdump 查看效果:
+sudo tcpdump port 4444 -i lo -xnn -S sudo tcpdump port 5555 -i lo -xnn -S 结果如下:
+查看下连接的状态:
+ss -ant | grep -E &#39;4444|5555&#39; 如下图: 根据参考的文档, 正确关闭的姿势如下(亲测有效):
+sudo iptables -A INPUT -p tcp --dport 4444 -j REJECT --reject-with tcp-reset iptables -nL // n 数字化输出地址和端口, L 列出所有规则 iptables -F // 删除所有规则 iptables -A OUTPUT -p tcp --dport 5555 -j REJECT --reject-with tcp-reset iptables -nL 注意:</description>
+    </item>
+    
+  </channel>
+</rss>

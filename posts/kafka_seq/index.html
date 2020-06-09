@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="Preface 最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: sendAndReceive, 比如:
+func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) { var response *ProduceResponse var err error if request.RequiredAcks == NoResponse { err = b.sendAndReceive(request, nil) } else { response = new(ProduceResponse) err = b.sendAndReceive(request, response) // 同步阻塞了 } if err != nil { return nil, err } return response, nil } 这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, kafka" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/kafka_seq/" />
+
+
+    <title>
+        
+            Kafka_seq :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Kafka_seq">
+<meta itemprop="description" content="Preface 最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: sendAndReceive, 比如:
+func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) { var response *ProduceResponse var err error if request.RequiredAcks == NoResponse { err = b.sendAndReceive(request, nil) } else { response = new(ProduceResponse) err = b.sendAndReceive(request, response) // 同步阻塞了 } if err != nil { return nil, err } return response, nil } 这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应.">
+<meta itemprop="datePublished" content="2020-05-22T18:07:04&#43;08:00" />
+<meta itemprop="dateModified" content="2020-05-22T18:07:04&#43;08:00" />
+<meta itemprop="wordCount" content="351">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="kafka," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Kafka_seq"/>
+<meta name="twitter:description" content="Preface 最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: sendAndReceive, 比如:
+func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) { var response *ProduceResponse var err error if request.RequiredAcks == NoResponse { err = b.sendAndReceive(request, nil) } else { response = new(ProduceResponse) err = b.sendAndReceive(request, response) // 同步阻塞了 } if err != nil { return nil, err } return response, nil } 这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-05-22 18:07:04 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/kafka_seq/">Kafka_seq</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="preface">Preface</h2>
+<p>最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: <code>sendAndReceive</code>, 比如:</p>
+<pre><code>func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) {
+	var response *ProduceResponse
+	var err error
+
+	if request.RequiredAcks == NoResponse {
+		err = b.sendAndReceive(request, nil)
+	} else {
+		response = new(ProduceResponse)
+		err = b.sendAndReceive(request, response)  // 同步阻塞了
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+</code></pre><p>这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应.</p>
+<h2 id="深入">深入</h2>
+<p>使用的版本的最新commit是: <code>4b03d67e106c6d3b9dd465a308a62b400ead70a4</code> , 时间是: <code>Sat Mar 7 08:46:38 2020 -0800</code></p>
+<h3 id="处理流程">处理流程</h3>
+<p>但是这里涉及到一个条件, 就是服务端处理的并发性/有序性. 如果客户端顺序连续发送多条消息, 服务端怎么处理呢? 服务端会保证有序性呢？</p>
+<p>这里我们看下 kafka 的设计, 其实, kafka 是一个socketServer, socketServer 将接受的请求发送一个大的RequestChannel, 然后多个线程并发的从RequestChannel中获取请求. 处理逻辑如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-KafkaRequestHandler.scala" data-lang="KafkaRequestHandler.scala"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">KafkaRequestHandler</span> <span style="color:#f92672">{</span>
+  <span style="color:#66d9ef">def</span> run<span style="color:#f92672">(</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Unit</span> <span style="color:#f92672">=</span> <span style="color:#f92672">{</span>
+    <span style="color:#66d9ef">while</span> <span style="color:#f92672">(</span><span style="color:#f92672">!</span>stopped<span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+    	<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+    	<span style="color:#66d9ef">val</span> req <span style="color:#66d9ef">=</span> requestChannel<span style="color:#f92672">.</span>receiveRequest<span style="color:#f92672">(</span><span style="color:#ae81ff">300</span><span style="color:#f92672">)</span>
+    	req <span style="color:#66d9ef">match</span> <span style="color:#f92672">{</span>
+    		<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+    		<span style="color:#66d9ef">case</span> request<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">RequestChannel</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">Request</span> <span style="color:#f92672">=&gt;</span>
+    		  <span style="color:#66d9ef">try</span> <span style="color:#f92672">{</span>
+    		  	<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+	            apis<span style="color:#f92672">.</span>handle<span style="color:#f92672">(</span>request<span style="color:#f92672">)</span>  <span style="color:#75715e">// 调用 KafkaApis, 是真正的逻辑处理, 比如 处理发送消息的逻辑
+</span><span style="color:#75715e"></span>	          <span style="color:#f92672">}</span> <span style="color:#66d9ef">catch</span> <span style="color:#f92672">{</span>
+	            <span style="color:#66d9ef">case</span> e<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">FatalExitError</span> <span style="color:#f92672">=&gt;</span>
+	              shutdownComplete<span style="color:#f92672">.</span>countDown<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+	              <span style="color:#a6e22e">Exit</span><span style="color:#f92672">.</span>exit<span style="color:#f92672">(</span>e<span style="color:#f92672">.</span>statusCode<span style="color:#f92672">)</span>
+	            <span style="color:#66d9ef">case</span> e<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Throwable</span> <span style="color:#f92672">=&gt;</span> error<span style="color:#f92672">(</span><span style="color:#e6db74">&#34;Exception when handling request&#34;</span><span style="color:#f92672">,</span> e<span style="color:#f92672">)</span>
+	          <span style="color:#f92672">}</span> <span style="color:#66d9ef">finally</span> <span style="color:#f92672">{</span>
+	            request<span style="color:#f92672">.</span>releaseBuffer<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+	          <span style="color:#f92672">}</span>
+    	<span style="color:#f92672">}</span>
+    <span style="color:#f92672">}</span>
+  <span style="color:#f92672">}</span>
+<span style="color:#f92672">}</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">KafkaRequestHandlerPool</span> <span style="color:#f92672">{</span>    <span style="color:#75715e">// 启动handler的线程池
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">val</span> runnables <span style="color:#66d9ef">=</span> <span style="color:#66d9ef">new</span> mutable<span style="color:#f92672">.</span><span style="color:#a6e22e">ArrayBuffer</span><span style="color:#f92672">[</span><span style="color:#66d9ef">KafkaRequestHandler</span><span style="color:#f92672">]</span><span style="color:#f92672">(</span>numThreads<span style="color:#f92672">)</span>
+  <span style="color:#66d9ef">for</span> <span style="color:#f92672">(</span>i <span style="color:#66d9ef">&lt;-</span> <span style="color:#ae81ff">0</span> until numThreads<span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+    createHandler<span style="color:#f92672">(</span>i<span style="color:#f92672">)</span>
+  <span style="color:#f92672">}</span>
+
+  <span style="color:#66d9ef">def</span> createHandler<span style="color:#f92672">(</span>id<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Int</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Unit</span> <span style="color:#f92672">=</span> synchronized <span style="color:#f92672">{</span>
+    runnables <span style="color:#f92672">+=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">KafkaRequestHandler</span><span style="color:#f92672">(</span>id<span style="color:#f92672">,</span> brokerId<span style="color:#f92672">,</span> aggregateIdleMeter<span style="color:#f92672">,</span> threadPoolSize<span style="color:#f92672">,</span> requestChannel<span style="color:#f92672">,</span> apis<span style="color:#f92672">,</span> time<span style="color:#f92672">)</span>
+    <span style="color:#a6e22e">KafkaThread</span><span style="color:#f92672">.</span>daemon<span style="color:#f92672">(</span>logAndThreadNamePrefix <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;-kafka-request-handler-&#34;</span> <span style="color:#f92672">+</span> id<span style="color:#f92672">,</span> runnables<span style="color:#f92672">(</span>id<span style="color:#f92672">)</span><span style="color:#f92672">)</span><span style="color:#f92672">.</span>start<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+  <span style="color:#f92672">}</span>
+  <span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+<span style="color:#f92672">}</span>
+</code></pre></div><p>这里的 KafkaRequestHandler 是多个线程启动的, requestChannel 是多个线程共享的, 启动就是上面的 KafkaRequestHandlerPool, 那么哪里组装他们的呢?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-KafkaServer.scala" data-lang="KafkaServer.scala"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">KafkaServer</span><span style="color:#f92672">{</span>
+  <span style="color:#66d9ef">def</span> startup<span style="color:#f92672">(</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Unit</span> <span style="color:#f92672">=</span> <span style="color:#f92672">{</span>
+
+  	<span style="color:#75715e">// 创建处理的主流程对象
+</span><span style="color:#75715e"></span>  	dataPlaneRequestProcessor <span style="color:#66d9ef">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">KafkaApis</span><span style="color:#f92672">(</span>socketServer<span style="color:#f92672">.</span>dataPlaneRequestChannel<span style="color:#f92672">,</span> replicaManager<span style="color:#f92672">,</span>   
+  	    adminManager<span style="color:#f92672">,</span> groupCoordinator<span style="color:#f92672">,</span> transactionCoordinator<span style="color:#f92672">,</span>
+          kafkaController<span style="color:#f92672">,</span> zkClient<span style="color:#f92672">,</span> config<span style="color:#f92672">.</span>brokerId<span style="color:#f92672">,</span> config<span style="color:#f92672">,</span> metadataCache<span style="color:#f92672">,</span> metrics<span style="color:#f92672">,</span> authorizer<span style="color:#f92672">,</span> quotaManagers<span style="color:#f92672">,</span>
+          fetchManager<span style="color:#f92672">,</span> brokerTopicStats<span style="color:#f92672">,</span> clusterId<span style="color:#f92672">,</span> time<span style="color:#f92672">,</span> tokenManager<span style="color:#f92672">)</span>
+  	<span style="color:#75715e">// 启动处理的线程池, 组合了dataPlaneRequestChannel 和 dataPlaneRequestProcessor
+</span><span style="color:#75715e"></span>  	dataPlaneRequestHandlerPool <span style="color:#66d9ef">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">KafkaRequestHandlerPool</span><span style="color:#f92672">(</span>config<span style="color:#f92672">.</span>brokerId<span style="color:#f92672">,</span>   			 						 socketServer<span style="color:#f92672">.</span>dataPlaneRequestChannel<span style="color:#f92672">,</span> dataPlaneRequestProcessor<span style="color:#f92672">,</span> time<span style="color:#f92672">,</span>
+          config<span style="color:#f92672">.</span>numIoThreads<span style="color:#f92672">,</span> <span style="color:#e6db74">s&#34;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">SocketServer</span><span style="color:#f92672">.</span><span style="color:#a6e22e">DataPlaneMetricPrefix</span><span style="color:#e6db74">}</span><span style="color:#e6db74">RequestHandlerAvgIdlePercent</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">SocketServer</span><span style="color:#f92672">.</span><span style="color:#a6e22e">DataPlaneThreadPrefix</span><span style="color:#f92672">)</span>
+
+  <span style="color:#f92672">}</span>
+<span style="color:#f92672">}</span>
+
+</code></pre></div><p>可以发现 KafkaServer 在启动的时候, 在创建 dataPlaneRequestHandlerPool 对象的时候, 就是 KafkaRequestHandlerPool, 就传递了共享的 dataPlaneRequestChannel 和 dataPlaneRequestProcessor , 这个名字更多的借鉴了 service mesh 的理念. 其中 dataPlaneRequestChannel 是在创建socketServer的时候初始化的, 并且大小可以在 config 中指定:</p>
+<pre><code>class SocketServer {
+	val dataPlaneRequestChannel = new RequestChannel(maxQueuedRequests, DataPlaneMetricPrefix)  // 对象创建就会立即初始化
+}
+</code></pre><p>因此, 将上面的内容串起来就是:</p>
+<pre><code>1. 网络层将请求投递到 RequestChannel 
+2. 多线程的 KafkaRequestHandler 并发的从 RequestChannel 获取请求, 交给 kafkaApis 处理
+</code></pre><h2 id="问题">问题</h2>
+<h3 id="顺序性的保证">顺序性的保证</h3>
+<p>那么问题就来了, 对于一个连接上的多个请求, 比如顺序并连续的投递到同一个 kafkaServer 上, 对应的kafka线程处理则是 并发乱序的, 因此kafkaServer 并没有保证 请求的顺序性, 回顾 kafka client 的设计, kafka client 是顺序阻塞网络调用的, 因此 kafka 消息的顺序性 也就是 kafka client 保证的.</p>
+<p>但是, 对于大部分kafka server, 真的那么需要顺序性吗？有时候仅仅希望迅速的将请求发送出去, 提高并发量. 对于日志场景, 对同一个 rootId, 希望在一个partition 里面, 可以通过这样的方式提高并发吞吐量, 对于短时间的无序, 日志场景本身就会有一段时间聚合的逻辑, 因此短时的无序 也会通过 这个时间窗口实现有序.</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/kafka">kafka</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>351 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-05-22 18:07 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/conn_close/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Conn_close</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/docker_net/">
+                                <span class="button__text">Docker_net</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

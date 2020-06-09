@@ -38,7 +38,7 @@
  第一篇: https://research.swtch.com/vgo-intro  讲述了依赖管理的演进 09 nothing -&gt; 2010 go install -&gt; 2011 go get, 存在没有版本的问题: 1. api 稳定性变更 2. 可重复构建. 未来的规划: dep/glide 不将支持, 发布了vgo(兼容目前的依赖管理), go mod 是未来 go mod 的演示   第二篇: https://research.">
 <meta itemprop="datePublished" content="2019-05-01T10:11:38&#43;08:00" />
 <meta itemprop="dateModified" content="2019-05-01T10:11:38&#43;08:00" />
-<meta itemprop="wordCount" content="342">
+<meta itemprop="wordCount" content="356">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -219,6 +219,14 @@ formulas: Horn、 dual-Horn、 dual-Horn、
 <pre><code>go get foo@v1.2.3, 
 go get foo@master (foo@default with mercurial), 
 go get foo@e3702bed2
+</code></pre><h2 id="内部实现">内部实现</h2>
+<p>最近突然对golang module 内部实现感兴趣, 通过搜索, 发现代码在 <code>src/cmd/go/internal</code>, 布局如下:</p>
+<pre><code>modcmd/...
+modconv/...
+modfetch/...
+modget/...
+modinfo/...
+modload/...
 </code></pre>
             </div>
         </article>
@@ -227,7 +235,7 @@ go get foo@e3702bed2
 
         <div class="post-info">
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>342 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>356 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-05-01 10:11 &#43;0800</p>
         </div>

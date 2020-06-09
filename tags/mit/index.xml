@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>mit on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/mit/</link>
+    <description>Recent content in mit on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 06 Jun 2020 10:23:10 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/mit/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Mit_6</title>
+      <link>https://xujianhai.fun/posts/mit_6.824/</link>
+      <pubDate>Sat, 06 Jun 2020 10:23:10 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/mit_6.824/</guid>
+      <description>序 记录学习 mit 6.824 课程的经历
+MapReduce 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
+模型 如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.
+分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)
+map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散
+hadoop 架构
+将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.
+问题  难以实时计算(处理存储在磁盘上的离线数据) 不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark) 难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)  GFS 架构 根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB.</description>
+    </item>
+    
+  </channel>
+</rss>

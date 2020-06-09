@@ -6,10 +6,55 @@
     <description>Recent content in kafka on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 09 Mar 2020 23:13:41 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 30 May 2020 21:27:58 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/kafka/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Kafka_group_coordinator</title>
+      <link>https://xujianhai.fun/posts/kafka_group_coordinator/</link>
+      <pubDate>Sat, 30 May 2020 21:27:58 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_group_coordinator/</guid>
+      <description>preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
+coordinator coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
+coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
+客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer.</description>
+    </item>
+    
+    <item>
+      <title>Kafka_controller</title>
+      <link>https://xujianhai.fun/posts/kafka_controller/</link>
+      <pubDate>Tue, 26 May 2020 11:45:58 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_controller/</guid>
+      <description>Preface kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考
+Redesign 网上关于 redesign(https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.
+从文章内容上来看, 主要存在以下问题:
+ 每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除) controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发) 并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作) controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步) 控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失) controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求) zkClinet 没有状态管理 导致了什么问题?</description>
+    </item>
+    
+    <item>
+      <title>Kafka_socket</title>
+      <link>https://xujianhai.fun/posts/kafka_socket/</link>
+      <pubDate>Sat, 23 May 2020 17:13:38 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_socket/</guid>
+      <description>Preface 最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,
+深入 直接看下 socketServer 的注释 学习下理论.
+acceptor /***Handles new connections, requests and responses to and from broker. *Kafka supports two types of request planes : *- data-plane : *- Handles requests from clients and other brokers in the cluster. *- The threading model is *1 Acceptor thread per listener, that handles new connections. *It is possible to configure multiple data-planes by specifying multiple &amp;#34;,&amp;#34; separated endpoints for &amp;#34;listeners&amp;#34; in KafkaConfig.</description>
+    </item>
+    
+    <item>
+      <title>Kafka_seq</title>
+      <link>https://xujianhai.fun/posts/kafka_seq/</link>
+      <pubDate>Fri, 22 May 2020 18:07:04 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_seq/</guid>
+      <description>Preface 最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: sendAndReceive, 比如:
+func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) { var response *ProduceResponse var err error if request.RequiredAcks == NoResponse { err = b.sendAndReceive(request, nil) } else { response = new(ProduceResponse) err = b.sendAndReceive(request, response) // 同步阻塞了 } if err != nil { return nil, err } return response, nil } 这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应.</description>
+    </item>
     
     <item>
       <title>Kip_broker</title>

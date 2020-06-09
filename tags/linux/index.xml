@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>linux on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/linux/</link>
+    <description>Recent content in linux on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 26 May 2020 22:32:44 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Linux_iouring</title>
+      <link>https://xujianhai.fun/posts/linux_iouring/</link>
+      <pubDate>Tue, 26 May 2020 22:32:44 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/linux_iouring/</guid>
+      <description>Preface 最近内部经常讨论 io_uring, 这块不是很了解, 特别记录下
+回顾io linux io 模型中主要区分四种类型区分: 同步io 非同步io 和 阻塞io 非阻塞io, 通过不同的组合, 有不同的模型. 如下:
+ 同步io + 阻塞io: 用户进程会被阻塞在 recvfrom. 同步io + 非阻塞io: recvfrom 会返回 错误表示数据还没有到来, 不会阻塞. O_NONBLOCK 参数 同步io + 阻塞io: io多路复用: select/poll/epoll, 虽然读写不会阻塞在recvfrom, 但是会阻塞在select调用. 信号驱动: 接收到信号之后需要自己操作 异步io: 内核操作完通知. 操作系统提供了 libaio  有人还将 异步io + epoll 进行了实现: http://m.blog.chinaunix.net/uid-16979052-id-3840266.html
+io_uring   定位: 更高 IOPS 的 async syscall api. (io层的异步api, 主打高性能)
+  特点&amp;amp;主要概念
+ 基于ringbuffer 的设计, 提交队列和完成队列只存储索引, SQEs(submission queue entries) 存储请求, 这样提交的请求可以内存不连续 用户态和系统态 通过 mmap 共享 提交队列 和 完成队列, 减少地址映射开销 在poll模式下, IO提交和收割 可以由 kernel 完成, 不需要系统调用, 系统会启动一个 SQ Poll 的内核线程不断poll (没有请求会睡眠), 处理 sq 和 cq 非poll模式下, io_uring_enter 会阻塞, 完成 SQ Poll 线程的任务 提供了polling和非polling两种模式, 和底层实现有关, 非polling性能比 libaio 提升不了多少, polling 模式和 SPDK 非常接近.</description>
+    </item>
+    
+  </channel>
+</rss>

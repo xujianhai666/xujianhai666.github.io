@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="Preface kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考
+Redesign 网上关于 redesign(https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.
+从文章内容上来看, 主要存在以下问题:
+ 每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除) controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发) 并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作) controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步) 控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失) controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求) zkClinet 没有状态管理 导致了什么问题?" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, kafka" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/kafka_controller/" />
+
+
+    <title>
+        
+            Kafka_controller :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Kafka_controller">
+<meta itemprop="description" content="Preface kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考
+Redesign 网上关于 redesign(https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.
+从文章内容上来看, 主要存在以下问题:
+ 每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除) controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发) 并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作) controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步) 控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失) controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求) zkClinet 没有状态管理 导致了什么问题?">
+<meta itemprop="datePublished" content="2020-05-26T11:45:58&#43;08:00" />
+<meta itemprop="dateModified" content="2020-05-26T11:45:58&#43;08:00" />
+<meta itemprop="wordCount" content="571">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="kafka," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Kafka_controller"/>
+<meta name="twitter:description" content="Preface kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考
+Redesign 网上关于 redesign(https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.
+从文章内容上来看, 主要存在以下问题:
+ 每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除) controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发) 并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作) controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步) 控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失) controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求) zkClinet 没有状态管理 导致了什么问题?"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-05-26 11:45:58 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/kafka_controller/">Kafka_controller</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="preface">Preface</h2>
+<p>kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考</p>
+<h2 id="redesign">Redesign</h2>
+<p>网上关于 redesign(<a href="https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko">https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko</a>) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.</p>
+<p>从文章内容上来看, 主要存在以下问题:</p>
+<ol>
+<li>每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除)</li>
+<li>controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发)</li>
+<li>并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作)</li>
+<li>controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步)</li>
+<li>控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失)</li>
+<li>controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求)</li>
+<li>zkClinet 没有状态管理  导致了什么问题? (线性处理逻辑导致最新的notification没有被及时通知到)</li>
+</ol>
+<p>针对上面的问题, 又是怎么处理的呢? 基于文档和 当前版本2.6</p>
+<ol>
+<li>使用异步的zk api</li>
+<li>controller-broker 请求批量 (实现了)</li>
+<li>单线程的事件处理模型 (队列抽象: ControllerEvent+QueuedEvent+ControllerEventThread 的设计)</li>
+<li>重构cluster的状态管理 (抽象了ControllerState和处理模型)</li>
+<li>controller 请求设置一个优先级  (没做, 因为两个队列会导致 优先级/普通队列 延迟高)</li>
+<li>controller-broker 请求有generation的概念 (epoch, 怎么实现？)</li>
+<li>使用 vanilla zk 客户端, 更好的处理客户端状态 (回调, 结合event queue clear, 提供了client状态的回调)</li>
+</ol>
+<h2 id="code-review">Code Review</h2>
+<h3 id="event-设计">Event 设计</h3>
+<p>先从整体上看下, 在目前的版本 &ldquo;2.6&rdquo; 中, 最大的改动是 事件的抽象, 事件的抽象不是简单的event, 而是包含了整理处理流程的设计. 参考 ControllerEventManager.scala . 主要的对象如下:</p>
+<pre><code>trait ControllerEventProcessor {
+  def process(event: ControllerEvent): Unit
+  def preempt(event: ControllerEvent): Unit
+}
+
+class QueuedEvent(val event: ControllerEvent,
+                  val enqueueTimeMs: Long) {
+}
+
+class ControllerEventManager(controllerId: Int,
+                             processor: ControllerEventProcessor,
+                             time: Time,
+                             rateAndTimeMetrics: Map[ControllerState, KafkaTimer]) extends KafkaMetricsGroup {
+
+  def put(event: ControllerEvent): QueuedEvent = inLock(putLock) {
+    val queuedEvent = new QueuedEvent(event, time.milliseconds())
+    queue.put(queuedEvent)
+    queuedEvent
+  }
+
+  class ControllerEventThread(name: String) extends ShutdownableThread(name = name, isInterruptible = false) {
+    logIdent = s&quot;[ControllerEventThread controllerId=$controllerId] &quot;
+
+    override def doWork(): Unit = {
+      val dequeued = queue.take()
+      dequeued.event match {
+        case ShutdownEventThread =&gt; // The shutting down of the thread has been initiated at this point. Ignore this event.
+        case controllerEvent =&gt;
+          _state = controllerEvent.state
+
+          eventQueueTimeHist.update(time.milliseconds() - dequeued.enqueueTimeMs)
+
+          try {
+            def process(): Unit = dequeued.process(processor)
+
+            rateAndTimeMetrics.get(state) match {
+              case Some(timer) =&gt; timer.time { process() }
+              case None =&gt; process()
+            }
+          } catch {
+            case e: Throwable =&gt; error(s&quot;Uncaught error processing event $controllerEvent&quot;, e)
+          }
+
+          _state = ControllerState.Idle
+      }
+    }
+  }
+}
+</code></pre><p>event 会投递先投递到queue中, 然后由 单线程 ControllerEventThread 不断从队列中获取然后处理, 处理流程 调用event#process, 其实最终调用的是 ControllerEventProcessor#process . 也就是说 event 一次进入队列, 但是最终处理都是统一在了 ControllerEventProcessor#process, 通过队列简化了并发问题. 在Kafka 中, ControllerEventProcessor 只有 KafkaController 这个唯一实现.</p>
+<h3 id="存储-zkcontrollercontext">存储: zk&amp;ControllerContext</h3>
+<p>kafka 基于 zk 做了元数据存储和动态监听, 除了 zk, kafka 在本地也缓存了一份数据在 ControllerContext. zk的paht和数据编解码在 ZkData 目录下.</p>
+<p>在实施细节层面, zk 是基于异步 的方式, 对于常用的zk操作命令进行了重新的封装, 进行zk请求的时候通过注册 DataCallback/StatCallback/Children2Callback 等进行异步操作. 参见 zookeeper/ZookeeperClient.scala</p>
+<p>但是Kafka 并不是直接操作 ZookeeperClient, 而是在 ZookeeperClient 上封装的 AdminZkClient 和 KafkaZkClient, 位于 zk 文件夹下</p>
+<p>除了直接操作zk, kafka controller 还会通过动态监听 zk节点信息, KafkaController对zk的zknode节点注册相应的handler, znode事件被触发之后 就会通过handler投递到 eventManager 的queue, 进行异步处理(上面的事件抽象).</p>
+<p>补充: ControllerContext 作为缓存, 不仅仅是zk 数据的全局快照, 而且还解耦了 PartitionStateMachine ReplicaStateMachine和 TopicDeletionManager, 避免相互依赖</p>
+<h3 id="controler-broker">controler-broker</h3>
+<p>controller 本质上是选主成功的 broker, controller 会进行topic、replica 等状态的维护, controller 会把 每次变更都 同步给其他broker. 变更同步的场景中, 在 0.11 版本之前是一个个broker进行同步阻塞的, 目前的版本中, 多个broker虽然也是轮流发送的, 但是 接收响应却是异步的, 通过这种方式提高了并发度, kafka 封装了场景的命令同步操作: LeaderAndIsrRequest、UpdateMetadataRequest、StopReplicaRequest, 对外提供了 ControllerBrokerRequestBatch 的设计. 消息回调的处理依旧使用了 event 机制避免并发混乱, 简化实现流程.</p>
+<p>网络通信层, broker 和 controller 的通信走的是 单线程 + 队列 + NIO selector 的设计, 每个broker单独一个线程处理.</p>
+<h3 id="状态抽象">状态抽象</h3>
+<p>采用了 事件处理机制之后, 有时候我们希望知道 controller 的内部状态处理的耗时, 这样我们就能很快定位到问题确保 Kafka 健康. 为此, kafka 抽象了 ControllerState, 并在 ControllerEventThread 处理的时候进行打点. 也就是说 kafka state 的抽象目前仅仅是用来打日志</p>
+<p>参看官方: <a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-143%3A+Controller+Health+Metrics">https://cwiki.apache.org/confluence/display/KAFKA/KIP-143%3A+Controller+Health+Metrics</a></p>
+<h3 id="状态机">状态机</h3>
+<p>PartitionStateMachine 负责partition 状态变更逻辑, kafkaController 是上层调用者, 自身主体逻辑位于 doHandleStateChanges , 比较有意思的事情是,  partition的leader选举分散到了两个地方, 本身的 electLeaderForPartitions 逻辑逻辑 以及 Election 算法实现, 将算法单独放在了 Election.scala 文件</p>
+<p>ZkReplicaStateMachine 负责replica的维护: 库容、缩容. 主体逻辑在: doHandleStateChanges</p>
+<p>TopicDeletionManager 处理topic删除逻辑, 为此删除单独开了一个zk节点, 避免对topic节点的干扰, 方面维护topic删除状态.</p>
+<h3 id="总结">总结</h3>
+<p>针对文件, 进行一下总结:</p>
+<ul>
+<li>ControllerChannelManager: 每个broker维护一个 NIO Selector + queue + 线程. 和0.11.0之前版本, 支持了批量, 同一个命令多个broker同时并行发送, 使用回调处理结果 (ControllerChannelManager.scala)</li>
+<li>批量的设计参考 ControllerBrokerRequestBatch:  ((ControllerChannelManager.scala))</li>
+<li>ControllerContext 抽象, 提供内部元数据的接口: 获取指定状态的partition、replica等. (ControllerContext.scala)</li>
+<li>ControllerEventManager: Event 抽象, controller、broker、topic、partition、replica 等变更都是一个event, ControllerEventManager&amp;ControllerEventThread 单线程处理</li>
+<li>ControllerState: 和event一一对应, 为什么呢?</li>
+<li>Election: 几种partition leader选举上线</li>
+<li>KafkaController: 基于event处理机制, 处理相应的事件, 注册handler监听zk</li>
+<li>replicaStateMachine: 处理replica内部的状态流转</li>
+<li>partitionStateMachine: 处理partition内部的状态流转</li>
+<li>TopicDeletionManager:  管理topic删除逻辑</li>
+</ul>
+<h2 id="关于选主">关于选主</h2>
+<p>&hellip;.</p>
+<h2 id="思考">思考</h2>
+<ol>
+<li>epoch</li>
+</ol>
+<p>为了能够明显的区分 generation 的概念, kafka 使用了 zxid 作为 epoch.</p>
+<ul>
+<li>brokerEpoch: 通过挂在临时节点 /brokers/ids/$id 获取的 czxid 作为epoch</li>
+<li>controllerEpoch: 挂载zk节点/controller_epoch, 自己做的自增</li>
+<li>partition 会存储 leader epoch 和 controllerEpoch, 是为什么呢？ leader epoch 存储的每次选主 都是自增的, 注意不是broker epoch. 为什么partition会存储controllerEpoch 呢? 这样避免controller脑裂. 在 partition 第一次初始化, 在进入online状态的时候, 会存储一个 brokerEpoch=0, 并同步到broker. 后面选主之后在更新.</li>
+</ul>
+<ol start="2">
+<li>zxid</li>
+</ol>
+<p>zookeeper 的每次节点变更都会受到一个 ZxId 格式的时间戳, 本质上一个 64位数字, 高32位 epoch是 leader 变更标记, 每次leader 选举, 都会变更. 低32位是一个递增计数. zookeeper 为每个节点维护了两个 zxid:</p>
+<ul>
+<li>czxid: 节点创建所对应的zxid</li>
+<li>mzxid: 节点修改对应的zxid</li>
+</ul>
+<p>参考:
+- <a href="https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Internals">https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Internals</a>
+- <a href="https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Redesign">https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Redesign</a>
+- <a href="https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko">https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko</a></p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/kafka">kafka</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>571 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-05-26 11:45 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/linux_iouring/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Linux_iouring</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/kafka_socket/">
+                                <span class="button__text">Kafka_socket</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

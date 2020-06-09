@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="序 记录学习 mit 6.824 课程的经历
+MapReduce 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
+模型 如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.
+分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)
+map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散
+hadoop 架构
+将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.
+问题  难以实时计算(处理存储在磁盘上的离线数据) 不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark) 难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)  GFS 架构 根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, mit" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/mit_6.824/" />
+
+
+    <title>
+        
+            Mit_6 :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Mit_6">
+<meta itemprop="description" content="序 记录学习 mit 6.824 课程的经历
+MapReduce 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
+模型 如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.
+分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)
+map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散
+hadoop 架构
+将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.
+问题  难以实时计算(处理存储在磁盘上的离线数据) 不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark) 难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)  GFS 架构 根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB.">
+<meta itemprop="datePublished" content="2020-06-06T10:23:10&#43;08:00" />
+<meta itemprop="dateModified" content="2020-06-06T10:23:10&#43;08:00" />
+<meta itemprop="wordCount" content="238">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="mit," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Mit_6"/>
+<meta name="twitter:description" content="序 记录学习 mit 6.824 课程的经历
+MapReduce 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
+模型 如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.
+分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)
+map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散
+hadoop 架构
+将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.
+问题  难以实时计算(处理存储在磁盘上的离线数据) 不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark) 难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)  GFS 架构 根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-06-06 10:23:10 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/mit_6.824/">Mit_6</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="序">序</h2>
+<p>记录学习 mit 6.824 课程的经历</p>
+<h2 id="mapreduce">MapReduce</h2>
+<h3 id="目标">目标:</h3>
+<p>将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计</p>
+<h3 id="模型">模型</h3>
+<p><img src="https://xujianhai.fun/mapreduce.png" alt="mapreduce" title=""></p>
+<p>如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.</p>
+<p>分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)</p>
+<p>map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散</p>
+<h3 id="hadoop">hadoop</h3>
+<p>架构</p>
+<p>将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.</p>
+<h3 id="问题">问题</h3>
+<ol>
+<li>难以实时计算(处理存储在磁盘上的离线数据)</li>
+<li>不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark)</li>
+<li>难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)</li>
+</ol>
+<h2 id="gfs">GFS</h2>
+<h3 id="架构">架构</h3>
+<p><img src="https://xujianhai.fun/gfs_arch.png" alt="arch" title=""></p>
+<p>根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB.</p>
+<p>master的数据特点: 通过operation log 记录所有请求操作, 并定期将内存状态存储到checkpoint, 加快恢复时间.
+chunkserver的数据特点: chunk内部会划分成 64KB 的 block, 每个block做checksum校验, 避免损坏的数据.</p>
+<p>在高可用方面, master 也是多副本的, 不过以standby的形式存在, 当master挂了, 通过DNS切换通知客户端. chunkserver本身的多副本机制确保了高可用.</p>
+<p>需要注意的是, master 持久化的元数据并不包括 chunk-&gt;chunkservers 的映射, 这个是通过master-chunkserver 之间的心跳上报实现的. (rocketmq中topic-&gt;brokers的映射也是这样, kafka则将这些信息维护在了zk上)</p>
+<h3 id="写入">写入</h3>
+<p><img src="https://xujianhai.fun/gfs_write.png" alt="write" title=""></p>
+<p>写入比较特殊, 根据论文, 写入其实是个两阶段提交, 如图所示, 首先, 客户端从master获取到元数据(primary+secondary replica)并缓存起来, 然后客户端向所有的chunkserver发送写请求, chunkserver 将请求写入到自己的LRU缓存(注意这里没落盘), 确保全部写入成功后(失败会重试), client 请求primary提交数据, primary 会分配一个连续的序列号, 然后将将之前的修改存储起来, 然后primary请求所有secondary进行落盘, 如果部分replica落盘失败, primary返回错误给client, client会重试保证最终成功避免数据的不一致.</p>
+<p>但是我比较疑惑的是, 写入是指写入到指定位置(offset) 还是指定的chunk 吗? append 的语意比较清晰, 就是追加到文件末尾.</p>
+<p>append语意比write略微复杂, append 需要保证写入的chunk有足够的空间容纳数据, 否则会对当前chunk进行补齐(primary会同步secondary进行同样的操作), 然后client重试下一个chunk.</p>
+<p>gfs并没有支持更新.</p>
+<p>需要注意的时候, 数据的一致性完全依赖客户端的重试. 这样选主之后, 即使primary不是最新的, 也可以通过重试补齐. 有些暴力, 因为很多业务并不需要全部成功, 可以容忍失败, 希望尽快的返回错误, 因此现在基本上使用 raft 的方式同步, 但是相比retry, 复杂了些, 而且raft 至少需要三副本.</p>
+<h3 id="hdfs">hdfs</h3>
+<p>架构</p>
+<p>开源有hdfs, hdfs存在以下问题:</p>
+<ol>
+<li>不适合低延迟数据访问, hdfs 的设计目标是高吞吐量</li>
+<li>无法存储大量小文件 (参考facebook hystack)</li>
+<li>不支持多用户写入和随机修改 (hdfs的一个文件只有一个写入者, 并且是追加写)</li>
+</ol>
+<h3 id="hbase">hbase</h3>
+<h3 id="新版cfs">新版cfs</h3>
+<p>google 对gfs做了一次升级, 降低master单点故障, 但是思路很神奇, 最终是将元数据存储在chubby+bigtable上. 更多参考</p>
+<ul>
+<li><a href="https://levy.at/blog/22">https://levy.at/blog/22</a></li>
+</ul>
+<h2 id="primary-backup">primary-backup</h2>
+<h2 id="raft">raft</h2>
+<p>以可理解性为目标, 解耦了 leader election、log replication、safety? 状态一致性提升，</p>
+<ul>
+<li>strong leader: 写从leader流向 follower</li>
+<li>leader election: 随机timer</li>
+<li>membership change: joint consensus</li>
+</ul>
+<p>基于 有序的replicated log 的复制状态机(replicated state machine). 一致性模块 确保 replicated log的一致性.</p>
+<p>Oki and Liskov’s Viewstamped
+Replication [29, 22]</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/mit">mit</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>238 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-06-06 10:23 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/python_tool/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Python_tool</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/kafka_group_coordinator/">
+                                <span class="button__text">Kafka_group_coordinator</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

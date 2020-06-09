@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>tcpdump on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/tcpdump/</link>
+    <description>Recent content in tcpdump on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Fri, 17 Apr 2020 10:46:14 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/tcpdump/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Tcp_dump</title>
+      <link>https://xujianhai.fun/posts/tcp_dump/</link>
+      <pubDate>Fri, 17 Apr 2020 10:46:14 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/tcp_dump/</guid>
+      <description>preface 最近使用 tcpdump, 突然自己的开发日志因为重装丢失了. 虽然之前的blog也有相关涉及, 这里记录下, 方便debug的时候迅速查找
+常用记录 虽然 man tcpdump 和 tcpdump -h 可以查阅相关资料, 但是速度还是很慢
+  监听指定的端口: tcpdump -i eth0 或者 tcpdump -i lo
+  监听指定的协议: tcpdump tcp
+  写入指定的文件: tcpdump -w xxx/yyy , 建议文件后缀是 pcap, 这样可以配置 wireshark 使用
+  记录目标地址和端口的连接信息
+  tcpdump src host x.x.x.x port yy // 监听源host的流量 tcpdump dst host x.x.x.x // 监听目标host的流量 tcpdump port yy and src host x.x.x.x // 监听源host并且进入 port 的流量 常用的小参数:  -t // 不显示时间戳 -s 0 // 显示完整的数据包, 设置0, 就是默认的 262144, 建议设置短些, 这样感兴趣的可以早点暴露 !</description>
+    </item>
+    
+  </channel>
+</rss>

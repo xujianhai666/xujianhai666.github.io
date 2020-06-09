@@ -5,8 +5,761 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Sun, 17 May 2020 12:33:18 +0800</lastBuildDate>
+        <lastBuildDate>Mon, 08 Jun 2020 13:11:08 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Python_tool</title>
+            <link>https://xujianhai.fun/posts/python_tool/</link>
+            <pubDate>Mon, 08 Jun 2020 13:11:08 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/python_tool/</guid>
+            <description>火焰图 pyframe https://github.com/uber/pyflame https://pyflame.readthedocs.io/en/latest/
+不侵入代码, 支持诊断多线程. 支持 火焰图、线程应用、stack trace. 但是不支持web导出, 需要自己做
+vprof https://github.com/nvdv/vprof
+支持cpu火焰图、内存火焰图，代码执行时间、web导出, 看上去很丰富
+profile_online https://github.com/rfyiamcool/profiler_online
+比较简单, 只支持火焰图, 支持web导出
+py-spy https://github.com/benfred/py-spy
+打印堆栈、火焰图、top</description>
+            <content type="html"><![CDATA[<h2 id="火焰图">火焰图</h2>
+<h3 id="pyframe">pyframe</h3>
+<p><a href="https://github.com/uber/pyflame">https://github.com/uber/pyflame</a>
+<a href="https://pyflame.readthedocs.io/en/latest/">https://pyflame.readthedocs.io/en/latest/</a></p>
+<p>不侵入代码, 支持诊断多线程. 支持 火焰图、线程应用、stack trace. 但是不支持web导出, 需要自己做</p>
+<h3 id="vprof">vprof</h3>
+<p><a href="https://github.com/nvdv/vprof">https://github.com/nvdv/vprof</a></p>
+<p>支持cpu火焰图、内存火焰图，代码执行时间、web导出, 看上去很丰富</p>
+<h3 id="profile_online">profile_online</h3>
+<p><a href="https://github.com/rfyiamcool/profiler_online">https://github.com/rfyiamcool/profiler_online</a></p>
+<p>比较简单, 只支持火焰图, 支持web导出</p>
+<h2 id="py-spy">py-spy</h2>
+<p><a href="https://github.com/benfred/py-spy">https://github.com/benfred/py-spy</a></p>
+<p>打印堆栈、火焰图、top</p>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Mit_6</title>
+            <link>https://xujianhai.fun/posts/mit_6.824/</link>
+            <pubDate>Sat, 06 Jun 2020 10:23:10 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/mit_6.824/</guid>
+            <description>序 记录学习 mit 6.824 课程的经历
+MapReduce 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
+模型 如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.
+分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)
+map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散
+hadoop 架构
+将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.
+问题  难以实时计算(处理存储在磁盘上的离线数据) 不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark) 难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)  GFS 架构 根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB.</description>
+            <content type="html"><![CDATA[<h2 id="序">序</h2>
+<p>记录学习 mit 6.824 课程的经历</p>
+<h2 id="mapreduce">MapReduce</h2>
+<h3 id="目标">目标:</h3>
+<p>将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计</p>
+<h3 id="模型">模型</h3>
+<p><img src="/mapreduce.png" alt="mapreduce" title=""></p>
+<p>如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.</p>
+<p>分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)</p>
+<p>map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散</p>
+<h3 id="hadoop">hadoop</h3>
+<p>架构</p>
+<p>将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.</p>
+<h3 id="问题">问题</h3>
+<ol>
+<li>难以实时计算(处理存储在磁盘上的离线数据)</li>
+<li>不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark)</li>
+<li>难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)</li>
+</ol>
+<h2 id="gfs">GFS</h2>
+<h3 id="架构">架构</h3>
+<p><img src="/gfs_arch.png" alt="arch" title=""></p>
+<p>根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB.</p>
+<p>master的数据特点: 通过operation log 记录所有请求操作, 并定期将内存状态存储到checkpoint, 加快恢复时间.
+chunkserver的数据特点: chunk内部会划分成 64KB 的 block, 每个block做checksum校验, 避免损坏的数据.</p>
+<p>在高可用方面, master 也是多副本的, 不过以standby的形式存在, 当master挂了, 通过DNS切换通知客户端. chunkserver本身的多副本机制确保了高可用.</p>
+<p>需要注意的是, master 持久化的元数据并不包括 chunk-&gt;chunkservers 的映射, 这个是通过master-chunkserver 之间的心跳上报实现的. (rocketmq中topic-&gt;brokers的映射也是这样, kafka则将这些信息维护在了zk上)</p>
+<h3 id="写入">写入</h3>
+<p><img src="/gfs_write.png" alt="write" title=""></p>
+<p>写入比较特殊, 根据论文, 写入其实是个两阶段提交, 如图所示, 首先, 客户端从master获取到元数据(primary+secondary replica)并缓存起来, 然后客户端向所有的chunkserver发送写请求, chunkserver 将请求写入到自己的LRU缓存(注意这里没落盘), 确保全部写入成功后(失败会重试), client 请求primary提交数据, primary 会分配一个连续的序列号, 然后将将之前的修改存储起来, 然后primary请求所有secondary进行落盘, 如果部分replica落盘失败, primary返回错误给client, client会重试保证最终成功避免数据的不一致.</p>
+<p>但是我比较疑惑的是, 写入是指写入到指定位置(offset) 还是指定的chunk 吗? append 的语意比较清晰, 就是追加到文件末尾.</p>
+<p>append语意比write略微复杂, append 需要保证写入的chunk有足够的空间容纳数据, 否则会对当前chunk进行补齐(primary会同步secondary进行同样的操作), 然后client重试下一个chunk.</p>
+<p>gfs并没有支持更新.</p>
+<p>需要注意的时候, 数据的一致性完全依赖客户端的重试. 这样选主之后, 即使primary不是最新的, 也可以通过重试补齐. 有些暴力, 因为很多业务并不需要全部成功, 可以容忍失败, 希望尽快的返回错误, 因此现在基本上使用 raft 的方式同步, 但是相比retry, 复杂了些, 而且raft 至少需要三副本.</p>
+<h3 id="hdfs">hdfs</h3>
+<p>架构</p>
+<p>开源有hdfs, hdfs存在以下问题:</p>
+<ol>
+<li>不适合低延迟数据访问, hdfs 的设计目标是高吞吐量</li>
+<li>无法存储大量小文件 (参考facebook hystack)</li>
+<li>不支持多用户写入和随机修改 (hdfs的一个文件只有一个写入者, 并且是追加写)</li>
+</ol>
+<h3 id="hbase">hbase</h3>
+<h3 id="新版cfs">新版cfs</h3>
+<p>google 对gfs做了一次升级, 降低master单点故障, 但是思路很神奇, 最终是将元数据存储在chubby+bigtable上. 更多参考</p>
+<ul>
+<li><a href="https://levy.at/blog/22">https://levy.at/blog/22</a></li>
+</ul>
+<h2 id="primary-backup">primary-backup</h2>
+<h2 id="raft">raft</h2>
+<p>以可理解性为目标, 解耦了 leader election、log replication、safety? 状态一致性提升，</p>
+<ul>
+<li>strong leader: 写从leader流向 follower</li>
+<li>leader election: 随机timer</li>
+<li>membership change: joint consensus</li>
+</ul>
+<p>基于 有序的replicated log 的复制状态机(replicated state machine). 一致性模块 确保 replicated log的一致性.</p>
+<p>Oki and Liskov’s Viewstamped
+Replication [29, 22]</p>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Kafka_group_coordinator</title>
+            <link>https://xujianhai.fun/posts/kafka_group_coordinator/</link>
+            <pubDate>Sat, 30 May 2020 21:27:58 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/kafka_group_coordinator/</guid>
+            <description>preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
+coordinator coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
+coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
+客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer.</description>
+            <content type="html"><![CDATA[<h2 id="preface">preface</h2>
+<p>因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator</p>
+<h2 id="coordinator">coordinator</h2>
+<p>coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理</p>
+<p>coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:</p>
+<pre><code>客户端找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 
+</code></pre><p>在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer.  使用 GroupMetadata 表示 group 的状态, 记录协议的兼容性、group generation、offset管理 等等
+注意: member的 clientId 默认是 clientId/instanceId-uuid; 每次rebalance都会递增 generation</p>
+<h3 id="基本概念">基本概念</h3>
+<p>触发rebalance的时机:</p>
+<ul>
+<li>组成员个数发生变化 (加入或者离开)</li>
+<li>Topic 个数发生变化</li>
+<li>Topic 分区数发生变化</li>
+</ul>
+<p>如何感知消费者进程挂掉?</p>
+<ul>
+<li>session 过期 (????)</li>
+<li>heartbeat 过期</li>
+</ul>
+<p>(ps: 可以作为基本的服务端开发者的概念面试)</p>
+<h3 id="选举">选举</h3>
+<p>coordinator 选举依赖 <code>__consumers_offsets</code> topic, <code>__consumers_offsets</code> 是 coordinator 用来存储 consumer acked offset, 通过确定 group offset写入的分区 来确定 coordinator, 分区 leader 就是指定group的 coordinator. 实现参看 <code>kafkaApis#handleFindCoordinatorRequest</code>. group -&gt; coordinator 的算法如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-GroupMetadataManager.scala" data-lang="GroupMetadataManager.scala"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">GroupMetadataManager</span><span style="color:#f92672">{</span>
+
+  <span style="color:#75715e">// GROUP_METADATA_TOPIC_NAME 就是 __consumer_offsets
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">def</span> getGroupMetadataTopicPartitionCount<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Int</span> <span style="color:#f92672">=</span> <span style="color:#f92672">{</span>
+    zkClient<span style="color:#f92672">.</span>getTopicPartitionCount<span style="color:#f92672">(</span><span style="color:#a6e22e">Topic</span><span style="color:#f92672">.</span><span style="color:#a6e22e">GROUP_METADATA_TOPIC_NAME</span><span style="color:#f92672">)</span><span style="color:#f92672">.</span>getOrElse<span style="color:#f92672">(</span>config<span style="color:#f92672">.</span>offsetsTopicNumPartitions<span style="color:#f92672">)</span>
+  <span style="color:#f92672">}</span>
+
+  <span style="color:#75715e">/*</span><span style="color:#75715e"> number of partitions for the consumer metadata topic </span><span style="color:#75715e">*/</span>
+  <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">val</span> groupMetadataTopicPartitionCount <span style="color:#66d9ef">=</span> getGroupMetadataTopicPartitionCount
+
+  <span style="color:#66d9ef">def</span> partitionFor<span style="color:#f92672">(</span>groupId<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">String</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Int</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">Utils</span><span style="color:#f92672">.</span>abs<span style="color:#f92672">(</span>groupId<span style="color:#f92672">.</span>hashCode<span style="color:#f92672">)</span> <span style="color:#f92672">%</span> groupMetadataTopicPartitionCount	
+<span style="color:#f92672">}</span>  
+</code></pre></div><h3 id="consumer-的管理">consumer 的管理</h3>
+<p>consumer 的维护是基于心跳实现, 也是基于 DelayedOperation 的实现: DelayedHeartbeat. 触发 DelayedHeartbeat 投递到 延迟队列有很多情况, 常见的有 join、rebalance 结束 和 consumer 每次投递心跳. 前两个是server触发延迟心跳, 后者通过客户端心跳进行周期性投递触发. consumer 发送 heartbeat 的时候, 服务端就会尝试将 之前的 heartbeat <code>tryComplete</code>, 进而触发 <code>onComplete</code>.</p>
+<p>问题:
+特殊的参数 <code>isPending</code>, unknow join 的时候, kafka group coordinator 会生成一个 memberId, 并将新的memberId下发到consumer, 并要求consumer在心跳超时时间内投递心跳. 在静态成员 这个feature之前, 所有的memberId都是 group coordinator 自动生成的, 并且是不保存的, 这样的设计之下, 导致了 group member 在join的时候, 所有的 member都需要强制加入 (无法做到粘性分配). 在 静态成员 feature之后, 虽然 clientId 还是动态的, 但是可以确保没有超时之前, 静态成员的加入不会触发 rebalance.</p>
+<p>补充: 早期的实现中, 心跳和处理流程在一个线程, 导致处理时间太长的场景下心跳失活被踢出group, 引起不必要的rebalance. 详情参看 <a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-62%3A+Allow+consumer+to+send+heartbeats+from+a+background+thread">https://cwiki.apache.org/confluence/display/KAFKA/KIP-62%3A+Allow+consumer+to+send+heartbeats+from+a+background+thread</a></p>
+<h3 id="joinsync-设计">join&amp;sync 设计</h3>
+<p>首先回顾下 join 的几个主要设计</p>
+<p><em>早期</em></p>
+<p>早期的join(stop-the-world/Eager/global/dynamic membership)实现, 每次触发rebalance, 就需要所有consumer重新加入, 在sync 结果之前, 是不能消费的. 整体流程是: 延迟join -&gt; leader calc -&gt; sync result. 并且如果是unknow group join, 还需要服务端重新生成 clientId并触发consumer重新加入.</p>
+<p>参考: <a href="https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Detailed+Consumer+Coordinator+Design">https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Detailed+Consumer+Coordinator+Design</a></p>
+<p>对于有状态的应用, 创建一个group并生成多个consumer消费的时候, 会发现有多次rebalance, 因此每个consumer加入group都会触发一次rebalance, 对于有状态的应用 (需要初始化一些资源) 会很重.</p>
+<p>DelayJoin的设计: <a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-134%3A+Delay+initial+consumer+group+rebalance">https://cwiki.apache.org/confluence/display/KAFKA/KIP-134%3A+Delay+initial+consumer+group+rebalance</a></p>
+<p><em>static member</em></p>
+<p>对于有状态的应用, 每次rebalance都是很严重的, 因为涉及到数据迁移, 术语是 <code>state shuffling</code>, 因此设计了 static member, 通过固化 group.instance.id 减少状态迁移, 上层consumer分配能够将 相同的<code>assignment</code> 分配给 同一个的instance.id. 细节参看</p>
+<ul>
+<li><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A+Introduce+static+membership+protocol+to+reduce+consumer+rebalances">https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A+Introduce+static+membership+protocol+to+reduce+consumer+rebalances</a></li>
+<li><a href="https://www.confluent.io/blog/kafka-rebalance-protocol-static-membership/">https://www.confluent.io/blog/kafka-rebalance-protocol-static-membership/</a></li>
+</ul>
+<p>注意这个是 group.instance.id, 并不是 clientId, clientId 依旧是动态的, 存在 group.instance.id 的时候, 会拼接 group.instance.id 和 UUID. 另外, 这种机制下, consumer offline 就不会发送 <code>leave group request</code>, 依赖 group sessionTimeout 触发 group rebalance.</p>
+<p><em>渐进式</em></p>
+<p>因为动态rebalance是全部撤销partition分配在进行重分配的, 这里会导致严重的 stop-the-world 问题. 作为对比, rocketmq 在消费的时候, consumer 只有在计算知道partition不属于自己的时候才会停止消费, 而不是每次rebalance之前就停止所有消费, 一定程度上降低了 stop-the-world 的风险. 为此, kafka 提出了 <code>Incremental Cooperative Rebalancing</code> 的想法, 避免rebalance的时候释放资源, 降低释放-重新获取的开销. 这个需求推测来自 kafka-connect 和 kafka-stream. 但是在 k8s 滚动升级、死亡恢复、垂直扩容/缩容 的场景中还是很重要的. 这个想法其实早在 connect 中就实现了, 参考 <code>https://www.confluent.io/blog/incremental-cooperative-rebalancing-in-kafka/</code>.</p>
+<p>渐进式最早的文章可以参考: <code>https://cwiki.apache.org/confluence/display/KAFKA/Incremental+Cooperative+Rebalancing%3A+Support+and+Policies</code>, 最早在connect相关的kip是 <code>https://cwiki.apache.org/confluence/display/KAFKA/KIP-415%3A+Incremental+Cooperative+Rebalancing+in+Kafka+Connect</code>, kafka consumer相关的kip是 <code>https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A+Kafka+Consumer+Incremental+Rebalance+Protocol</code>.</p>
+<p>渐进式方案中, 其实有两种实现, 一种是 kafka connect, 一种是 kafka consumer. consumer 和connect 在实现上不一样, 因为并不需要引入 <code>scheduledDelay</code>. 整体实现上并不需要broker参与, 主要是 consumer 实现, 需要修改默认行为·协议以及配合sticky assigner:<code>CooperativeStickyAssignor</code></p>
+<p><em>coding</em></p>
+<p>join/sync的处理主体逻辑: GroupCoordinator#handleJoinGroup/handleSyncGroup, join因为存在一个延迟特性, 和心跳类似, 也是一个 <code>DelayedOperation</code>的设计, 每次consumer join都会尝试结束 group 的 rebalance.</p>
+<h3 id="offset-提交">offset 提交</h3>
+<p>kafka 0.9 以及之后的版本, 都是用 kafka compacted log 存储日志, topic 是 <code>__consumer_offsets</code>. 基于 replicaManager 实现, 参考 GroupMetadataManager#appendForGroup.</p>
+<h3 id="其他设计">其他设计</h3>
+<p>rebalance generation 设计, 隔离无效offset提交的。比如上一届的consumer成员是无法提交位移到新一届的consumer group中</p>
+<p>sessionTimeout  kafka规定了 min 和max, sessionTimeout 需要在这两个之间, 就是心跳的超时时间
+rebalanceTimeout</p>
+<p>group 在 kafka 的几种状态:</p>
+<pre><code>Dead：组内已经没有任何成员的最终状态，组的元数据也已经被coordinator移除了。这种状态响应各种请求都是一个response：UNKNOWN_MEMBER_ID
+Empty：组内无成员，但是位移信息还没有过期。这种状态只能响应JoinGroup请求
+PreparingRebalance：组准备开启新的rebalance，等待成员加入
+CompletingRebalance：正在等待leader consumer将分配方案传给各个成员
+Stable：rebalance完成！可以开始消费了
+</code></pre><h2 id="参考">参考:</h2>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/98770059">https://zhuanlan.zhihu.com/p/98770059</a></li>
+</ul>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Linux_iouring</title>
+            <link>https://xujianhai.fun/posts/linux_iouring/</link>
+            <pubDate>Tue, 26 May 2020 22:32:44 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/linux_iouring/</guid>
+            <description>Preface 最近内部经常讨论 io_uring, 这块不是很了解, 特别记录下
+回顾io linux io 模型中主要区分四种类型区分: 同步io 非同步io 和 阻塞io 非阻塞io, 通过不同的组合, 有不同的模型. 如下:
+ 同步io + 阻塞io: 用户进程会被阻塞在 recvfrom. 同步io + 非阻塞io: recvfrom 会返回 错误表示数据还没有到来, 不会阻塞. O_NONBLOCK 参数 同步io + 阻塞io: io多路复用: select/poll/epoll, 虽然读写不会阻塞在recvfrom, 但是会阻塞在select调用. 信号驱动: 接收到信号之后需要自己操作 异步io: 内核操作完通知. 操作系统提供了 libaio  有人还将 异步io + epoll 进行了实现: http://m.blog.chinaunix.net/uid-16979052-id-3840266.html
+io_uring   定位: 更高 IOPS 的 async syscall api. (io层的异步api, 主打高性能)
+  特点&amp;amp;主要概念
+ 基于ringbuffer 的设计, 提交队列和完成队列只存储索引, SQEs(submission queue entries) 存储请求, 这样提交的请求可以内存不连续 用户态和系统态 通过 mmap 共享 提交队列 和 完成队列, 减少地址映射开销 在poll模式下, IO提交和收割 可以由 kernel 完成, 不需要系统调用, 系统会启动一个 SQ Poll 的内核线程不断poll (没有请求会睡眠), 处理 sq 和 cq 非poll模式下, io_uring_enter 会阻塞, 完成 SQ Poll 线程的任务 提供了polling和非polling两种模式, 和底层实现有关, 非polling性能比 libaio 提升不了多少, polling 模式和 SPDK 非常接近.</description>
+            <content type="html"><![CDATA[<h2 id="preface">Preface</h2>
+<p>最近内部经常讨论 io_uring, 这块不是很了解, 特别记录下</p>
+<h2 id="回顾io">回顾io</h2>
+<p>linux io 模型中主要区分四种类型区分: 同步io 非同步io 和 阻塞io 非阻塞io, 通过不同的组合, 有不同的模型. 如下:</p>
+<ul>
+<li>同步io + 阻塞io: 用户进程会被阻塞在 recvfrom.</li>
+<li>同步io + 非阻塞io: recvfrom 会返回 错误表示数据还没有到来, 不会阻塞. O_NONBLOCK 参数</li>
+<li>同步io + 阻塞io: io多路复用: select/poll/epoll, 虽然读写不会阻塞在recvfrom, 但是会阻塞在select调用.</li>
+<li>信号驱动: 接收到信号之后需要自己操作</li>
+<li>异步io: 内核操作完通知. 操作系统提供了 libaio</li>
+</ul>
+<p>有人还将 异步io + epoll 进行了实现: <a href="http://m.blog.chinaunix.net/uid-16979052-id-3840266.html">http://m.blog.chinaunix.net/uid-16979052-id-3840266.html</a></p>
+<h2 id="io_uring">io_uring</h2>
+<ul>
+<li>
+<p>定位: 更高 IOPS 的 async syscall api. (io层的异步api, 主打高性能)</p>
+</li>
+<li>
+<p>特点&amp;主要概念</p>
+<ul>
+<li>基于ringbuffer 的设计, 提交队列和完成队列只存储索引, SQEs(submission queue entries) 存储请求, 这样提交的请求可以内存不连续</li>
+<li>用户态和系统态 通过 mmap 共享 提交队列 和 完成队列, 减少地址映射开销</li>
+<li>在poll模式下, IO提交和收割 可以由 kernel 完成, 不需要系统调用, 系统会启动一个 SQ Poll 的内核线程不断poll (没有请求会睡眠), 处理 sq 和 cq</li>
+<li>非poll模式下, io_uring_enter 会阻塞, 完成 SQ Poll 线程的任务</li>
+<li>提供了polling和非polling两种模式, 和底层实现有关, 非polling性能比 libaio 提升不了多少, polling 模式和 SPDK 非常接近.  io_uring 有</li>
+<li>支持 buffered io</li>
+</ul>
+</li>
+</ul>
+<p>相比于之前的aio, 更好的支持了 buffered io, aio 只对 direct io 进行了很好的支持.</p>
+<h2 id="aio">aio</h2>
+<p>不是很推荐, 不赘述, 参考: <a href="https://www.man7.org/linux/man-pages/man7/aio.7.html">https://www.man7.org/linux/man-pages/man7/aio.7.html</a></p>
+<h2 id="iocp">iocp</h2>
+<p>windows</p>
+<h2 id="spdk">spdk</h2>
+<ul>
+<li>
+<p>定位: 用户态存储应用程序的工具和库</p>
+</li>
+<li>
+<p>特点: 用户态、轮询、异步、无锁 NVMe 驱动,</p>
+</li>
+</ul>
+<p>和iouring (优化系统调用)相比, spdk 是一种bypass kernel的实现方式, 基于 VFIO 在用户态重新实现 NVMe 驱动和协议.</p>
+<p>如何体现了这些特点?
+用户态: 在用户态重新实现 NVMe 驱动和协议
+无锁化: 避免多线程由于对锁的争抢而引入的性能开销
+轮询: 避免了传统中断方式由于上下文切换而引入的性能开销, 轮询是否有数据包达到, 没包进入中断
+vhost 的 ringbuffer设计: vhost 作为虚拟机存储的后端，以进程的形式在宿主机上运行，通过轮询的方式从共享的 Ring Buffer 中得到虚拟机中的 IO 请求，并进行处理，最后将处理完的数据同样通过 Ring Buffer 的方式通知虚拟机。整个过程不需要锁的保护，没有中断引入的开销，效率极高</p>
+<p>补充:</p>
+<ul>
+<li>nvme 是ssd的一套规范, 定义了 主机软件 通过PCIe 和 非易失性内存的方式, 在 SATA 中 host 和 cpu 只有一个通道/队列, 无法充分利用多核, 而在 nvme, 每个核都可以有 65535 (64k) 个队列.</li>
+<li>DPDK: 在传统的 x86 结构中, 网卡收到数据包后需要通过中断方式通知 cpu 处理(cpu拷贝数据到协议栈), 大数据量的时候 中断是个很大的开销. DPDK 模式下, 网卡收到数据包后, 通过零拷贝技术直接将数据存储到内存.</li>
+</ul>
+<p>QEMU: 硬件虚拟化软件, 处理器、内存、IO 设备的虚拟化, 本质上是一个用户进程.
+kvm: linux的一个内核驱动模块,在内核模式和用户模式之外提供了客户模式, 能够加速QEMU.</p>
+<p>NVMe-oF, iSCSI, 和
+vhost</p>
+<h3 id="参考">参考</h3>
+<ul>
+<li><a href="https://cloud.tencent.com/developer/article/1198333">https://cloud.tencent.com/developer/article/1198333</a> (一文看懂DPDK)</li>
+<li><a href="https://zh.wikipedia.org/wiki/DPDK">https://zh.wikipedia.org/wiki/DPDK</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/48664113">https://zhuanlan.zhihu.com/p/48664113</a> (QEMU和KVM的关系)</li>
+<li><a href="https://zh.wikipedia.org/wiki/QEMU">https://zh.wikipedia.org/wiki/QEMU</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/52970477">https://zhuanlan.zhihu.com/p/52970477</a> (使用SPDK技术优化虚拟机本地存储的IO性能)</li>
+<li><a href="https://zhuanlan.zhihu.com/p/71932170">https://zhuanlan.zhihu.com/p/71932170</a> (一篇文章讲清什么是NVMe)</li>
+<li><a href="https://nvmexpress.org/">https://nvmexpress.org/</a></li>
+<li><a href="https://www.man7.org/linux/man-pages/man7/aio.7.html">https://www.man7.org/linux/man-pages/man7/aio.7.html</a></li>
+<li><a href="https://kernel.dk/io_uring.pdf">https://kernel.dk/io_uring.pdf</a></li>
+<li><a href="https://lwn.net/Articles/776703/">https://lwn.net/Articles/776703/</a> (Ringing in a new asynchronous I/O API)</li>
+<li><a href="https://kernelnewbies.org/Linux_5.1">https://kernelnewbies.org/Linux_5.1</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/62682475">https://zhuanlan.zhihu.com/p/62682475</a> (AIO 的新归宿：io_uring)</li>
+<li><a href="https://kernel.taobao.org/2019/06/io_uring-a-new-linux-asynchronous-io-API/">https://kernel.taobao.org/2019/06/io_uring-a-new-linux-asynchronous-io-API/</a></li>
+<li><a href="http://m.blog.chinaunix.net/uid-16979052-id-3840266.html">http://m.blog.chinaunix.net/uid-16979052-id-3840266.html</a> (linux AIO libaio和epoll实现非阻塞模型)</li>
+<li><a href="https://spdk.io/cn/">https://spdk.io/cn/</a></li>
+</ul>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Kafka_controller</title>
+            <link>https://xujianhai.fun/posts/kafka_controller/</link>
+            <pubDate>Tue, 26 May 2020 11:45:58 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/kafka_controller/</guid>
+            <description>Preface kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考
+Redesign 网上关于 redesign(https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.
+从文章内容上来看, 主要存在以下问题:
+ 每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除) controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发) 并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作) controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步) 控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失) controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求) zkClinet 没有状态管理 导致了什么问题?</description>
+            <content type="html"><![CDATA[<h2 id="preface">Preface</h2>
+<p>kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考</p>
+<h2 id="redesign">Redesign</h2>
+<p>网上关于 redesign(<a href="https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko">https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko</a>) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.</p>
+<p>从文章内容上来看, 主要存在以下问题:</p>
+<ol>
+<li>每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除)</li>
+<li>controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发)</li>
+<li>并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作)</li>
+<li>controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步)</li>
+<li>控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失)</li>
+<li>controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求)</li>
+<li>zkClinet 没有状态管理  导致了什么问题? (线性处理逻辑导致最新的notification没有被及时通知到)</li>
+</ol>
+<p>针对上面的问题, 又是怎么处理的呢? 基于文档和 当前版本2.6</p>
+<ol>
+<li>使用异步的zk api</li>
+<li>controller-broker 请求批量 (实现了)</li>
+<li>单线程的事件处理模型 (队列抽象: ControllerEvent+QueuedEvent+ControllerEventThread 的设计)</li>
+<li>重构cluster的状态管理 (抽象了ControllerState和处理模型)</li>
+<li>controller 请求设置一个优先级  (没做, 因为两个队列会导致 优先级/普通队列 延迟高)</li>
+<li>controller-broker 请求有generation的概念 (epoch, 怎么实现？)</li>
+<li>使用 vanilla zk 客户端, 更好的处理客户端状态 (回调, 结合event queue clear, 提供了client状态的回调)</li>
+</ol>
+<h2 id="code-review">Code Review</h2>
+<h3 id="event-设计">Event 设计</h3>
+<p>先从整体上看下, 在目前的版本 &ldquo;2.6&rdquo; 中, 最大的改动是 事件的抽象, 事件的抽象不是简单的event, 而是包含了整理处理流程的设计. 参考 ControllerEventManager.scala . 主要的对象如下:</p>
+<pre><code>trait ControllerEventProcessor {
+  def process(event: ControllerEvent): Unit
+  def preempt(event: ControllerEvent): Unit
+}
+
+class QueuedEvent(val event: ControllerEvent,
+                  val enqueueTimeMs: Long) {
+}
+
+class ControllerEventManager(controllerId: Int,
+                             processor: ControllerEventProcessor,
+                             time: Time,
+                             rateAndTimeMetrics: Map[ControllerState, KafkaTimer]) extends KafkaMetricsGroup {
+
+  def put(event: ControllerEvent): QueuedEvent = inLock(putLock) {
+    val queuedEvent = new QueuedEvent(event, time.milliseconds())
+    queue.put(queuedEvent)
+    queuedEvent
+  }
+
+  class ControllerEventThread(name: String) extends ShutdownableThread(name = name, isInterruptible = false) {
+    logIdent = s&quot;[ControllerEventThread controllerId=$controllerId] &quot;
+
+    override def doWork(): Unit = {
+      val dequeued = queue.take()
+      dequeued.event match {
+        case ShutdownEventThread =&gt; // The shutting down of the thread has been initiated at this point. Ignore this event.
+        case controllerEvent =&gt;
+          _state = controllerEvent.state
+
+          eventQueueTimeHist.update(time.milliseconds() - dequeued.enqueueTimeMs)
+
+          try {
+            def process(): Unit = dequeued.process(processor)
+
+            rateAndTimeMetrics.get(state) match {
+              case Some(timer) =&gt; timer.time { process() }
+              case None =&gt; process()
+            }
+          } catch {
+            case e: Throwable =&gt; error(s&quot;Uncaught error processing event $controllerEvent&quot;, e)
+          }
+
+          _state = ControllerState.Idle
+      }
+    }
+  }
+}
+</code></pre><p>event 会投递先投递到queue中, 然后由 单线程 ControllerEventThread 不断从队列中获取然后处理, 处理流程 调用event#process, 其实最终调用的是 ControllerEventProcessor#process . 也就是说 event 一次进入队列, 但是最终处理都是统一在了 ControllerEventProcessor#process, 通过队列简化了并发问题. 在Kafka 中, ControllerEventProcessor 只有 KafkaController 这个唯一实现.</p>
+<h3 id="存储-zkcontrollercontext">存储: zk&amp;ControllerContext</h3>
+<p>kafka 基于 zk 做了元数据存储和动态监听, 除了 zk, kafka 在本地也缓存了一份数据在 ControllerContext. zk的paht和数据编解码在 ZkData 目录下.</p>
+<p>在实施细节层面, zk 是基于异步 的方式, 对于常用的zk操作命令进行了重新的封装, 进行zk请求的时候通过注册 DataCallback/StatCallback/Children2Callback 等进行异步操作. 参见 zookeeper/ZookeeperClient.scala</p>
+<p>但是Kafka 并不是直接操作 ZookeeperClient, 而是在 ZookeeperClient 上封装的 AdminZkClient 和 KafkaZkClient, 位于 zk 文件夹下</p>
+<p>除了直接操作zk, kafka controller 还会通过动态监听 zk节点信息, KafkaController对zk的zknode节点注册相应的handler, znode事件被触发之后 就会通过handler投递到 eventManager 的queue, 进行异步处理(上面的事件抽象).</p>
+<p>补充: ControllerContext 作为缓存, 不仅仅是zk 数据的全局快照, 而且还解耦了 PartitionStateMachine ReplicaStateMachine和 TopicDeletionManager, 避免相互依赖</p>
+<h3 id="controler-broker">controler-broker</h3>
+<p>controller 本质上是选主成功的 broker, controller 会进行topic、replica 等状态的维护, controller 会把 每次变更都 同步给其他broker. 变更同步的场景中, 在 0.11 版本之前是一个个broker进行同步阻塞的, 目前的版本中, 多个broker虽然也是轮流发送的, 但是 接收响应却是异步的, 通过这种方式提高了并发度, kafka 封装了场景的命令同步操作: LeaderAndIsrRequest、UpdateMetadataRequest、StopReplicaRequest, 对外提供了 ControllerBrokerRequestBatch 的设计. 消息回调的处理依旧使用了 event 机制避免并发混乱, 简化实现流程.</p>
+<p>网络通信层, broker 和 controller 的通信走的是 单线程 + 队列 + NIO selector 的设计, 每个broker单独一个线程处理.</p>
+<h3 id="状态抽象">状态抽象</h3>
+<p>采用了 事件处理机制之后, 有时候我们希望知道 controller 的内部状态处理的耗时, 这样我们就能很快定位到问题确保 Kafka 健康. 为此, kafka 抽象了 ControllerState, 并在 ControllerEventThread 处理的时候进行打点. 也就是说 kafka state 的抽象目前仅仅是用来打日志</p>
+<p>参看官方: <a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-143%3A+Controller+Health+Metrics">https://cwiki.apache.org/confluence/display/KAFKA/KIP-143%3A+Controller+Health+Metrics</a></p>
+<h3 id="状态机">状态机</h3>
+<p>PartitionStateMachine 负责partition 状态变更逻辑, kafkaController 是上层调用者, 自身主体逻辑位于 doHandleStateChanges , 比较有意思的事情是,  partition的leader选举分散到了两个地方, 本身的 electLeaderForPartitions 逻辑逻辑 以及 Election 算法实现, 将算法单独放在了 Election.scala 文件</p>
+<p>ZkReplicaStateMachine 负责replica的维护: 库容、缩容. 主体逻辑在: doHandleStateChanges</p>
+<p>TopicDeletionManager 处理topic删除逻辑, 为此删除单独开了一个zk节点, 避免对topic节点的干扰, 方面维护topic删除状态.</p>
+<h3 id="总结">总结</h3>
+<p>针对文件, 进行一下总结:</p>
+<ul>
+<li>ControllerChannelManager: 每个broker维护一个 NIO Selector + queue + 线程. 和0.11.0之前版本, 支持了批量, 同一个命令多个broker同时并行发送, 使用回调处理结果 (ControllerChannelManager.scala)</li>
+<li>批量的设计参考 ControllerBrokerRequestBatch:  ((ControllerChannelManager.scala))</li>
+<li>ControllerContext 抽象, 提供内部元数据的接口: 获取指定状态的partition、replica等. (ControllerContext.scala)</li>
+<li>ControllerEventManager: Event 抽象, controller、broker、topic、partition、replica 等变更都是一个event, ControllerEventManager&amp;ControllerEventThread 单线程处理</li>
+<li>ControllerState: 和event一一对应, 为什么呢?</li>
+<li>Election: 几种partition leader选举上线</li>
+<li>KafkaController: 基于event处理机制, 处理相应的事件, 注册handler监听zk</li>
+<li>replicaStateMachine: 处理replica内部的状态流转</li>
+<li>partitionStateMachine: 处理partition内部的状态流转</li>
+<li>TopicDeletionManager:  管理topic删除逻辑</li>
+</ul>
+<h2 id="关于选主">关于选主</h2>
+<p>&hellip;.</p>
+<h2 id="思考">思考</h2>
+<ol>
+<li>epoch</li>
+</ol>
+<p>为了能够明显的区分 generation 的概念, kafka 使用了 zxid 作为 epoch.</p>
+<ul>
+<li>brokerEpoch: 通过挂在临时节点 /brokers/ids/$id 获取的 czxid 作为epoch</li>
+<li>controllerEpoch: 挂载zk节点/controller_epoch, 自己做的自增</li>
+<li>partition 会存储 leader epoch 和 controllerEpoch, 是为什么呢？ leader epoch 存储的每次选主 都是自增的, 注意不是broker epoch. 为什么partition会存储controllerEpoch 呢? 这样避免controller脑裂. 在 partition 第一次初始化, 在进入online状态的时候, 会存储一个 brokerEpoch=0, 并同步到broker. 后面选主之后在更新.</li>
+</ul>
+<ol start="2">
+<li>zxid</li>
+</ol>
+<p>zookeeper 的每次节点变更都会受到一个 ZxId 格式的时间戳, 本质上一个 64位数字, 高32位 epoch是 leader 变更标记, 每次leader 选举, 都会变更. 低32位是一个递增计数. zookeeper 为每个节点维护了两个 zxid:</p>
+<ul>
+<li>czxid: 节点创建所对应的zxid</li>
+<li>mzxid: 节点修改对应的zxid</li>
+</ul>
+<p>参考:
+- <a href="https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Internals">https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Internals</a>
+- <a href="https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Redesign">https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Controller+Redesign</a>
+- <a href="https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko">https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko</a></p>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Kafka_socket</title>
+            <link>https://xujianhai.fun/posts/kafka_socket/</link>
+            <pubDate>Sat, 23 May 2020 17:13:38 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/kafka_socket/</guid>
+            <description>Preface 最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,
+深入 直接看下 socketServer 的注释 学习下理论.
+acceptor /***Handles new connections, requests and responses to and from broker. *Kafka supports two types of request planes : *- data-plane : *- Handles requests from clients and other brokers in the cluster. *- The threading model is *1 Acceptor thread per listener, that handles new connections. *It is possible to configure multiple data-planes by specifying multiple &amp;#34;,&amp;#34; separated endpoints for &amp;#34;listeners&amp;#34; in KafkaConfig.</description>
+            <content type="html"><![CDATA[<h2 id="preface">Preface</h2>
+<p>最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,</p>
+<h2 id="深入">深入</h2>
+<p>直接看下 socketServer 的注释 学习下理论.</p>
+<h3 id="acceptor">acceptor</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-SocketServer.scala" data-lang="SocketServer.scala"><span style="color:#75715e">/*</span><span style="color:#75715e">*</span><span style="color:#75715e">
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> Handles new connections, requests and responses to and from broker.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> Kafka supports two types of request planes :
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">  - data-plane :
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">    - Handles requests from clients and other brokers in the cluster.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">    - The threading model is
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      1 Acceptor thread per listener, that handles new connections.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      It is possible to configure multiple data-planes by specifying multiple &#34;,&#34; separated endpoints for &#34;listeners&#34; in KafkaConfig.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      Acceptor has N Processor threads that each have their own selector and read requests from sockets
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      M Handler threads that handle requests and produce responses back to the processor threads for writing.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">  - control-plane :
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">    - Handles requests from controller. This is optional and can be configured by specifying &#34;control.plane.listener.name&#34;.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      If not configured, the controller requests are handled by the data-plane.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">    - The threading model is
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      1 Acceptor thread that handles new connections
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      Acceptor has 1 Processor thread that has its own selector and read requests from the socket.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      1 Handler thread that handles requests and produce responses back to the processor thread for writing.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*/</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SocketServer</span> <span style="color:#f92672">{</span>
+	<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+<span style="color:#f92672">}</span>
+
+</code></pre></div><p>根据注释, Socketserver 无论是 数据面还是 控制面 的底层都是 Reactor IO模型, 每个listener有一个 NIOSelector 处理accept的连接, 对于建立的连接, 会分给 Processor 的线程处理, Processor 会将每个 新建的连接重新挂在到 processor 的 NIOSelector, 用来监听 读写事件.</p>
+<p>这里存在一个问题, 新创建的socket 怎么决定分配给 哪个 processor? 可以看下 run 方法, 其实也是 round-robin 实现.</p>
+<pre><code>private[kafka] class Acceptor {
+
+  /**
+   * Accept loop that checks for new connection attempts
+   */
+  def run(): Unit = {
+    serverChannel.register(nioSelector, SelectionKey.OP_ACCEPT)
+    startupComplete()
+    try {
+      var currentProcessorIndex = 0
+      while (isRunning) {
+        try {
+          val ready = nioSelector.select(500)
+          if (ready &gt; 0) {
+            val keys = nioSelector.selectedKeys()
+            val iter = keys.iterator()
+            while (iter.hasNext &amp;&amp; isRunning) {
+              try {
+                val key = iter.next
+                iter.remove()
+
+                if (key.isAcceptable) {
+                  accept(key).foreach { socketChannel =&gt;
+                    // Assign the channel to the next processor (using round-robin) to which the
+                    // channel can be added without blocking. If newConnections queue is full on
+                    // all processors, block until the last one is able to accept a connection.
+                    var retriesLeft = synchronized(processors.length)
+                    var processor: Processor = null
+                    do {
+                      retriesLeft -= 1
+                      processor = synchronized {
+                        // adjust the index (if necessary) and retrieve the processor atomically for
+                        // correct behaviour in case the number of processors is reduced dynamically
+                        currentProcessorIndex = currentProcessorIndex % processors.length
+                        processors(currentProcessorIndex)
+                      }
+                      currentProcessorIndex += 1
+                    } while (!assignNewConnection(socketChannel, processor, retriesLeft == 0))
+                    // round-robin 实现
+                  }
+                } else
+                  throw new IllegalStateException(&quot;Unrecognized key state for acceptor thread.&quot;)
+              } catch {
+                case e: Throwable =&gt; error(&quot;Error while accepting connection&quot;, e)
+              }
+            }
+          }
+        }
+      }
+    }
+}
+</code></pre><p>这里的 Acceptor 就是 kafka 对 reactor 中 acceptor的抽象, 用来处理新创建的连接.  需要注意的是, 虽然是 roudn-robin, 但并不是简单的实现, 在 processor 模型中, processor 也是队列的模型, 每个请求也是先投递到队列中, 如果队列满了话, 就会尝试下一个, 但是如果下一个也满了的话, 会轮询下一个, 知道最后一个, 这个时候会一直堵塞. 可以看 processor 的accept 逻辑</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-SocketServer.scala" data-lang="SocketServer.scala"><span style="color:#75715e">/*</span><span style="color:#75715e">*</span><span style="color:#75715e">
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> Thread that processes all requests from a single connection. There are N of these running in parallel
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> each of which has its own selector
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*/</span>
+<span style="color:#66d9ef">private</span><span style="color:#f92672">[</span><span style="color:#66d9ef">kafka</span><span style="color:#f92672">]</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Processor</span> <span style="color:#f92672">{</span>
+  <span style="color:#75715e">/*</span><span style="color:#75715e">*</span><span style="color:#75715e">
+</span><span style="color:#75715e">   </span><span style="color:#75715e">*</span><span style="color:#75715e"> Queue up a new connection for reading
+</span><span style="color:#75715e">   </span><span style="color:#75715e">*/</span>
+  <span style="color:#66d9ef">def</span> accept<span style="color:#f92672">(</span>socketChannel<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">SocketChannel</span><span style="color:#f92672">,</span>
+             mayBlock<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Boolean</span><span style="color:#f92672">,</span>
+             acceptorIdlePercentMeter<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">com</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">yammer</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">metrics</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">core</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">Meter</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Boolean</span> <span style="color:#f92672">=</span> <span style="color:#f92672">{</span>
+    <span style="color:#66d9ef">val</span> accepted <span style="color:#66d9ef">=</span> <span style="color:#f92672">{</span>
+      <span style="color:#66d9ef">if</span> <span style="color:#f92672">(</span>newConnections<span style="color:#f92672">.</span>offer<span style="color:#f92672">(</span>socketChannel<span style="color:#f92672">)</span><span style="color:#f92672">)</span>
+        <span style="color:#66d9ef">true</span>
+      <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#f92672">(</span>mayBlock<span style="color:#f92672">)</span> <span style="color:#f92672">{</span>  <span style="color:#75715e">// 只有最后一个才会 blocking
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">val</span> startNs <span style="color:#66d9ef">=</span> time<span style="color:#f92672">.</span>nanoseconds
+        newConnections<span style="color:#f92672">.</span>put<span style="color:#f92672">(</span>socketChannel<span style="color:#f92672">)</span>
+        acceptorIdlePercentMeter<span style="color:#f92672">.</span>mark<span style="color:#f92672">(</span>time<span style="color:#f92672">.</span>nanoseconds<span style="color:#f92672">(</span><span style="color:#f92672">)</span> <span style="color:#f92672">-</span> startNs<span style="color:#f92672">)</span>
+        <span style="color:#66d9ef">true</span>
+      <span style="color:#f92672">}</span> <span style="color:#66d9ef">else</span>
+        <span style="color:#66d9ef">false</span>
+    <span style="color:#f92672">}</span>
+    <span style="color:#66d9ef">if</span> <span style="color:#f92672">(</span>accepted<span style="color:#f92672">)</span>
+      wakeup<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+    accepted
+  <span style="color:#f92672">}</span>
+</code></pre></div><h3 id="quota">Quota</h3>
+<p>broker IO 实现清晰了很多, 但是broker 如何自我保护呢? 比如 连接数太多 以及 client produce/consume 太多的问题?</p>
+<h3 id="connection-quota">connection quota</h3>
+<p>broker支持 连接数上限的设置. 当客户端连接数过多超过上限, broker 获取到这个连接之后, 就会等待quota, 并且是无限等待, 直到有其他连接关闭释放 quota. 可以参考 SocketServer.scala 中的 ConnectionQuotas 实现. 当 Acceptor#accept 获取到客户端连接的时候, 会调用 ConnectionQuotas#inc 尝试获取 quota, quota 内部使用 <code>mutable.Map</code> 实现, 这个数据结构除了map的常规用法, 还提供了 wait 和 notify 语意. 当连接关闭的时候, 会调用 ConnectionQuota#dec 释放quota, 调用 mutable.Map#notify 通知阻塞的连接等待.</p>
+<p>在配置方面, 既支持 broker 最大连接数, 也支持每个listener的连接数配置</p>
+<h3 id="客户端-quota">客户端 Quota</h3>
+<p>在 0.9 版本, kakfa 提供了这个功能, 0.10 版本添加了 zk 的配置.</p>
+<p>client quota 是通过 限速实现的, 限制每秒的字节数, 并不会返回错误 (返回错误会导致客户端重试和退避实现, 显得复杂), 而是通过增加延迟响应 降低客户端的处理能力, 限速的实现基于 clientId 维度, clientId 通过写入zk的方式进行交互, 这样配置变更就不需要重启集群了. 默认10MB每秒. 因为基于 clientId 维度, 那么当 clientId 被设置成 空字符串的时候, kafka 又是怎么处理的呢? kafka 内部会让 这些空 clientId 的client共享 quota. 需要注意的是, 这个quota设置是每个broker的, 而不是总的broker的quota, 当前的设计更多的是保护了单个broker.</p>
+<ul>
+<li>实现:</li>
+</ul>
+<pre><code>prdocuer: 通过将响应放到 `DelayedOperationPurgatory`, 注意, 这个时候其实已经写入磁盘了(避免内存占用). 根据前面的 sarama 发送有序的讨论, 这样可以显著降低客户端的请求qps
+
+consumer: 类似producer, 但是是在拉取消息之前进入 `DelayedOperationPurgatory`(避免内存占用)
+
+延迟时间计算: Delay Time = (overall produced in window - quotabound)/Quota limit per second
+</code></pre><p>一秒的窗口 越小越好，但是建议10</p>
+<p>客户端quota主要参考: QuotaFactory.scala 和 ClientQuotaManager.scala, 因为需要延迟响应, 会将请求放到 delayQueue 做延迟处理, 延迟到期的处理参考 ThrottledChannelReaper</p>
+<p>调用路径:</p>
+<pre><code>KafkaApis# handleProduceRequest 内部方法 sendResponseCallback -&gt; ClientQuotaManager#maybeRecordAndGetThrottleTimeMs -&gt; KafkaApis# handleProduceRequest 内部方法 sendResponseCallback -&gt; ClientQuotaManager#throttle -&gt; ThrottledChannelReaper 处理超时到期的消息, 执行回调 -&gt; KafkaApis#sendResponse 
+</code></pre><h3 id="一些特殊的数据结构">一些特殊的数据结构</h3>
+<h4 id="metrics--sensor--quota">metrics &amp; sensor &amp; quota</h4>
+<p>kafka metrics 的设计有些绕. KafkaMetric 主要抽象成两类:</p>
+<ul>
+<li>MetricValueProvider 获取数据读取,有两种实现, 自定义的 Measurable 或者 监控的 Gauge 对象. Measurable 用于各种自定义实现, 比如 Metadata的更新间隔, 除此之外, 还有 stat 扩展实现了 Measurable, 比如 max, min, avg, rate 等常用指标 (对应 SampledStat 的几种实现)</li>
+<li>kafkaMetric 是暴露的统一数据接口,  除了提供value()方法之外, 内部存储了 MetricConfig, 可以用于quota</li>
+</ul>
+<p>举个例子: Sender$SenderMetrics.java</p>
+<p>除了metrics, kafka 还提供了 sensor 的抽象, 用来处理一段时间的数据, 并且支持 quota 的判断, sensor 内部组合了 stat 和 KafkaMetric. 但是我们上面提到, stat 本质还是 KafkaMetric对象, 为什么 sensor 要单独维护两个呢? 我们上面谈到, KafkaMetrics 的指标数据是 MetricValueProvider 提供的, 本身并没有更新和记录的能力, 因此在调用 sensor#record 更新指标数据的时候, 需要 stat 进行更新, 进而更新到 KafkaMetric, sensor中的  KafkaMetrics 仅仅用来检查 是否超过 Quota, 如果超过, 就抛出异常</p>
+<p>另外, 对于指定的一个指标, 可能有多种统计维度, 这个就需要抽象一个 Sensor 组合多个 KafkaMetric</p>
+<p>一般情况下, KafkaMetric 不会设置 quota, 大部分是空的, 比如上面提供的 Sender$SenderMetrics.java</p>
+<p>上面讲到的 客户端Quota 就是基于 sensor实现的</p>
+<h3 id="参考">参考</h3>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-13+-+Quotas">https://cwiki.apache.org/confluence/display/KAFKA/KIP-13+-+Quotas</a>
+<a href="https://docs.cloudera.com/runtime/7.1.0/kafka-configuring/topics/kafka-config-quotas.html">https://docs.cloudera.com/runtime/7.1.0/kafka-configuring/topics/kafka-config-quotas.html</a>
+<a href="http://kafka.apache.org/documentation/#design">http://kafka.apache.org/documentation/#design</a></p>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Conn_close</title>
+            <link>https://xujianhai.fun/posts/conn_close/</link>
+            <pubDate>Sat, 23 May 2020 11:08:50 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/conn_close/</guid>
+            <description>preface 最近讨论解决服务状态不正确的问题, 涉及到一个连接关闭的手段, 但是网上说法很多, 很难有一篇完整的手段描述, 特别记忆
+实现 首先, 我们使用nc模拟网络的收发. 启动server:
+nc -l -p 4444 启动client:
+nc localhost 4444 -p 5555 使用tcpdump 查看效果:
+sudo tcpdump port 4444 -i lo -xnn -S sudo tcpdump port 5555 -i lo -xnn -S 结果如下:
+查看下连接的状态:
+ss -ant | grep -E &#39;4444|5555&#39; 如下图: 根据参考的文档, 正确关闭的姿势如下(亲测有效):
+sudo iptables -A INPUT -p tcp --dport 4444 -j REJECT --reject-with tcp-reset iptables -nL // n 数字化输出地址和端口, L 列出所有规则 iptables -F // 删除所有规则 iptables -A OUTPUT -p tcp --dport 5555 -j REJECT --reject-with tcp-reset iptables -nL 注意:</description>
+            <content type="html"><![CDATA[<h2 id="preface">preface</h2>
+<p>最近讨论解决服务状态不正确的问题, 涉及到一个连接关闭的手段, 但是网上说法很多, 很难有一篇完整的手段描述, 特别记忆</p>
+<h2 id="实现">实现</h2>
+<p>首先, 我们使用nc模拟网络的收发. 启动server:</p>
+<pre><code>nc -l -p 4444 
+</code></pre><p>启动client:</p>
+<pre><code>nc localhost 4444 -p 5555 
+</code></pre><p>使用tcpdump 查看效果:</p>
+<pre><code>sudo tcpdump port 4444 -i lo  -xnn -S 
+</code></pre><pre><code>sudo tcpdump port 5555 -i lo  -xnn -S
+</code></pre><p>结果如下:</p>
+<p><img src="/conn-tcpdump.png" alt="tcpdump" title=""></p>
+<p>查看下连接的状态:</p>
+<pre><code>ss -ant | grep -E '4444|5555'
+</code></pre><p>如下图:
+<img src="/conn-ss.png" alt="ss" title=""></p>
+<p>根据参考的文档, 正确关闭的姿势如下(亲测有效):</p>
+<pre><code>sudo iptables -A INPUT -p tcp --dport 4444 -j REJECT --reject-with tcp-reset
+iptables -nL   // n 数字化输出地址和端口, L 列出所有规则
+iptables -F    // 删除所有规则
+iptables -A OUTPUT -p tcp --dport 5555 -j REJECT --reject-with tcp-reset
+iptables -nL
+</code></pre><p>注意:</p>
+<p>iptables 在设置了reject策略之后, 需要及时清除, 方便后面创建新的连接, 这样才可以做到 关闭之前的连接但不影响整体连接的健康. 比如 mq的连接未关闭的处理.</p>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://segmentfault.com/a/1190000013365790">https://segmentfault.com/a/1190000013365790</a></li>
+</ul>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Kafka_seq</title>
+            <link>https://xujianhai.fun/posts/kafka_seq/</link>
+            <pubDate>Fri, 22 May 2020 18:07:04 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/kafka_seq/</guid>
+            <description>Preface 最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: sendAndReceive, 比如:
+func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) { var response *ProduceResponse var err error if request.RequiredAcks == NoResponse { err = b.sendAndReceive(request, nil) } else { response = new(ProduceResponse) err = b.sendAndReceive(request, response) // 同步阻塞了 } if err != nil { return nil, err } return response, nil } 这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应.</description>
+            <content type="html"><![CDATA[<h2 id="preface">Preface</h2>
+<p>最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: <code>sendAndReceive</code>, 比如:</p>
+<pre><code>func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) {
+	var response *ProduceResponse
+	var err error
+
+	if request.RequiredAcks == NoResponse {
+		err = b.sendAndReceive(request, nil)
+	} else {
+		response = new(ProduceResponse)
+		err = b.sendAndReceive(request, response)  // 同步阻塞了
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+</code></pre><p>这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应.</p>
+<h2 id="深入">深入</h2>
+<p>使用的版本的最新commit是: <code>4b03d67e106c6d3b9dd465a308a62b400ead70a4</code> , 时间是: <code>Sat Mar 7 08:46:38 2020 -0800</code></p>
+<h3 id="处理流程">处理流程</h3>
+<p>但是这里涉及到一个条件, 就是服务端处理的并发性/有序性. 如果客户端顺序连续发送多条消息, 服务端怎么处理呢? 服务端会保证有序性呢？</p>
+<p>这里我们看下 kafka 的设计, 其实, kafka 是一个socketServer, socketServer 将接受的请求发送一个大的RequestChannel, 然后多个线程并发的从RequestChannel中获取请求. 处理逻辑如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-KafkaRequestHandler.scala" data-lang="KafkaRequestHandler.scala"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">KafkaRequestHandler</span> <span style="color:#f92672">{</span>
+  <span style="color:#66d9ef">def</span> run<span style="color:#f92672">(</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Unit</span> <span style="color:#f92672">=</span> <span style="color:#f92672">{</span>
+    <span style="color:#66d9ef">while</span> <span style="color:#f92672">(</span><span style="color:#f92672">!</span>stopped<span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+    	<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+    	<span style="color:#66d9ef">val</span> req <span style="color:#66d9ef">=</span> requestChannel<span style="color:#f92672">.</span>receiveRequest<span style="color:#f92672">(</span><span style="color:#ae81ff">300</span><span style="color:#f92672">)</span>
+    	req <span style="color:#66d9ef">match</span> <span style="color:#f92672">{</span>
+    		<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+    		<span style="color:#66d9ef">case</span> request<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">RequestChannel</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">Request</span> <span style="color:#f92672">=&gt;</span>
+    		  <span style="color:#66d9ef">try</span> <span style="color:#f92672">{</span>
+    		  	<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+	            apis<span style="color:#f92672">.</span>handle<span style="color:#f92672">(</span>request<span style="color:#f92672">)</span>  <span style="color:#75715e">// 调用 KafkaApis, 是真正的逻辑处理, 比如 处理发送消息的逻辑
+</span><span style="color:#75715e"></span>	          <span style="color:#f92672">}</span> <span style="color:#66d9ef">catch</span> <span style="color:#f92672">{</span>
+	            <span style="color:#66d9ef">case</span> e<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">FatalExitError</span> <span style="color:#f92672">=&gt;</span>
+	              shutdownComplete<span style="color:#f92672">.</span>countDown<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+	              <span style="color:#a6e22e">Exit</span><span style="color:#f92672">.</span>exit<span style="color:#f92672">(</span>e<span style="color:#f92672">.</span>statusCode<span style="color:#f92672">)</span>
+	            <span style="color:#66d9ef">case</span> e<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Throwable</span> <span style="color:#f92672">=&gt;</span> error<span style="color:#f92672">(</span><span style="color:#e6db74">&#34;Exception when handling request&#34;</span><span style="color:#f92672">,</span> e<span style="color:#f92672">)</span>
+	          <span style="color:#f92672">}</span> <span style="color:#66d9ef">finally</span> <span style="color:#f92672">{</span>
+	            request<span style="color:#f92672">.</span>releaseBuffer<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+	          <span style="color:#f92672">}</span>
+    	<span style="color:#f92672">}</span>
+    <span style="color:#f92672">}</span>
+  <span style="color:#f92672">}</span>
+<span style="color:#f92672">}</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">KafkaRequestHandlerPool</span> <span style="color:#f92672">{</span>    <span style="color:#75715e">// 启动handler的线程池
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">val</span> runnables <span style="color:#66d9ef">=</span> <span style="color:#66d9ef">new</span> mutable<span style="color:#f92672">.</span><span style="color:#a6e22e">ArrayBuffer</span><span style="color:#f92672">[</span><span style="color:#66d9ef">KafkaRequestHandler</span><span style="color:#f92672">]</span><span style="color:#f92672">(</span>numThreads<span style="color:#f92672">)</span>
+  <span style="color:#66d9ef">for</span> <span style="color:#f92672">(</span>i <span style="color:#66d9ef">&lt;-</span> <span style="color:#ae81ff">0</span> until numThreads<span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+    createHandler<span style="color:#f92672">(</span>i<span style="color:#f92672">)</span>
+  <span style="color:#f92672">}</span>
+
+  <span style="color:#66d9ef">def</span> createHandler<span style="color:#f92672">(</span>id<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Int</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Unit</span> <span style="color:#f92672">=</span> synchronized <span style="color:#f92672">{</span>
+    runnables <span style="color:#f92672">+=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">KafkaRequestHandler</span><span style="color:#f92672">(</span>id<span style="color:#f92672">,</span> brokerId<span style="color:#f92672">,</span> aggregateIdleMeter<span style="color:#f92672">,</span> threadPoolSize<span style="color:#f92672">,</span> requestChannel<span style="color:#f92672">,</span> apis<span style="color:#f92672">,</span> time<span style="color:#f92672">)</span>
+    <span style="color:#a6e22e">KafkaThread</span><span style="color:#f92672">.</span>daemon<span style="color:#f92672">(</span>logAndThreadNamePrefix <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;-kafka-request-handler-&#34;</span> <span style="color:#f92672">+</span> id<span style="color:#f92672">,</span> runnables<span style="color:#f92672">(</span>id<span style="color:#f92672">)</span><span style="color:#f92672">)</span><span style="color:#f92672">.</span>start<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+  <span style="color:#f92672">}</span>
+  <span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+<span style="color:#f92672">}</span>
+</code></pre></div><p>这里的 KafkaRequestHandler 是多个线程启动的, requestChannel 是多个线程共享的, 启动就是上面的 KafkaRequestHandlerPool, 那么哪里组装他们的呢?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-KafkaServer.scala" data-lang="KafkaServer.scala"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">KafkaServer</span><span style="color:#f92672">{</span>
+  <span style="color:#66d9ef">def</span> startup<span style="color:#f92672">(</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Unit</span> <span style="color:#f92672">=</span> <span style="color:#f92672">{</span>
+
+  	<span style="color:#75715e">// 创建处理的主流程对象
+</span><span style="color:#75715e"></span>  	dataPlaneRequestProcessor <span style="color:#66d9ef">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">KafkaApis</span><span style="color:#f92672">(</span>socketServer<span style="color:#f92672">.</span>dataPlaneRequestChannel<span style="color:#f92672">,</span> replicaManager<span style="color:#f92672">,</span>   
+  	    adminManager<span style="color:#f92672">,</span> groupCoordinator<span style="color:#f92672">,</span> transactionCoordinator<span style="color:#f92672">,</span>
+          kafkaController<span style="color:#f92672">,</span> zkClient<span style="color:#f92672">,</span> config<span style="color:#f92672">.</span>brokerId<span style="color:#f92672">,</span> config<span style="color:#f92672">,</span> metadataCache<span style="color:#f92672">,</span> metrics<span style="color:#f92672">,</span> authorizer<span style="color:#f92672">,</span> quotaManagers<span style="color:#f92672">,</span>
+          fetchManager<span style="color:#f92672">,</span> brokerTopicStats<span style="color:#f92672">,</span> clusterId<span style="color:#f92672">,</span> time<span style="color:#f92672">,</span> tokenManager<span style="color:#f92672">)</span>
+  	<span style="color:#75715e">// 启动处理的线程池, 组合了dataPlaneRequestChannel 和 dataPlaneRequestProcessor
+</span><span style="color:#75715e"></span>  	dataPlaneRequestHandlerPool <span style="color:#66d9ef">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">KafkaRequestHandlerPool</span><span style="color:#f92672">(</span>config<span style="color:#f92672">.</span>brokerId<span style="color:#f92672">,</span>   			 						 socketServer<span style="color:#f92672">.</span>dataPlaneRequestChannel<span style="color:#f92672">,</span> dataPlaneRequestProcessor<span style="color:#f92672">,</span> time<span style="color:#f92672">,</span>
+          config<span style="color:#f92672">.</span>numIoThreads<span style="color:#f92672">,</span> <span style="color:#e6db74">s&#34;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">SocketServer</span><span style="color:#f92672">.</span><span style="color:#a6e22e">DataPlaneMetricPrefix</span><span style="color:#e6db74">}</span><span style="color:#e6db74">RequestHandlerAvgIdlePercent</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">SocketServer</span><span style="color:#f92672">.</span><span style="color:#a6e22e">DataPlaneThreadPrefix</span><span style="color:#f92672">)</span>
+
+  <span style="color:#f92672">}</span>
+<span style="color:#f92672">}</span>
+
+</code></pre></div><p>可以发现 KafkaServer 在启动的时候, 在创建 dataPlaneRequestHandlerPool 对象的时候, 就是 KafkaRequestHandlerPool, 就传递了共享的 dataPlaneRequestChannel 和 dataPlaneRequestProcessor , 这个名字更多的借鉴了 service mesh 的理念. 其中 dataPlaneRequestChannel 是在创建socketServer的时候初始化的, 并且大小可以在 config 中指定:</p>
+<pre><code>class SocketServer {
+	val dataPlaneRequestChannel = new RequestChannel(maxQueuedRequests, DataPlaneMetricPrefix)  // 对象创建就会立即初始化
+}
+</code></pre><p>因此, 将上面的内容串起来就是:</p>
+<pre><code>1. 网络层将请求投递到 RequestChannel 
+2. 多线程的 KafkaRequestHandler 并发的从 RequestChannel 获取请求, 交给 kafkaApis 处理
+</code></pre><h2 id="问题">问题</h2>
+<h3 id="顺序性的保证">顺序性的保证</h3>
+<p>那么问题就来了, 对于一个连接上的多个请求, 比如顺序并连续的投递到同一个 kafkaServer 上, 对应的kafka线程处理则是 并发乱序的, 因此kafkaServer 并没有保证 请求的顺序性, 回顾 kafka client 的设计, kafka client 是顺序阻塞网络调用的, 因此 kafka 消息的顺序性 也就是 kafka client 保证的.</p>
+<p>但是, 对于大部分kafka server, 真的那么需要顺序性吗？有时候仅仅希望迅速的将请求发送出去, 提高并发量. 对于日志场景, 对同一个 rootId, 希望在一个partition 里面, 可以通过这样的方式提高并发吞吐量, 对于短时间的无序, 日志场景本身就会有一段时间聚合的逻辑, 因此短时的无序 也会通过 这个时间窗口实现有序.</p>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Docker_net</title>
+            <link>https://xujianhai.fun/posts/docker_net/</link>
+            <pubDate>Thu, 21 May 2020 21:38:15 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/docker_net/</guid>
+            <description>Preface 最近小组讨论到 &amp;ldquo;too many open files&amp;rdquo; 和 网络模式, 说 bridger 可以实现pod间socket文件句柄的隔离, 引发了一些思考
+network 这里讲到的 network 是 docker 层面的, docker 一共支持四种模式:
+ bridger: docker 默认的方式, docker容器有独立的 network namespace、ip和子网, 这种模式下, 主机上会启动一个docker0的虚拟网桥(占有一个网段), 类似物理交换机, 所有的docker容器都会连接到这个网桥上, 分配网段中的ip. host: 使用宿主机的ip和端口, 能看到host上所有的设备 none: 没有网络配置、网卡、ip、路由 container: 容器之间共享一个 network namespace  参考 https://www.docker.org.cn/dockerppt/111.html</description>
+            <content type="html"><![CDATA[<h2 id="preface">Preface</h2>
+<p>最近小组讨论到 &ldquo;too many open files&rdquo; 和 网络模式, 说 bridger 可以实现pod间socket文件句柄的隔离, 引发了一些思考</p>
+<h2 id="network">network</h2>
+<p>这里讲到的 network 是 docker 层面的, docker 一共支持四种模式:</p>
+<ul>
+<li>bridger: docker 默认的方式, docker容器有独立的 network namespace、ip和子网, 这种模式下, 主机上会启动一个docker0的虚拟网桥(占有一个网段), 类似物理交换机, 所有的docker容器都会连接到这个网桥上, 分配网段中的ip.</li>
+<li>host: 使用宿主机的ip和端口, 能看到host上所有的设备</li>
+<li>none: 没有网络配置、网卡、ip、路由</li>
+<li>container: 容器之间共享一个 network namespace</li>
+</ul>
+<h2 id="参考">参考</h2>
+<p><a href="https://www.docker.org.cn/dockerppt/111.html">https://www.docker.org.cn/dockerppt/111.html</a></p>
+]]></content>
+        </item>
         
         <item>
             <title>Cache_alg</title>
@@ -368,6 +1121,50 @@ security: SELinux 使用</p>
 <li><a href="https://skyao.io/talk/">https://skyao.io/talk/</a></li>
 </ol>
 ]]></content>
+        </item>
+        
+        <item>
+            <title>Tcp_dump</title>
+            <link>https://xujianhai.fun/posts/tcp_dump/</link>
+            <pubDate>Fri, 17 Apr 2020 10:46:14 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/tcp_dump/</guid>
+            <description>preface 最近使用 tcpdump, 突然自己的开发日志因为重装丢失了. 虽然之前的blog也有相关涉及, 这里记录下, 方便debug的时候迅速查找
+常用记录 虽然 man tcpdump 和 tcpdump -h 可以查阅相关资料, 但是速度还是很慢
+  监听指定的端口: tcpdump -i eth0 或者 tcpdump -i lo
+  监听指定的协议: tcpdump tcp
+  写入指定的文件: tcpdump -w xxx/yyy , 建议文件后缀是 pcap, 这样可以配置 wireshark 使用
+  记录目标地址和端口的连接信息
+  tcpdump src host x.x.x.x port yy // 监听源host的流量 tcpdump dst host x.x.x.x // 监听目标host的流量 tcpdump port yy and src host x.x.x.x // 监听源host并且进入 port 的流量 常用的小参数:  -t // 不显示时间戳 -s 0 // 显示完整的数据包, 设置0, 就是默认的 262144, 建议设置短些, 这样感兴趣的可以早点暴露 !</description>
+            <content type="html"><![CDATA[<h2 id="preface">preface</h2>
+<p>最近使用 tcpdump, 突然自己的开发日志因为重装丢失了. 虽然之前的blog也有相关涉及, 这里记录下, 方便debug的时候迅速查找</p>
+<h2 id="常用记录">常用记录</h2>
+<p>虽然 man tcpdump 和 tcpdump -h 可以查阅相关资料, 但是速度还是很慢</p>
+<ol>
+<li>
+<p>监听指定的端口: tcpdump -i eth0 或者 tcpdump -i lo</p>
+</li>
+<li>
+<p>监听指定的协议: tcpdump tcp</p>
+</li>
+<li>
+<p>写入指定的文件: tcpdump -w xxx/yyy , 建议文件后缀是 pcap, 这样可以配置 wireshark 使用</p>
+</li>
+<li>
+<p>记录目标地址和端口的连接信息</p>
+</li>
+</ol>
+<pre><code>tcpdump src host x.x.x.x  port yy  // 监听源host的流量 
+tcpdump dst host x.x.x.x           // 监听目标host的流量
+tcpdump port yy and src host x.x.x.x // 监听源host并且进入 port 的流量
+</code></pre><ol start="5">
+<li>常用的小参数:</li>
+</ol>
+<pre><code>-t // 不显示时间戳
+-s 0 // 显示完整的数据包, 设置0, 就是默认的 262144, 建议设置短些, 这样感兴趣的可以早点暴露
+! xxx // 取反标志, 比如 port ! 22 
+'xxx' or 'xxx' 支持多个条件过滤
+</code></pre>]]></content>
         </item>
         
         <item>
@@ -938,15 +1735,48 @@ typedef struct zset {
             
             <guid>https://xujianhai.fun/posts/cpp_basic/</guid>
             <description>背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
-基础 锁 std::mutex 是基础的锁, 但是使用 std::mutex 很容易经常忘记解锁, 而且缺乏一些常用的特性: 延迟加锁、尝试加锁. 为此, cpp提供了 std::unique_lock 和 std::lock_gurad , 都是简化锁的使用, std::local_guard 是通过栈上变量的 构造和析构 解决加锁和解锁逻辑, std::unique_lock 则提供了更多的特性: 延迟锁定、递归锁定、有时限尝试、所有权转移等.
-std::scoped_lock: raii风格的互斥包装器, 创建对象的时候 会获取 互斥的所有权, 离开的时候 逆序释放. 相当于两步操作的封装 (std::lock(a, b), std::lock_quard g1(a1, std::adopt_lock), std::lock_gurad g2(a2, std::adopt_lock))
-https://zh.cppreference.com/w/cpp/thread/lock https://zh.cppreference.com/w/cpp/thread/mutex https://zh.cppreference.com/w/cpp/thread/lock_guard https://zh.cppreference.com/w/cpp/thread/unique_lock http://www.cplusplus.com/reference/mutex/unique_lock/ https://zh.cppreference.com/w/cpp/thread/scoped_lock
-补充, std::lock 是一个函数, 用来对多个互斥量上锁, 还有尝试加锁的函数: std::try_lock 更多线程相关的信息: https://zh.cppreference.com/w/cpp/thread
-智能指针 为了避免在处理指针导致指针对象泄露, cpp提供了多种智能指针的处理方式. 除了 auto, 更常见的是 std::shared_pter 和 std::unique_ptr.
-std::shared_ptr: 通过指针保持对象共享所有权的智能指针, 多个 shared_ptr 对象可占有同一对象, 当最后的shared_ptr 被销毁或者被赋值为其他指针就会释放、销毁 对象 并释放内存.</description>
+基础 fork  1）在父进程中，fork返回新创建子进程的进程ID； 2）在子进程中，fork返回0； 注意printf 这种缓冲区复制的情况
+基本数据类型 long long 和 long 和 int的区别
+取决于 编译器实现, 编译器根据系统类型的不同做法不同 (16/32/64位系统). long long 肯定是 8字节
+ https://blog.csdn.net/w773913/article/details/72810117  类的多态 https://blog.csdn.net/afei__/article/details/82142775
+官方定义: 程序运行时，父类指针可以根据具体指向的子类对象，来执行不同的函数 假设Parent 和 child 两个类. Parent 定义了 虚函数和实现, 子类进行了重新的实现. 这个时候会根据具体的实例化指向具体的实现.
+- 对存在虚函数的类，编译器会在类中自动生成一个一维的虚函数表: 存储类成员函数指针 - 虚函数表由编译器自动生成和维护 - 被virtual 修饰的成员函数会被编译器放入虚函数表中 - 存在虚函数时，编译器会为对象自动生成一个指向虚函数表的虚指针（通常称之为 vptr 指针） - 虚表是和类对应的，虚表指针是和对象对应的 注意: 父类的构造方法中调用虚函数，不会发生多态。这个和 vptr 的分步初始化有关
+为什么呢? 这个和创建子类对象的编译器执行顺序有关
+- 对象在创建时，由编译器对 vptr 进行初始化 - 子类的构造会先调用父类的构造函数，这个时候 vptr 会先指向父类的虚函数表 - 子类构造的时候，vptr 会再指向子类的虚函数表 - 对象的创建完成后，vptr 最终的指向才确定 纯虚函数是虚函数再加上 = 0, 抽象类是指包括至少一个纯虚函数的类</description>
             <content type="html"><![CDATA[<h2 id="背景">背景</h2>
 <p>最近准备写 cpp 的一些项目, 学习下不太了解的领域.</p>
 <h2 id="基础">基础</h2>
+<h3 id="fork">fork</h3>
+<pre><code>    1）在父进程中，fork返回新创建子进程的进程ID；
+    2）在子进程中，fork返回0；
+</code></pre><p>注意printf 这种缓冲区复制的情况</p>
+<h2 id="基本数据类型">基本数据类型</h2>
+<p>long long 和 long 和 int的区别</p>
+<p>取决于 编译器实现, 编译器根据系统类型的不同做法不同 (16/32/64位系统). long long 肯定是 8字节</p>
+<ul>
+<li><a href="https://blog.csdn.net/w773913/article/details/72810117">https://blog.csdn.net/w773913/article/details/72810117</a></li>
+</ul>
+<h3 id="类的多态">类的多态</h3>
+<p><a href="https://blog.csdn.net/afei__/article/details/82142775">https://blog.csdn.net/afei__/article/details/82142775</a></p>
+<p>官方定义: 程序运行时，父类指针可以根据具体指向的子类对象，来执行不同的函数
+假设Parent 和 child 两个类. Parent 定义了 虚函数和实现, 子类进行了重新的实现. 这个时候会根据具体的实例化指向具体的实现.</p>
+<pre><code>- 对存在虚函数的类，编译器会在类中自动生成一个一维的虚函数表: 存储类成员函数指针
+- 虚函数表由编译器自动生成和维护
+- 被virtual 修饰的成员函数会被编译器放入虚函数表中
+- 存在虚函数时，编译器会为对象自动生成一个指向虚函数表的虚指针（通常称之为 vptr 指针）
+- 虚表是和类对应的，虚表指针是和对象对应的
+</code></pre><p>注意:
+父类的构造方法中调用虚函数，不会发生多态。这个和 vptr 的分步初始化有关</p>
+<p>为什么呢? 这个和创建子类对象的编译器执行顺序有关</p>
+<pre><code>- 对象在创建时，由编译器对 vptr 进行初始化
+- 子类的构造会先调用父类的构造函数，这个时候 vptr 会先指向父类的虚函数表
+- 子类构造的时候，vptr 会再指向子类的虚函数表
+- 对象的创建完成后，vptr 最终的指向才确定
+</code></pre><p>纯虚函数是虚函数再加上 = 0, 抽象类是指包括至少一个纯虚函数的类</p>
+<p>多态类的内存布局</p>
+<p>参考:
+- <a href="https://blog.csdn.net/afei__/article/details/82142775">https://blog.csdn.net/afei__/article/details/82142775</a>
+- <a href="https://www.cnblogs.com/cxq0017/p/6074247.html">https://www.cnblogs.com/cxq0017/p/6074247.html</a></p>
 <h3 id="锁">锁</h3>
 <p>std::mutex 是基础的锁, 但是使用 std::mutex 很容易经常忘记解锁, 而且缺乏一些常用的特性: 延迟加锁、尝试加锁. 为此, cpp提供了 std::unique_lock 和 std::lock_gurad , 都是简化锁的使用, std::local_guard 是通过栈上变量的 构造和析构 解决加锁和解锁逻辑, std::unique_lock 则提供了更多的特性: 延迟锁定、递归锁定、有时限尝试、所有权转移等.</p>
 <p>std::scoped_lock: raii风格的互斥包装器, 创建对象的时候 会获取 互斥的所有权, 离开的时候 逆序释放. 相当于两步操作的封装 (std::lock(a, b), std::lock_quard g1(a1, std::adopt_lock), std::lock_gurad g2(a2, std::adopt_lock))</p>
@@ -959,9 +1789,9 @@ std::shared_ptr: 通过指针保持对象共享所有权的智能指针, 多个 
 <p>补充, std::lock 是一个函数, 用来对多个互斥量上锁, 还有尝试加锁的函数: std::try_lock
 更多线程相关的信息: <a href="https://zh.cppreference.com/w/cpp/thread">https://zh.cppreference.com/w/cpp/thread</a></p>
 <h3 id="智能指针">智能指针</h3>
-<p>为了避免在处理指针导致指针对象泄露, cpp提供了多种智能指针的处理方式. 除了 auto, 更常见的是 std::shared_pter 和 std::unique_ptr.</p>
+<p>为了避免在处理指针导致指针对象泄露, cpp提供了多种智能指针的处理方式. 除了 auto, 更常见的是 std::shared_ptr 和 std::unique_ptr.</p>
 <p>std::shared_ptr: 通过指针保持对象共享所有权的智能指针, 多个 shared_ptr 对象可占有同一对象, 当最后的shared_ptr 被销毁或者被赋值为其他指针就会释放、销毁 对象 并释放内存. 但是用share_ptr处理双向链表会导致泄露 (pre和next相互引用, 造成循环), 需要借助 weak_ptr</p>
-<p>std::weak_ptr: 对shared_pter的弱引用, 在访问所需引用的对象的时候需要转换为 std::shared_ptr, 用来表达临时所有权的概念. 常见的例子是 双向列表</p>
+<p>std::weak_ptr: 对shared_pte的弱引用, 在访问所需引用的对象的时候需要转换为 std::shared_ptr, 用来表达临时所有权的概念. 常见的例子是 双向列表</p>
 <p>std::unique_ptr: 通过指针占有并管理另一个对象, 并在 unique_ptr离开作用域的时候销毁对象. 可以通过 std::move 转移 控制权.</p>
 <p>std::move:</p>
 <p><a href="https://zh.cppreference.com/w/cpp/memory/shared_ptr">https://zh.cppreference.com/w/cpp/memory/shared_ptr</a>
@@ -3044,8 +3874,34 @@ py-up
             <pubDate>Fri, 12 Jul 2019 12:40:33 +0800</pubDate>
             
             <guid>https://xujianhai.fun/posts/grpc-client/</guid>
-            <description></description>
-            <content type="html"><![CDATA[]]></content>
+            <description>服务发现与负载均衡
+resolver_conn_wrapper.go
+ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连接 ccBalancerWrapper#NewSubConn -&amp;gt; ClientConn#newAddrConn -&amp;gt; addrConn addrConn#resetTransport: 只会创建一个连接. 状态变更处理, transport nil, ClientConn-&amp;gt;handleSubConnStateChange -&amp;gt; balancerWrapper -&amp;gt;
+奇怪了, 哪个地方进行了所有的连接的呢? ccBalancerWrapper -&amp;gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口 subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义 addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接
+负载均衡: 如何感知变更的服务连接 rrPickerBuilder 为例子, 业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&amp;gt; ccResolverWrapper#UpdateState -&amp;gt; ClientConn#updateResolverState -&amp;gt; ccBalancerWrapper#updateClientConnState -&amp;gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)
+ addrConn#updateConnectivityState(连接状态变更) -&amp;gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&amp;gt; scBuffer异步通知 -&amp;gt; ccBalancerWrapper#watcher(????, 实例化启动) -&amp;gt; baseBalancer#UpdateSubConnState -&amp;gt; baseBalancer#regeneratePicker -&amp;gt; rrPickerBuilder#Build scBuffer ?</description>
+            <content type="html"><![CDATA[<p>服务发现与负载均衡</p>
+<p>resolver_conn_wrapper.go</p>
+<p>ccResolverWrapper
+ClientConn: 对外的逻辑暴露
+ccBalancerWrapper: 创建连接
+ccBalancerWrapper#NewSubConn -&gt; ClientConn#newAddrConn -&gt; addrConn
+addrConn#resetTransport: 只会创建一个连接.
+状态变更处理, transport nil, ClientConn-&gt;handleSubConnStateChange -&gt; balancerWrapper -&gt;</p>
+<p>奇怪了, 哪个地方进行了所有的连接的呢?
+ccBalancerWrapper -&gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口
+subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义
+addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接</p>
+<p>负载均衡:
+如何感知变更的服务连接 rrPickerBuilder 为例子,
+业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&gt; ccResolverWrapper#UpdateState -&gt; ClientConn#updateResolverState -&gt; ccBalancerWrapper#updateClientConnState -&gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)</p>
+<pre><code>    addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher(????, 实例化启动) -&gt; baseBalancer#UpdateSubConnState -&gt; baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build
+    scBuffer ?
+何时进行负载均衡
+ClientConn#NewStream -&gt; newClientStream -&gt; clientStream#newAttemptLocked -&gt; ClientConn#getTransport -&gt; pickerWrapper#pick 
+</code></pre>
+<p>因此, 我们返回了一个地址,</p>
+]]></content>
         </item>
         
         <item>
@@ -3354,7 +4210,11 @@ go build &ndash;gcflags=-m libs/httpclient/httpclient.go</p>
 </ul>
 <h2 id="更新">更新</h2>
 <p>官方有相关文档的介绍: <a href="https://github.com/golang/go/wiki/Performance">https://github.com/golang/go/wiki/Performance</a></p>
-<h2 id="参考">参考</h2>
+<h2 id="补充">补充</h2>
+<p>有时候分析问题, 可以使用转储文件, 如下:</p>
+<pre><code>gcore $pid
+dlv core ./二进制 core.$pid
+</code></pre><h2 id="参考">参考</h2>
 <ol>
 <li><a href="https://golang.org/pkg/runtime/pprof/">runtime/pprof</a></li>
 <li><a href="https://github.com/google/pprof/blob/master/doc/README.md">google官方文档</a></li>
@@ -3669,13 +4529,16 @@ es的bitmap学习下</p>
             
             <guid>https://xujianhai.fun/posts/golang-generate/</guid>
             <description>go generate 本质上是一个是一个组合器: parser + ast + template 的组合, 最终生成文件.
-const 初级demo: https://yushuangqi.com/blog/2017/go-command-generate.html function demo: interface demo:
-写入到文件内部</description>
+const 初级demo: https://yushuangqi.com/blog/2017/go-command-generate.html function demo:
+interface demo: mockgen 写入到文件内部
+常见的数据库操作语法</description>
             <content type="html"><![CDATA[<p>go generate 本质上是一个是一个组合器: parser + ast + template 的组合, 最终生成文件.</p>
 <p>const 初级demo: <a href="https://yushuangqi.com/blog/2017/go-command-generate.html">https://yushuangqi.com/blog/2017/go-command-generate.html</a>
-function demo:
-interface demo:</p>
-<p>写入到文件内部</p>
+function demo:</p>
+<p>interface demo:
+mockgen
+写入到文件内部</p>
+<p>常见的数据库操作语法</p>
 ]]></content>
         </item>
         
@@ -4721,6 +5584,14 @@ formulas: Horn、 dual-Horn、 dual-Horn、
 <pre><code>go get foo@v1.2.3, 
 go get foo@master (foo@default with mercurial), 
 go get foo@e3702bed2
+</code></pre><h2 id="内部实现">内部实现</h2>
+<p>最近突然对golang module 内部实现感兴趣, 通过搜索, 发现代码在 <code>src/cmd/go/internal</code>, 布局如下:</p>
+<pre><code>modcmd/...
+modconv/...
+modfetch/...
+modget/...
+modinfo/...
+modload/...
 </code></pre>]]></content>
         </item>
         

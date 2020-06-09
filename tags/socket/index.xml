@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>socket on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/socket/</link>
+    <description>Recent content in socket on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 23 May 2020 17:13:38 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/socket/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Kafka_socket</title>
+      <link>https://xujianhai.fun/posts/kafka_socket/</link>
+      <pubDate>Sat, 23 May 2020 17:13:38 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/kafka_socket/</guid>
+      <description>Preface 最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,
+深入 直接看下 socketServer 的注释 学习下理论.
+acceptor /***Handles new connections, requests and responses to and from broker. *Kafka supports two types of request planes : *- data-plane : *- Handles requests from clients and other brokers in the cluster. *- The threading model is *1 Acceptor thread per listener, that handles new connections. *It is possible to configure multiple data-planes by specifying multiple &amp;#34;,&amp;#34; separated endpoints for &amp;#34;listeners&amp;#34; in KafkaConfig.</description>
+    </item>
+    
+  </channel>
+</rss>

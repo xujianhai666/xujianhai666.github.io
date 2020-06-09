@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>network on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/network/</link>
+    <description>Recent content in network on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Thu, 21 May 2020 21:38:15 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/network/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Docker_net</title>
+      <link>https://xujianhai.fun/posts/docker_net/</link>
+      <pubDate>Thu, 21 May 2020 21:38:15 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/docker_net/</guid>
+      <description>Preface 最近小组讨论到 &amp;ldquo;too many open files&amp;rdquo; 和 网络模式, 说 bridger 可以实现pod间socket文件句柄的隔离, 引发了一些思考
+network 这里讲到的 network 是 docker 层面的, docker 一共支持四种模式:
+ bridger: docker 默认的方式, docker容器有独立的 network namespace、ip和子网, 这种模式下, 主机上会启动一个docker0的虚拟网桥(占有一个网段), 类似物理交换机, 所有的docker容器都会连接到这个网桥上, 分配网段中的ip. host: 使用宿主机的ip和端口, 能看到host上所有的设备 none: 没有网络配置、网卡、ip、路由 container: 容器之间共享一个 network namespace  参考 https://www.docker.org.cn/dockerppt/111.html</description>
+    </item>
+    
+  </channel>
+</rss>

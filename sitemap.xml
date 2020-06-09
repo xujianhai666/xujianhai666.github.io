@@ -3,27 +3,112 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xujianhai.fun/posts/</loc>
+    <lastmod>2020-06-08T13:11:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/python/</loc>
+    <lastmod>2020-06-08T13:11:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/python_tool/</loc>
+    <lastmod>2020-06-08T13:11:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/</loc>
+    <lastmod>2020-06-08T13:11:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2020-06-08T13:11:08+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/mit/</loc>
+    <lastmod>2020-06-06T10:23:10+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/mit_6.824/</loc>
+    <lastmod>2020-06-06T10:23:10+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/kafka/</loc>
+    <lastmod>2020-05-30T21:27:58+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/kafka_group_coordinator/</loc>
+    <lastmod>2020-05-30T21:27:58+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/linux/</loc>
+    <lastmod>2020-05-26T22:32:44+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/linux_iouring/</loc>
+    <lastmod>2020-05-26T22:32:44+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/kafka_controller/</loc>
+    <lastmod>2020-05-26T11:45:58+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/kafka_socket/</loc>
+    <lastmod>2020-05-23T17:13:38+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/socket/</loc>
+    <lastmod>2020-05-23T17:13:38+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/conn_close/</loc>
+    <lastmod>2020-05-23T11:08:50+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/iptables/</loc>
+    <lastmod>2020-05-23T11:08:50+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/kafka_seq/</loc>
+    <lastmod>2020-05-22T18:07:04+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/docker/</loc>
+    <lastmod>2020-05-21T21:38:15+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/docker_net/</loc>
+    <lastmod>2020-05-21T21:38:15+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/network/</loc>
+    <lastmod>2020-05-21T21:38:15+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xujianhai.fun/tags/cache/</loc>
     <lastmod>2020-05-17T12:33:18+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://xujianhai.fun/posts/cache_alg/</loc>
-    <lastmod>2020-05-17T12:33:18+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-05-17T12:33:18+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-05-17T12:33:18+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
     <lastmod>2020-05-17T12:33:18+08:00</lastmod>
   </url>
   
@@ -55,6 +140,16 @@
   <url>
     <loc>https://xujianhai.fun/posts/mosn_base/</loc>
     <lastmod>2020-04-24T21:07:36+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/tcp_dump/</loc>
+    <lastmod>2020-04-17T10:46:14+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/tcpdump/</loc>
+    <lastmod>2020-04-17T10:46:14+08:00</lastmod>
   </url>
   
   <url>
@@ -165,11 +260,6 @@
   <url>
     <loc>https://xujianhai.fun/posts/rocketmq_msgid/</loc>
     <lastmod>2020-03-17T18:18:05+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/kafka/</loc>
-    <lastmod>2020-03-09T23:13:41+08:00</lastmod>
   </url>
   
   <url>

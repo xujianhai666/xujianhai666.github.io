@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>python on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/python/</link>
+    <description>Recent content in python on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 08 Jun 2020 13:11:08 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/python/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Python_tool</title>
+      <link>https://xujianhai.fun/posts/python_tool/</link>
+      <pubDate>Mon, 08 Jun 2020 13:11:08 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/python_tool/</guid>
+      <description>火焰图 pyframe https://github.com/uber/pyflame https://pyflame.readthedocs.io/en/latest/
+不侵入代码, 支持诊断多线程. 支持 火焰图、线程应用、stack trace. 但是不支持web导出, 需要自己做
+vprof https://github.com/nvdv/vprof
+支持cpu火焰图、内存火焰图，代码执行时间、web导出, 看上去很丰富
+profile_online https://github.com/rfyiamcool/profiler_online
+比较简单, 只支持火焰图, 支持web导出
+py-spy https://github.com/benfred/py-spy
+打印堆栈、火焰图、top</description>
+    </item>
+    
+  </channel>
+</rss>

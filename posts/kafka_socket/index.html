@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="Preface 最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,
+深入 直接看下 socketServer 的注释 学习下理论.
+acceptor /***Handles new connections, requests and responses to and from broker. *Kafka supports two types of request planes : *- data-plane : *- Handles requests from clients and other brokers in the cluster. *- The threading model is *1 Acceptor thread per listener, that handles new connections. *It is possible to configure multiple data-planes by specifying multiple &amp;#34;,&amp;#34; separated endpoints for &amp;#34;listeners&amp;#34; in KafkaConfig." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, kafka, socket" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/kafka_socket/" />
+
+
+    <title>
+        
+            Kafka_socket :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Kafka_socket">
+<meta itemprop="description" content="Preface 最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,
+深入 直接看下 socketServer 的注释 学习下理论.
+acceptor /***Handles new connections, requests and responses to and from broker. *Kafka supports two types of request planes : *- data-plane : *- Handles requests from clients and other brokers in the cluster. *- The threading model is *1 Acceptor thread per listener, that handles new connections. *It is possible to configure multiple data-planes by specifying multiple &#34;,&#34; separated endpoints for &#34;listeners&#34; in KafkaConfig.">
+<meta itemprop="datePublished" content="2020-05-23T17:13:38&#43;08:00" />
+<meta itemprop="dateModified" content="2020-05-23T17:13:38&#43;08:00" />
+<meta itemprop="wordCount" content="801">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="kafka,socket," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Kafka_socket"/>
+<meta name="twitter:description" content="Preface 最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,
+深入 直接看下 socketServer 的注释 学习下理论.
+acceptor /***Handles new connections, requests and responses to and from broker. *Kafka supports two types of request planes : *- data-plane : *- Handles requests from clients and other brokers in the cluster. *- The threading model is *1 Acceptor thread per listener, that handles new connections. *It is possible to configure multiple data-planes by specifying multiple &#34;,&#34; separated endpoints for &#34;listeners&#34; in KafkaConfig."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-05-23 17:13:38 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>4 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/kafka_socket/">Kafka_socket</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="preface">Preface</h2>
+<p>最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,</p>
+<h2 id="深入">深入</h2>
+<p>直接看下 socketServer 的注释 学习下理论.</p>
+<h3 id="acceptor">acceptor</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-SocketServer.scala" data-lang="SocketServer.scala"><span style="color:#75715e">/*</span><span style="color:#75715e">*</span><span style="color:#75715e">
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> Handles new connections, requests and responses to and from broker.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> Kafka supports two types of request planes :
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">  - data-plane :
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">    - Handles requests from clients and other brokers in the cluster.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">    - The threading model is
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      1 Acceptor thread per listener, that handles new connections.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      It is possible to configure multiple data-planes by specifying multiple &#34;,&#34; separated endpoints for &#34;listeners&#34; in KafkaConfig.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      Acceptor has N Processor threads that each have their own selector and read requests from sockets
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      M Handler threads that handle requests and produce responses back to the processor threads for writing.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">  - control-plane :
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">    - Handles requests from controller. This is optional and can be configured by specifying &#34;control.plane.listener.name&#34;.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      If not configured, the controller requests are handled by the data-plane.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">    - The threading model is
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      1 Acceptor thread that handles new connections
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      Acceptor has 1 Processor thread that has its own selector and read requests from the socket.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e">      1 Handler thread that handles requests and produce responses back to the processor thread for writing.
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*/</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SocketServer</span> <span style="color:#f92672">{</span>
+	<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>
+<span style="color:#f92672">}</span>
+
+</code></pre></div><p>根据注释, Socketserver 无论是 数据面还是 控制面 的底层都是 Reactor IO模型, 每个listener有一个 NIOSelector 处理accept的连接, 对于建立的连接, 会分给 Processor 的线程处理, Processor 会将每个 新建的连接重新挂在到 processor 的 NIOSelector, 用来监听 读写事件.</p>
+<p>这里存在一个问题, 新创建的socket 怎么决定分配给 哪个 processor? 可以看下 run 方法, 其实也是 round-robin 实现.</p>
+<pre><code>private[kafka] class Acceptor {
+
+  /**
+   * Accept loop that checks for new connection attempts
+   */
+  def run(): Unit = {
+    serverChannel.register(nioSelector, SelectionKey.OP_ACCEPT)
+    startupComplete()
+    try {
+      var currentProcessorIndex = 0
+      while (isRunning) {
+        try {
+          val ready = nioSelector.select(500)
+          if (ready &gt; 0) {
+            val keys = nioSelector.selectedKeys()
+            val iter = keys.iterator()
+            while (iter.hasNext &amp;&amp; isRunning) {
+              try {
+                val key = iter.next
+                iter.remove()
+
+                if (key.isAcceptable) {
+                  accept(key).foreach { socketChannel =&gt;
+                    // Assign the channel to the next processor (using round-robin) to which the
+                    // channel can be added without blocking. If newConnections queue is full on
+                    // all processors, block until the last one is able to accept a connection.
+                    var retriesLeft = synchronized(processors.length)
+                    var processor: Processor = null
+                    do {
+                      retriesLeft -= 1
+                      processor = synchronized {
+                        // adjust the index (if necessary) and retrieve the processor atomically for
+                        // correct behaviour in case the number of processors is reduced dynamically
+                        currentProcessorIndex = currentProcessorIndex % processors.length
+                        processors(currentProcessorIndex)
+                      }
+                      currentProcessorIndex += 1
+                    } while (!assignNewConnection(socketChannel, processor, retriesLeft == 0))
+                    // round-robin 实现
+                  }
+                } else
+                  throw new IllegalStateException(&quot;Unrecognized key state for acceptor thread.&quot;)
+              } catch {
+                case e: Throwable =&gt; error(&quot;Error while accepting connection&quot;, e)
+              }
+            }
+          }
+        }
+      }
+    }
+}
+</code></pre><p>这里的 Acceptor 就是 kafka 对 reactor 中 acceptor的抽象, 用来处理新创建的连接.  需要注意的是, 虽然是 roudn-robin, 但并不是简单的实现, 在 processor 模型中, processor 也是队列的模型, 每个请求也是先投递到队列中, 如果队列满了话, 就会尝试下一个, 但是如果下一个也满了的话, 会轮询下一个, 知道最后一个, 这个时候会一直堵塞. 可以看 processor 的accept 逻辑</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-SocketServer.scala" data-lang="SocketServer.scala"><span style="color:#75715e">/*</span><span style="color:#75715e">*</span><span style="color:#75715e">
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> Thread that processes all requests from a single connection. There are N of these running in parallel
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> each of which has its own selector
+</span><span style="color:#75715e"> </span><span style="color:#75715e">*/</span>
+<span style="color:#66d9ef">private</span><span style="color:#f92672">[</span><span style="color:#66d9ef">kafka</span><span style="color:#f92672">]</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Processor</span> <span style="color:#f92672">{</span>
+  <span style="color:#75715e">/*</span><span style="color:#75715e">*</span><span style="color:#75715e">
+</span><span style="color:#75715e">   </span><span style="color:#75715e">*</span><span style="color:#75715e"> Queue up a new connection for reading
+</span><span style="color:#75715e">   </span><span style="color:#75715e">*/</span>
+  <span style="color:#66d9ef">def</span> accept<span style="color:#f92672">(</span>socketChannel<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">SocketChannel</span><span style="color:#f92672">,</span>
+             mayBlock<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Boolean</span><span style="color:#f92672">,</span>
+             acceptorIdlePercentMeter<span style="color:#66d9ef">:</span> <span style="color:#66d9ef">com</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">yammer</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">metrics</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">core</span><span style="color:#66d9ef">.</span><span style="color:#66d9ef">Meter</span><span style="color:#f92672">)</span><span style="color:#66d9ef">:</span> <span style="color:#66d9ef">Boolean</span> <span style="color:#f92672">=</span> <span style="color:#f92672">{</span>
+    <span style="color:#66d9ef">val</span> accepted <span style="color:#66d9ef">=</span> <span style="color:#f92672">{</span>
+      <span style="color:#66d9ef">if</span> <span style="color:#f92672">(</span>newConnections<span style="color:#f92672">.</span>offer<span style="color:#f92672">(</span>socketChannel<span style="color:#f92672">)</span><span style="color:#f92672">)</span>
+        <span style="color:#66d9ef">true</span>
+      <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#f92672">(</span>mayBlock<span style="color:#f92672">)</span> <span style="color:#f92672">{</span>  <span style="color:#75715e">// 只有最后一个才会 blocking
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">val</span> startNs <span style="color:#66d9ef">=</span> time<span style="color:#f92672">.</span>nanoseconds
+        newConnections<span style="color:#f92672">.</span>put<span style="color:#f92672">(</span>socketChannel<span style="color:#f92672">)</span>
+        acceptorIdlePercentMeter<span style="color:#f92672">.</span>mark<span style="color:#f92672">(</span>time<span style="color:#f92672">.</span>nanoseconds<span style="color:#f92672">(</span><span style="color:#f92672">)</span> <span style="color:#f92672">-</span> startNs<span style="color:#f92672">)</span>
+        <span style="color:#66d9ef">true</span>
+      <span style="color:#f92672">}</span> <span style="color:#66d9ef">else</span>
+        <span style="color:#66d9ef">false</span>
+    <span style="color:#f92672">}</span>
+    <span style="color:#66d9ef">if</span> <span style="color:#f92672">(</span>accepted<span style="color:#f92672">)</span>
+      wakeup<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+    accepted
+  <span style="color:#f92672">}</span>
+</code></pre></div><h3 id="quota">Quota</h3>
+<p>broker IO 实现清晰了很多, 但是broker 如何自我保护呢? 比如 连接数太多 以及 client produce/consume 太多的问题?</p>
+<h3 id="connection-quota">connection quota</h3>
+<p>broker支持 连接数上限的设置. 当客户端连接数过多超过上限, broker 获取到这个连接之后, 就会等待quota, 并且是无限等待, 直到有其他连接关闭释放 quota. 可以参考 SocketServer.scala 中的 ConnectionQuotas 实现. 当 Acceptor#accept 获取到客户端连接的时候, 会调用 ConnectionQuotas#inc 尝试获取 quota, quota 内部使用 <code>mutable.Map</code> 实现, 这个数据结构除了map的常规用法, 还提供了 wait 和 notify 语意. 当连接关闭的时候, 会调用 ConnectionQuota#dec 释放quota, 调用 mutable.Map#notify 通知阻塞的连接等待.</p>
+<p>在配置方面, 既支持 broker 最大连接数, 也支持每个listener的连接数配置</p>
+<h3 id="客户端-quota">客户端 Quota</h3>
+<p>在 0.9 版本, kakfa 提供了这个功能, 0.10 版本添加了 zk 的配置.</p>
+<p>client quota 是通过 限速实现的, 限制每秒的字节数, 并不会返回错误 (返回错误会导致客户端重试和退避实现, 显得复杂), 而是通过增加延迟响应 降低客户端的处理能力, 限速的实现基于 clientId 维度, clientId 通过写入zk的方式进行交互, 这样配置变更就不需要重启集群了. 默认10MB每秒. 因为基于 clientId 维度, 那么当 clientId 被设置成 空字符串的时候, kafka 又是怎么处理的呢? kafka 内部会让 这些空 clientId 的client共享 quota. 需要注意的是, 这个quota设置是每个broker的, 而不是总的broker的quota, 当前的设计更多的是保护了单个broker.</p>
+<ul>
+<li>实现:</li>
+</ul>
+<pre><code>prdocuer: 通过将响应放到 `DelayedOperationPurgatory`, 注意, 这个时候其实已经写入磁盘了(避免内存占用). 根据前面的 sarama 发送有序的讨论, 这样可以显著降低客户端的请求qps
+
+consumer: 类似producer, 但是是在拉取消息之前进入 `DelayedOperationPurgatory`(避免内存占用)
+
+延迟时间计算: Delay Time = (overall produced in window - quotabound)/Quota limit per second
+</code></pre><p>一秒的窗口 越小越好，但是建议10</p>
+<p>客户端quota主要参考: QuotaFactory.scala 和 ClientQuotaManager.scala, 因为需要延迟响应, 会将请求放到 delayQueue 做延迟处理, 延迟到期的处理参考 ThrottledChannelReaper</p>
+<p>调用路径:</p>
+<pre><code>KafkaApis# handleProduceRequest 内部方法 sendResponseCallback -&gt; ClientQuotaManager#maybeRecordAndGetThrottleTimeMs -&gt; KafkaApis# handleProduceRequest 内部方法 sendResponseCallback -&gt; ClientQuotaManager#throttle -&gt; ThrottledChannelReaper 处理超时到期的消息, 执行回调 -&gt; KafkaApis#sendResponse 
+</code></pre><h3 id="一些特殊的数据结构">一些特殊的数据结构</h3>
+<h4 id="metrics--sensor--quota">metrics &amp; sensor &amp; quota</h4>
+<p>kafka metrics 的设计有些绕. KafkaMetric 主要抽象成两类:</p>
+<ul>
+<li>MetricValueProvider 获取数据读取,有两种实现, 自定义的 Measurable 或者 监控的 Gauge 对象. Measurable 用于各种自定义实现, 比如 Metadata的更新间隔, 除此之外, 还有 stat 扩展实现了 Measurable, 比如 max, min, avg, rate 等常用指标 (对应 SampledStat 的几种实现)</li>
+<li>kafkaMetric 是暴露的统一数据接口,  除了提供value()方法之外, 内部存储了 MetricConfig, 可以用于quota</li>
+</ul>
+<p>举个例子: Sender$SenderMetrics.java</p>
+<p>除了metrics, kafka 还提供了 sensor 的抽象, 用来处理一段时间的数据, 并且支持 quota 的判断, sensor 内部组合了 stat 和 KafkaMetric. 但是我们上面提到, stat 本质还是 KafkaMetric对象, 为什么 sensor 要单独维护两个呢? 我们上面谈到, KafkaMetrics 的指标数据是 MetricValueProvider 提供的, 本身并没有更新和记录的能力, 因此在调用 sensor#record 更新指标数据的时候, 需要 stat 进行更新, 进而更新到 KafkaMetric, sensor中的  KafkaMetrics 仅仅用来检查 是否超过 Quota, 如果超过, 就抛出异常</p>
+<p>另外, 对于指定的一个指标, 可能有多种统计维度, 这个就需要抽象一个 Sensor 组合多个 KafkaMetric</p>
+<p>一般情况下, KafkaMetric 不会设置 quota, 大部分是空的, 比如上面提供的 Sender$SenderMetrics.java</p>
+<p>上面讲到的 客户端Quota 就是基于 sensor实现的</p>
+<h3 id="参考">参考</h3>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-13+-+Quotas">https://cwiki.apache.org/confluence/display/KAFKA/KIP-13+-+Quotas</a>
+<a href="https://docs.cloudera.com/runtime/7.1.0/kafka-configuring/topics/kafka-config-quotas.html">https://docs.cloudera.com/runtime/7.1.0/kafka-configuring/topics/kafka-config-quotas.html</a>
+<a href="http://kafka.apache.org/documentation/#design">http://kafka.apache.org/documentation/#design</a></p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/kafka">kafka</a></span><span class="tag"><a href="https://xujianhai.fun/tags/socket">socket</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>801 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-05-23 17:13 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/kafka_controller/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Kafka_controller</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/conn_close/">
+                                <span class="button__text">Conn_close</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
