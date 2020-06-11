@@ -46,16 +46,15 @@ py-spy https://github.com/benfred/py-spy
             
             <guid>https://xujianhai.fun/posts/mit_6.824/</guid>
             <description>序 记录学习 mit 6.824 课程的经历
-MapReduce 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
+MapReduce 1 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
 模型 如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.
 分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)
 map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散
 hadoop 架构
-将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.
-问题  难以实时计算(处理存储在磁盘上的离线数据) 不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark) 难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)  GFS 架构 根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB.</description>
+将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.</description>
             <content type="html"><![CDATA[<h2 id="序">序</h2>
 <p>记录学习 mit 6.824 课程的经历</p>
-<h2 id="mapreduce">MapReduce</h2>
+<h2 id="mapreduce-1">MapReduce <sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></h2>
 <h3 id="目标">目标:</h3>
 <p>将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计</p>
 <h3 id="模型">模型</h3>
@@ -72,7 +71,7 @@ hadoop 架构
 <li>不能流式计算(处理的数据源是静态的文件, 流式计算处理的数据是动态的, storm/spark)</li>
 <li>难以 DAG(任务输入和输出依赖的有向无环图, mapreduce的计算结果都会写入磁盘, 会造成大量频繁io, 性能低下, spark)</li>
 </ol>
-<h2 id="gfs">GFS</h2>
+<h2 id="gfs--2">GFS  <sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup></h2>
 <h3 id="架构">架构</h3>
 <p><img src="/gfs_arch.png" alt="arch" title=""></p>
 <p>根据论文的描述, 核心组件是 master 和 chunkserver, master 负责管理chunk replica(创建、替换、复制、负载均衡, 通过chunk version number区分最新的chunk)、chunk 选主(lease机制)、GC(通过心跳进行懒删除文件)、文件管理(目录的形式组织文件), chunkserver 负责存储 chunk, chunk是存储的最小单位, 一个文件会被划分成多个chunk, chunk默认是 64MB.</p>
@@ -101,17 +100,55 @@ chunkserver的数据特点: chunk内部会划分成 64KB 的 block, 每个block�
 <ul>
 <li><a href="https://levy.at/blog/22">https://levy.at/blog/22</a></li>
 </ul>
-<h2 id="primary-backup">primary-backup</h2>
-<h2 id="raft">raft</h2>
-<p>以可理解性为目标, 解耦了 leader election、log replication、safety? 状态一致性提升，</p>
+<h2 id="primary-backup--3">primary-backup  <sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup></h2>
+<p>根据论文内容, 这个思路是基于虚拟机的, 通过底层 hypervisor进行数据的同步, 如下:</p>
+<p><img src="/mit-backup.png" alt="backup" title=""></p>
+<p>primary会通过 log channel 将数据同步给 backup, backup receive之后primary才会响应给client, 这里存在几个问题:</p>
+<ol>
+<li>logchannel 同步带宽</li>
+<li>backup receive 速度, 太慢影响primary的处理响应, 太快backup来不及处理导致lag增大(这样backup成为leader后, 需要先消费完这些数据才能成为leader, 灾备时间被延迟了)</li>
+<li>非确定性的事件太多, 因为是机器级别的复制, 存在计时等干扰的非确定性因素同步</li>
+<li>引入了 共享磁盘/非共享磁盘的 复杂度. 磁盘用来脑裂</li>
+<li>存在重复输出和丢失输出(告诉客户端存在, 实际上backup并没与同步到)</li>
+</ol>
+<p>参考</p>
+<ul>
+<li><a href="https://pdos.csail.mit.edu/6.824/papers/vm-ft.pdf">https://pdos.csail.mit.edu/6.824/papers/vm-ft.pdf</a></li>
+</ul>
+<h2 id="raft-4">raft <sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup></h2>
+<p>以可理解性为目标, 解耦了 leader election、log replication、safety 三个方面, 如下:</p>
 <ul>
 <li>strong leader: 写从leader流向 follower</li>
 <li>leader election: 随机timer</li>
-<li>membership change: joint consensus</li>
+<li>membership change: joint consensus/ 联合一致性</li>
 </ul>
-<p>基于 有序的replicated log 的复制状态机(replicated state machine). 一致性模块 确保 replicated log的一致性.</p>
-<p>Oki and Liskov’s Viewstamped
-Replication [29, 22]</p>
+<p>基于 有序的replicated log 的复制状态机(replicated state machine). 一致性模块 确保 replicated log的一致性. 安全(非拜占庭问题下)、可用、不依赖时间. 更多的参考之前的学习: <a href="/posts/raft-paper">paper</a></p>
+<p>在实践上, 建议参考 <sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup></p>
+<p>进一步阅读:
+Oki and Liskov’s Viewstamped Replication [29, 22]
+chubby
+spanner</p>
+<h2 id="参考">参考:</h2>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>作者: Jeffrey Dean, Sanjay Ghemawat: <a href="https://pdos.csail.mit.edu/6.824/papers/mapreduce.pdf">MapReduce: Simplified Data Processing on Large Clusters</a> <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2" role="doc-endnote">
+<p>作者: Sanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung: <a href="https://pdos.csail.mit.edu/6.824/papers/gfs.pdf">The Google File System</a> <a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3" role="doc-endnote">
+<p>作者: Daniel J. Scales, Mike Nelson, and Ganesh Venkitachalam: <a href="https://pdos.csail.mit.edu/6.824/papers/vm-ft.pdf">The Design of a Practical System for Fault-Tolerant Virtual Machines</a> <a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:4" role="doc-endnote">
+<p>作者: Diego Ongaro, John Ousterhout: <a href="https://pdos.csail.mit.edu/6.824/papers/raft-extended.pdf">In Search of an Understandable Consensus Algorithm (Extended Version)</a> <a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:5" role="doc-endnote">
+<p>作者: Diego Ongar: <a href="https://web.stanford.edu/~ouster/cgi-bin/papers/OngaroPhD.pdf">CONSENSUS: BRIDGING THEORY AND PRACTICE</a> <a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
 ]]></content>
         </item>
         
@@ -270,8 +307,15 @@ vhost 的 ringbuffer设计: vhost 作为虚拟机存储的后端，以进程的�
 <li>nvme 是ssd的一套规范, 定义了 主机软件 通过PCIe 和 非易失性内存的方式, 在 SATA 中 host 和 cpu 只有一个通道/队列, 无法充分利用多核, 而在 nvme, 每个核都可以有 65535 (64k) 个队列.</li>
 <li>DPDK: 在传统的 x86 结构中, 网卡收到数据包后需要通过中断方式通知 cpu 处理(cpu拷贝数据到协议栈), 大数据量的时候 中断是个很大的开销. DPDK 模式下, 网卡收到数据包后, 通过零拷贝技术直接将数据存储到内存.</li>
 </ul>
-<p>QEMU: 硬件虚拟化软件, 处理器、内存、IO 设备的虚拟化, 本质上是一个用户进程.
-kvm: linux的一个内核驱动模块,在内核模式和用户模式之外提供了客户模式, 能够加速QEMU.</p>
+<h2 id="其他术语">其他术语</h2>
+<p>QEMU: 硬件虚拟化软件, 处理器、内存、IO 设备的虚拟化, 本质上是一个用户进程. 不依赖kvm. 一个独立的虚拟化解决方案
+kvm: linux的一个内核驱动模块,在内核模式和用户模式之外提供了客户模式, 能够加速QEMU. 本身只提供接口.
+virtio: qemu模拟io设备效率不高的原因, 通常需要半虚拟化的virtio方式虚拟IO设备
+hypervisor: 创建和运行vm的软件. 具体实现由很多, kvm、vSphere、vmware. 有两种模式: 1. 直接运行在硬件上, 2. 基于操作系统之上构建
+- <a href="https://www.ibm.com/developerworks/cn/linux/l-hypervisor/index.html">https://www.ibm.com/developerworks/cn/linux/l-hypervisor/index.html</a>
+- <a href="https://www.redhat.com/en/topics/virtualization/what-is-a-hypervisor">https://www.redhat.com/en/topics/virtualization/what-is-a-hypervisor</a>
+hypervisor vs docker: docker 依赖底层操作系统(linux为主,windows/mac需要虚拟机), hypervisor 可以在一台机器上虚拟出多个操作系统.<br>
+- <a href="https://www.redhat.com/en/topics/containers/containers-vs-vms">https://www.redhat.com/en/topics/containers/containers-vs-vms</a></p>
 <p>NVMe-oF, iSCSI, 和
 vhost</p>
 <h3 id="参考">参考</h3>
@@ -3874,34 +3918,72 @@ py-up
             <pubDate>Fri, 12 Jul 2019 12:40:33 +0800</pubDate>
             
             <guid>https://xujianhai.fun/posts/grpc-client/</guid>
-            <description>服务发现与负载均衡
-resolver_conn_wrapper.go
-ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连接 ccBalancerWrapper#NewSubConn -&amp;gt; ClientConn#newAddrConn -&amp;gt; addrConn addrConn#resetTransport: 只会创建一个连接. 状态变更处理, transport nil, ClientConn-&amp;gt;handleSubConnStateChange -&amp;gt; balancerWrapper -&amp;gt;
-奇怪了, 哪个地方进行了所有的连接的呢? ccBalancerWrapper -&amp;gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口 subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义 addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接
-负载均衡: 如何感知变更的服务连接 rrPickerBuilder 为例子, 业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&amp;gt; ccResolverWrapper#UpdateState -&amp;gt; ClientConn#updateResolverState -&amp;gt; ccBalancerWrapper#updateClientConnState -&amp;gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)
- addrConn#updateConnectivityState(连接状态变更) -&amp;gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&amp;gt; scBuffer异步通知 -&amp;gt; ccBalancerWrapper#watcher(????, 实例化启动) -&amp;gt; baseBalancer#UpdateSubConnState -&amp;gt; baseBalancer#regeneratePicker -&amp;gt; rrPickerBuilder#Build scBuffer ?</description>
-            <content type="html"><![CDATA[<p>服务发现与负载均衡</p>
-<p>resolver_conn_wrapper.go</p>
-<p>ccResolverWrapper
-ClientConn: 对外的逻辑暴露
-ccBalancerWrapper: 创建连接
-ccBalancerWrapper#NewSubConn -&gt; ClientConn#newAddrConn -&gt; addrConn
-addrConn#resetTransport: 只会创建一个连接.
-状态变更处理, transport nil, ClientConn-&gt;handleSubConnStateChange -&gt; balancerWrapper -&gt;</p>
-<p>奇怪了, 哪个地方进行了所有的连接的呢?
-ccBalancerWrapper -&gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口
-subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义
-addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接</p>
-<p>负载均衡:
-如何感知变更的服务连接 rrPickerBuilder 为例子,
-业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&gt; ccResolverWrapper#UpdateState -&gt; ClientConn#updateResolverState -&gt; ccBalancerWrapper#updateClientConnState -&gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)</p>
-<pre><code>    addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher(????, 实例化启动) -&gt; baseBalancer#UpdateSubConnState -&gt; baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build
-    scBuffer ?
-何时进行负载均衡
-ClientConn#NewStream -&gt; newClientStream -&gt; clientStream#newAttemptLocked -&gt; ClientConn#getTransport -&gt; pickerWrapper#pick 
-</code></pre>
-<p>因此, 我们返回了一个地址,</p>
-]]></content>
+            <description>抽象 在 grpc-go中, 抽象了 几种连接对象, 主要区分如下:
+ addrConn: 指定地址的连接 SubConn: grpc的一个&amp;quot;子连接&amp;quot;抽象接口, 包含一系列地址 acBalancerWrapper: SubConn 的实现, 为了适配 balancer, 对addrConn做了封装, 主要提供了 #UpdateAddresses 方法, 在pickfirst、grclb、v1的balancerWrapper使用. (换句话说, 如果不支持这几种balancer, 这个抽象可以不用) ClientConn: 连接端点的虚拟抽象, 底层可能创建多个连接, 负责处理 name resolution、TCP建连、TLS握手, ccResolverWrapper: 用来解决name resolver的clientConn的封装. 负责调用 resolver实现 ccBalancerWrapper: 用来适配 balancer的clientConn的封装. 负责调用balancer实现 (分析下)  但是有意思的是, addrConn 其实本身并不是一个地址的抽象, 相反addrConn内部维护了多个地址, 但是只是对一个地址发起了连接, 因此, 更准确的说, addrConn 应该是对 地址连接 的抽象.
+除此之外, 虽然有层层wrapper的封装, 但是 clientConn 真正维护的连接对象还是 addrConn, 如下:
+type ClientConn struct { conns map[*addrConn]struct{} } 一个有意思的问题, 为什么分别在 clientConn 和 addrConn都做了一层balancer的封装?</description>
+            <content type="html"><![CDATA[<h2 id="抽象">抽象</h2>
+<p>在 grpc-go中, 抽象了 几种连接对象, 主要区分如下:</p>
+<ul>
+<li>addrConn: 指定地址的连接</li>
+<li>SubConn: grpc的一个&quot;子连接&quot;抽象接口, 包含一系列地址</li>
+<li>acBalancerWrapper: SubConn 的实现, 为了适配 balancer, 对addrConn做了封装, 主要提供了 #UpdateAddresses 方法, 在pickfirst、grclb、v1的balancerWrapper使用. (换句话说, 如果不支持这几种balancer, 这个抽象可以不用)</li>
+<li>ClientConn: 连接端点的虚拟抽象, 底层可能创建多个连接, 负责处理 name resolution、TCP建连、TLS握手,</li>
+<li>ccResolverWrapper: 用来解决name resolver的clientConn的封装. 负责调用 resolver实现</li>
+<li>ccBalancerWrapper: 用来适配 balancer的clientConn的封装. 负责调用balancer实现 (分析下)</li>
+</ul>
+<p>但是有意思的是, addrConn 其实本身并不是一个地址的抽象, 相反addrConn内部维护了多个地址, 但是只是对一个地址发起了连接, 因此, 更准确的说, addrConn 应该是对 地址连接 的抽象.</p>
+<p>除此之外, 虽然有层层wrapper的封装, 但是 clientConn 真正维护的连接对象还是 addrConn, 如下:</p>
+<pre><code>type ClientConn struct {
+	conns    map[*addrConn]struct{}
+}
+</code></pre><p>一个有意思的问题, 为什么分别在 clientConn 和 addrConn都做了一层balancer的封装? 为什么不抽象成一个呢？
+其实, clientConn 并没与对外暴露wrapper的封装, 而是组合的模式, addrConn 也是, 只有专门的功能委托了wrapper, 为了更好的解耦. 职责也更加的单一、内聚.</p>
+<p><em>subConn&amp;addrConn</em></p>
+<p>grpc设计中, 没有很好处理连接抽象, 导致了subConn 和 addrConn, 本质上而言, subConn的实现只是 addrConn 的balancer封装, 对外提供地址更新的功能, 也因此, addrConn 内部维护了地址列表. 我觉得这个完全可以避免, 对于只需要一个连接的场景, 应该是balancer内部处理 并记录所有地址.</p>
+<ul>
+<li>有意思的设计:</li>
+</ul>
+<p>addrConn#tryUpdateAddrs 是对外提供更新地址列表的功能, 如果发现当前连接的地址在新列表里面, 则仅仅更新地址列表, 如果当前连接的地址不在里面, 则会关闭当前连接, 重新创建连接. 这样避免了因为地址变更带来的连接重连.</p>
+<ul>
+<li>多地区rpc请求:</li>
+</ul>
+<p>根据subConn&amp;addrConn的当前特性, 可以设计一套多地区的rpc请求设计: 一个client需要和多个区域发起rpc请求, 但是每个地区一个真实连接.  我们将每个区域设计成一个 subConn, 区域的地址都放到subConn中, 来保证这个区域只连接一个地址</p>
+<p><em>创建和销毁</em></p>
+<p>参考 resolver &amp; loadBalancer 的实现</p>
+<h2 id="服务发现">服务发现</h2>
+<p>在grpc中, 服务发现被抽象成 name resolver, 业务可以根据需要设计自己的 name resolver: 比如基于consul的. 官方提供的resolver 有 passthrough、manual、dns 三种. 也可以通过 <code>resolver.Register</code> 的方式进行注册. grpc 根据创建 <code>grpc.DialContext</code> 传递的 addr的 scheme前缀 判断使用的 resolver, 比如dns的scheme是 <code>dns</code>, passthrough 的scheme是 <code>passthrough</code>.</p>
+<p>看服务发现的实现之前, 我们先思考这几个问题:</p>
+<ol>
+<li>什么时候被动触发 服务发现</li>
+<li>服务发现如何更新内部地址</li>
+</ol>
+<p>关于问题1, grpc中, 服务发现被触发的机会很多, 除了 连接重建, 在loadbalancer创建连接都失败的时候也会触发(pickfirst).
+关于问题2, 这个都是resolver具体实现进行主动触发的, 比如consul, 当定期观察到服务地址变更, 就调用 <code>UpdateState</code> 进行更新</p>
+<p>ClientConn#resolveNow 本身是个异步的操作, 可以通过 connectivity.State 进行同步, 比如 <code>grpc.DialContext</code> 同步等待连接ready.</p>
+<p>代码调用路径:</p>
+<pre><code>业务自定义resolver, 地址发现变更, 需要调用, 自定义定期调用 或者 resolver.ResolveNow 触发更新 -&gt; 手动调用 ccResolverWrapper#UpdateState -&gt; ClientConn#updateResolverState -&gt; ccBalancerWrapper#updateClientConnState -&gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接, pickfirst的实现不一样) 
+</code></pre><p>有人喜欢在 resolver 定期更新然后调用 ccResolverWrapper#UpdateState, 是不必要的, 因为grpc底层连接断开或者需要连接的时候都会调用 resolveNow</p>
+<h2 id="负载均衡连接创建">负载均衡&amp;连接创建</h2>
+<p>在grpc中, 服务均衡实现很重要, 不仅仅是因为职责本身, 还因为 负载均衡负责了 连接的创建.</p>
+<p>在balancer设计中, balancer被拆分成了两个组件, Balancer 和 Picker. pick 是我们之前认知的 负载均衡模块, 从一堆连接中选择一个. balancer 的设计是为了管理 subConn, 并调用picker进行负载均衡, balancer 主要对外提供 UpdateClientConnState 和 UpdateSubConnState, 处理客户端状态变化 和 连接变化. 客户端状态变化 主要是 resolver的地址信息变更</p>
+<p>grpc内部balancer实现主要有两部分, 一部分是 基于baseBalancer 的实现体系, 比如 random、roundrobin; 另一类是自定义的实现, 主要是 pickfirst. 两者在创建连接的行为上存在差异,</p>
+<p><em>baseBalancer</em>
+baseBalancer在处理 <code>UpdateClientConnState</code> 的时候, 因为是地址发生变更, baseBalancer 会对所有没有记录的地址分别创建一个 subConn并进行连接, 对已经不存在的地址进行关闭. 这样, 连接就被创建了</p>
+<p>针对 <code>UpdateSubConnState</code>, 如果这个连接丢失、新建, 则需要重新构建picker, 保证picker内部的信息是最新的</p>
+<p>具体使用的balancer: roundrobin</p>
+<p><em>pickfirstBalancer</em></p>
+<p>和上面的不同, 在处理 <code>UpdateClientConnState</code> 逻辑的时候, 并不是一个addr一个 subConn, 而是所有的addr都放到了一个 subConn 当中, 这样, 最终 subConn只会创建一个连接, 这个连接是 遍历addr第一个成功创建的.</p>
+<p>在处理 <code>UpdateSubConnState</code> 逻辑的时候, 仅仅负责传递状态, 因为如果连接断开, 并不需要关心.</p>
+<p><em>调用</em></p>
+<p>那么什么时候触发负载均衡呢? 在创建stream的时候触发, 创建stream是生成的代码调用的</p>
+<pre><code>ClientConn#NewStream -&gt; newClientStream -&gt; clientStream#newAttemptLocked -&gt; ClientConn#getTransport -&gt; pickerWrapper#pick 
+</code></pre><h2 id="状态通知">状态通知</h2>
+<p>连接状态变更的行为:</p>
+<pre><code>addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -&gt; ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher实例化启动) -&gt; Balancer#UpdateSubConnState (不同实现不一样) 
+</code></pre><p>因此, 连接状态变更的最终处理是在 Balancer, 在baseBalacer中, 会触发picker重新构建, 这样做是为了确保 picker维护的状态是最新的, 避免 random/roundrobin 返回无用的地址</p>
+<pre><code>baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build
+</code></pre>]]></content>
         </item>
         
         <item>
@@ -6369,7 +6451,8 @@ theory   先看下一致性hash的实现
             
             <guid>https://xujianhai.fun/posts/raft-paper/</guid>
             <description>摘要 raft: 比paxos简单的共识算法, 相比paxos, 有什么特殊的点:
- 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&amp;gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
+ 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&amp;gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  本身, paxos 就存在一些问题: 1. 难以理解 2. 不具备良好的工程实践能力, multi-paxos 缺乏实现细节. Chubby 实现了类似 paxos 的算法, 但是不公开
+细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
  需要得到包括自己在内一半以上的投票 Candidate的term比voter大, 在相同的情况下, candidate的logEntry的sn比voter大  这里存在问题: 当一个节点被隔离了, 会出现不断投票给自己的情况, 导致term非常大, 隔离的节点重新加入集群后, 会触发集群多次选举, 直到集群中的节点的term和被隔离的节点一样大
   raft在leader当选成功后, 会执行下面几个特点和操作:
  leader立即发送一个 no-op entry, 保证leader commit index是最新的, 使整个集群快速进入可读状态. 当follower 发送自身的commit index 比leader大, 会进行删除操作, 删除本地 leader commit index 之后的内容 leader不能提交之前term的entry, 必须当entry已经得到集群节点半数的响应, 才能将之前的entry提交    leader存活期间, 有下面几个特点</description>
@@ -6381,6 +6464,9 @@ theory   先看下一致性hash的实现
 <li>使用 Randomization 算法简化leader election问题.</li>
 <li>使用term概念代替原子钟的概念</li>
 </ol>
+<p>本身, paxos 就存在一些问题:
+1. 难以理解
+2. 不具备良好的工程实践能力, multi-paxos 缺乏实现细节. Chubby 实现了类似 paxos 的算法, 但是不公开</p>
 <h2 id="细节">细节</h2>
 <h3 id="1-leader选举">1. leader选举</h3>
 <ol>

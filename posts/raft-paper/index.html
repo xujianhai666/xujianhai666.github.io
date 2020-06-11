@@ -6,7 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="author" content="Zero xu ">
 <meta name="description" content="摘要 raft: 比paxos简单的共识算法, 相比paxos, 有什么特殊的点:
- 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&amp;gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
+ 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&amp;gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  本身, paxos 就存在一些问题: 1. 难以理解 2. 不具备良好的工程实践能力, multi-paxos 缺乏实现细节. Chubby 实现了类似 paxos 的算法, 但是不公开
+细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
  需要得到包括自己在内一半以上的投票 Candidate的term比voter大, 在相同的情况下, candidate的logEntry的sn比voter大  这里存在问题: 当一个节点被隔离了, 会出现不断投票给自己的情况, 导致term非常大, 隔离的节点重新加入集群后, 会触发集群多次选举, 直到集群中的节点的term和被隔离的节点一样大
   raft在leader当选成功后, 会执行下面几个特点和操作:
  leader立即发送一个 no-op entry, 保证leader commit index是最新的, 使整个集群快速进入可读状态. 当follower 发送自身的commit index 比leader大, 会进行删除操作, 删除本地 leader commit index 之后的内容 leader不能提交之前term的entry, 必须当entry已经得到集群节点半数的响应, 才能将之前的entry提交    leader存活期间, 有下面几个特点" />
@@ -36,13 +37,14 @@
 
 <meta itemprop="name" content="Raft Paper">
 <meta itemprop="description" content="摘要 raft: 比paxos简单的共识算法, 相比paxos, 有什么特殊的点:
- 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
+ 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  本身, paxos 就存在一些问题: 1. 难以理解 2. 不具备良好的工程实践能力, multi-paxos 缺乏实现细节. Chubby 实现了类似 paxos 的算法, 但是不公开
+细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
  需要得到包括自己在内一半以上的投票 Candidate的term比voter大, 在相同的情况下, candidate的logEntry的sn比voter大  这里存在问题: 当一个节点被隔离了, 会出现不断投票给自己的情况, 导致term非常大, 隔离的节点重新加入集群后, 会触发集群多次选举, 直到集群中的节点的term和被隔离的节点一样大
   raft在leader当选成功后, 会执行下面几个特点和操作:
  leader立即发送一个 no-op entry, 保证leader commit index是最新的, 使整个集群快速进入可读状态. 当follower 发送自身的commit index 比leader大, 会进行删除操作, 删除本地 leader commit index 之后的内容 leader不能提交之前term的entry, 必须当entry已经得到集群节点半数的响应, 才能将之前的entry提交    leader存活期间, 有下面几个特点">
 <meta itemprop="datePublished" content="2019-04-03T20:31:08&#43;08:00" />
 <meta itemprop="dateModified" content="2019-04-03T20:31:08&#43;08:00" />
-<meta itemprop="wordCount" content="274">
+<meta itemprop="wordCount" content="288">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -52,7 +54,8 @@
 
 <meta name="twitter:title" content="Raft Paper"/>
 <meta name="twitter:description" content="摘要 raft: 比paxos简单的共识算法, 相比paxos, 有什么特殊的点:
- 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
+ 共识问题简化成三个独立的问题: leader election、log replication、safety[logIndex-&gt;log唯一且不可变] 不允许类似paxos的乱序提交 使用 Randomization 算法简化leader election问题. 使用term概念代替原子钟的概念  本身, paxos 就存在一些问题: 1. 难以理解 2. 不具备良好的工程实践能力, multi-paxos 缺乏实现细节. Chubby 实现了类似 paxos 的算法, 但是不公开
+细节 1. leader选举   raft中有三个角色: leader、candidate、follower, 只有 candidate可以竞选leader, 竞选leader的时候, 竞选特点如下:
  需要得到包括自己在内一半以上的投票 Candidate的term比voter大, 在相同的情况下, candidate的logEntry的sn比voter大  这里存在问题: 当一个节点被隔离了, 会出现不断投票给自己的情况, 导致term非常大, 隔离的节点重新加入集群后, 会触发集群多次选举, 直到集群中的节点的term和被隔离的节点一样大
   raft在leader当选成功后, 会执行下面几个特点和操作:
  leader立即发送一个 no-op entry, 保证leader commit index是最新的, 使整个集群快速进入可读状态. 当follower 发送自身的commit index 比leader大, 会进行删除操作, 删除本地 leader commit index 之后的内容 leader不能提交之前term的entry, 必须当entry已经得到集群节点半数的响应, 才能将之前的entry提交    leader存活期间, 有下面几个特点"/>
@@ -145,6 +148,9 @@
 <li>使用 Randomization 算法简化leader election问题.</li>
 <li>使用term概念代替原子钟的概念</li>
 </ol>
+<p>本身, paxos 就存在一些问题:
+1. 难以理解
+2. 不具备良好的工程实践能力, multi-paxos 缺乏实现细节. Chubby 实现了类似 paxos 的算法, 但是不公开</p>
 <h2 id="细节">细节</h2>
 <h3 id="1-leader选举">1. leader选举</h3>
 <ol>
@@ -251,7 +257,7 @@ Leader Completeness Property 保证了 leader是有所有提交的信息的, lea
 
         <div class="post-info">
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>274 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>288 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-04-03 20:31 &#43;0800</p>
         </div>

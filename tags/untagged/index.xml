@@ -23,19 +23,5 @@ raft 写入 raft 协议的写入如下:
  1. client -&amp;gt; leader: 客户端请求leader写入kv 2. leader 通过 lease 检查自己是否是 leader, 3. 检查是leader的情况下, 检查本地 apply index 和 客户端的 index, apply index大的话, 读取本地的状态机的数据 + apply index返回 4.</description>
     </item>
     
-    <item>
-      <title>Grpc Client</title>
-      <link>https://xujianhai.fun/posts/grpc-client/</link>
-      <pubDate>Fri, 12 Jul 2019 12:40:33 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/grpc-client/</guid>
-      <description>服务发现与负载均衡
-resolver_conn_wrapper.go
-ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连接 ccBalancerWrapper#NewSubConn -&amp;gt; ClientConn#newAddrConn -&amp;gt; addrConn addrConn#resetTransport: 只会创建一个连接. 状态变更处理, transport nil, ClientConn-&amp;gt;handleSubConnStateChange -&amp;gt; balancerWrapper -&amp;gt;
-奇怪了, 哪个地方进行了所有的连接的呢? ccBalancerWrapper -&amp;gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口 subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义 addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接
-负载均衡: 如何感知变更的服务连接 rrPickerBuilder 为例子, 业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&amp;gt; ccResolverWrapper#UpdateState -&amp;gt; ClientConn#updateResolverState -&amp;gt; ccBalancerWrapper#updateClientConnState -&amp;gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)
- addrConn#updateConnectivityState(连接状态变更) -&amp;gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&amp;gt; scBuffer异步通知 -&amp;gt; ccBalancerWrapper#watcher(????, 实例化启动) -&amp;gt; baseBalancer#UpdateSubConnState -&amp;gt; baseBalancer#regeneratePicker -&amp;gt; rrPickerBuilder#Build scBuffer ?</description>
-    </item>
-    
   </channel>
 </rss>

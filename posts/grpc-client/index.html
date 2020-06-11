@@ -5,13 +5,11 @@
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="author" content="Zero xu ">
-<meta name="description" content="服务发现与负载均衡
-resolver_conn_wrapper.go
-ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连接 ccBalancerWrapper#NewSubConn -&amp;gt; ClientConn#newAddrConn -&amp;gt; addrConn addrConn#resetTransport: 只会创建一个连接. 状态变更处理, transport nil, ClientConn-&amp;gt;handleSubConnStateChange -&amp;gt; balancerWrapper -&amp;gt;
-奇怪了, 哪个地方进行了所有的连接的呢? ccBalancerWrapper -&amp;gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口 subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义 addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接
-负载均衡: 如何感知变更的服务连接 rrPickerBuilder 为例子, 业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&amp;gt; ccResolverWrapper#UpdateState -&amp;gt; ClientConn#updateResolverState -&amp;gt; ccBalancerWrapper#updateClientConnState -&amp;gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)
- addrConn#updateConnectivityState(连接状态变更) -&amp;gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&amp;gt; scBuffer异步通知 -&amp;gt; ccBalancerWrapper#watcher(????, 实例化启动) -&amp;gt; baseBalancer#UpdateSubConnState -&amp;gt; baseBalancer#regeneratePicker -&amp;gt; rrPickerBuilder#Build scBuffer ?" />
-<meta name="keywords" content="homepage, blog, science, informatics, development, programming, untagged" />
+<meta name="description" content="抽象 在 grpc-go中, 抽象了 几种连接对象, 主要区分如下:
+ addrConn: 指定地址的连接 SubConn: grpc的一个&amp;quot;子连接&amp;quot;抽象接口, 包含一系列地址 acBalancerWrapper: SubConn 的实现, 为了适配 balancer, 对addrConn做了封装, 主要提供了 #UpdateAddresses 方法, 在pickfirst、grclb、v1的balancerWrapper使用. (换句话说, 如果不支持这几种balancer, 这个抽象可以不用) ClientConn: 连接端点的虚拟抽象, 底层可能创建多个连接, 负责处理 name resolution、TCP建连、TLS握手, ccResolverWrapper: 用来解决name resolver的clientConn的封装. 负责调用 resolver实现 ccBalancerWrapper: 用来适配 balancer的clientConn的封装. 负责调用balancer实现 (分析下)  但是有意思的是, addrConn 其实本身并不是一个地址的抽象, 相反addrConn内部维护了多个地址, 但是只是对一个地址发起了连接, 因此, 更准确的说, addrConn 应该是对 地址连接 的抽象.
+除此之外, 虽然有层层wrapper的封装, 但是 clientConn 真正维护的连接对象还是 addrConn, 如下:
+type ClientConn struct { conns map[*addrConn]struct{} } 一个有意思的问题, 为什么分别在 clientConn 和 addrConn都做了一层balancer的封装?" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, grpc" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
 <link rel="canonical" href="https://xujianhai.fun/posts/grpc-client/" />
@@ -36,29 +34,25 @@ ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连
 
 
 <meta itemprop="name" content="Grpc Client">
-<meta itemprop="description" content="服务发现与负载均衡
-resolver_conn_wrapper.go
-ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连接 ccBalancerWrapper#NewSubConn -&gt; ClientConn#newAddrConn -&gt; addrConn addrConn#resetTransport: 只会创建一个连接. 状态变更处理, transport nil, ClientConn-&gt;handleSubConnStateChange -&gt; balancerWrapper -&gt;
-奇怪了, 哪个地方进行了所有的连接的呢? ccBalancerWrapper -&gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口 subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义 addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接
-负载均衡: 如何感知变更的服务连接 rrPickerBuilder 为例子, 业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&gt; ccResolverWrapper#UpdateState -&gt; ClientConn#updateResolverState -&gt; ccBalancerWrapper#updateClientConnState -&gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)
- addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher(????, 实例化启动) -&gt; baseBalancer#UpdateSubConnState -&gt; baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build scBuffer ?">
+<meta itemprop="description" content="抽象 在 grpc-go中, 抽象了 几种连接对象, 主要区分如下:
+ addrConn: 指定地址的连接 SubConn: grpc的一个&quot;子连接&quot;抽象接口, 包含一系列地址 acBalancerWrapper: SubConn 的实现, 为了适配 balancer, 对addrConn做了封装, 主要提供了 #UpdateAddresses 方法, 在pickfirst、grclb、v1的balancerWrapper使用. (换句话说, 如果不支持这几种balancer, 这个抽象可以不用) ClientConn: 连接端点的虚拟抽象, 底层可能创建多个连接, 负责处理 name resolution、TCP建连、TLS握手, ccResolverWrapper: 用来解决name resolver的clientConn的封装. 负责调用 resolver实现 ccBalancerWrapper: 用来适配 balancer的clientConn的封装. 负责调用balancer实现 (分析下)  但是有意思的是, addrConn 其实本身并不是一个地址的抽象, 相反addrConn内部维护了多个地址, 但是只是对一个地址发起了连接, 因此, 更准确的说, addrConn 应该是对 地址连接 的抽象.
+除此之外, 虽然有层层wrapper的封装, 但是 clientConn 真正维护的连接对象还是 addrConn, 如下:
+type ClientConn struct { conns map[*addrConn]struct{} } 一个有意思的问题, 为什么分别在 clientConn 和 addrConn都做了一层balancer的封装?">
 <meta itemprop="datePublished" content="2019-07-12T12:40:33&#43;08:00" />
 <meta itemprop="dateModified" content="2019-07-12T12:40:33&#43;08:00" />
-<meta itemprop="wordCount" content="89">
+<meta itemprop="wordCount" content="324">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
 
-<meta itemprop="keywords" content="untagged," /><meta name="twitter:card" content="summary_large_image"/>
+<meta itemprop="keywords" content="grpc," /><meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:image" content="https://xujianhai.fun/"/>
 
 <meta name="twitter:title" content="Grpc Client"/>
-<meta name="twitter:description" content="服务发现与负载均衡
-resolver_conn_wrapper.go
-ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连接 ccBalancerWrapper#NewSubConn -&gt; ClientConn#newAddrConn -&gt; addrConn addrConn#resetTransport: 只会创建一个连接. 状态变更处理, transport nil, ClientConn-&gt;handleSubConnStateChange -&gt; balancerWrapper -&gt;
-奇怪了, 哪个地方进行了所有的连接的呢? ccBalancerWrapper -&gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口 subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义 addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接
-负载均衡: 如何感知变更的服务连接 rrPickerBuilder 为例子, 业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&gt; ccResolverWrapper#UpdateState -&gt; ClientConn#updateResolverState -&gt; ccBalancerWrapper#updateClientConnState -&gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)
- addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher(????, 实例化启动) -&gt; baseBalancer#UpdateSubConnState -&gt; baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build scBuffer ?"/>
+<meta name="twitter:description" content="抽象 在 grpc-go中, 抽象了 几种连接对象, 主要区分如下:
+ addrConn: 指定地址的连接 SubConn: grpc的一个&quot;子连接&quot;抽象接口, 包含一系列地址 acBalancerWrapper: SubConn 的实现, 为了适配 balancer, 对addrConn做了封装, 主要提供了 #UpdateAddresses 方法, 在pickfirst、grclb、v1的balancerWrapper使用. (换句话说, 如果不支持这几种balancer, 这个抽象可以不用) ClientConn: 连接端点的虚拟抽象, 底层可能创建多个连接, 负责处理 name resolution、TCP建连、TLS握手, ccResolverWrapper: 用来解决name resolver的clientConn的封装. 负责调用 resolver实现 ccBalancerWrapper: 用来适配 balancer的clientConn的封装. 负责调用balancer实现 (分析下)  但是有意思的是, addrConn 其实本身并不是一个地址的抽象, 相反addrConn内部维护了多个地址, 但是只是对一个地址发起了连接, 因此, 更准确的说, addrConn 应该是对 地址连接 的抽象.
+除此之外, 虽然有层层wrapper的封装, 但是 clientConn 真正维护的连接对象还是 addrConn, 如下:
+type ClientConn struct { conns map[*addrConn]struct{} } 一个有意思的问题, 为什么分别在 clientConn 和 addrConn都做了一层balancer的封装?"/>
 
 
 
@@ -125,7 +119,7 @@ ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连
     <main class="post">
 
         <div class="post-info">
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>One minute
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
 
             
 
@@ -140,28 +134,68 @@ ccResolverWrapper ClientConn: 对外的逻辑暴露 ccBalancerWrapper: 创建连
             
 
             <div class="post-content">
-                <p>服务发现与负载均衡</p>
-<p>resolver_conn_wrapper.go</p>
-<p>ccResolverWrapper
-ClientConn: 对外的逻辑暴露
-ccBalancerWrapper: 创建连接
-ccBalancerWrapper#NewSubConn -&gt; ClientConn#newAddrConn -&gt; addrConn
-addrConn#resetTransport: 只会创建一个连接.
-状态变更处理, transport nil, ClientConn-&gt;handleSubConnStateChange -&gt; balancerWrapper -&gt;</p>
-<p>奇怪了, 哪个地方进行了所有的连接的呢?
-ccBalancerWrapper -&gt; 包含 acBalancerWrapper, 实现了 balancer.ClientConn 接口
-subConn的实现: acBalancerWrapper: 对addrConn的封装, 是, 可以自定义
-addrConn 每次连接失败, 都会请求 resolveNow, 在请求连接</p>
-<p>负载均衡:
-如何感知变更的服务连接 rrPickerBuilder 为例子,
-业务自定义resolver, 地址发现变更, 需要调用, 自定义 resolver -&gt; ccResolverWrapper#UpdateState -&gt; ClientConn#updateResolverState -&gt; ccBalancerWrapper#updateClientConnState -&gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接)</p>
-<pre><code>    addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -》 ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher(????, 实例化启动) -&gt; baseBalancer#UpdateSubConnState -&gt; baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build
-    scBuffer ?
-何时进行负载均衡
-ClientConn#NewStream -&gt; newClientStream -&gt; clientStream#newAttemptLocked -&gt; ClientConn#getTransport -&gt; pickerWrapper#pick 
+                <h2 id="抽象">抽象</h2>
+<p>在 grpc-go中, 抽象了 几种连接对象, 主要区分如下:</p>
+<ul>
+<li>addrConn: 指定地址的连接</li>
+<li>SubConn: grpc的一个&quot;子连接&quot;抽象接口, 包含一系列地址</li>
+<li>acBalancerWrapper: SubConn 的实现, 为了适配 balancer, 对addrConn做了封装, 主要提供了 #UpdateAddresses 方法, 在pickfirst、grclb、v1的balancerWrapper使用. (换句话说, 如果不支持这几种balancer, 这个抽象可以不用)</li>
+<li>ClientConn: 连接端点的虚拟抽象, 底层可能创建多个连接, 负责处理 name resolution、TCP建连、TLS握手,</li>
+<li>ccResolverWrapper: 用来解决name resolver的clientConn的封装. 负责调用 resolver实现</li>
+<li>ccBalancerWrapper: 用来适配 balancer的clientConn的封装. 负责调用balancer实现 (分析下)</li>
+</ul>
+<p>但是有意思的是, addrConn 其实本身并不是一个地址的抽象, 相反addrConn内部维护了多个地址, 但是只是对一个地址发起了连接, 因此, 更准确的说, addrConn 应该是对 地址连接 的抽象.</p>
+<p>除此之外, 虽然有层层wrapper的封装, 但是 clientConn 真正维护的连接对象还是 addrConn, 如下:</p>
+<pre><code>type ClientConn struct {
+	conns    map[*addrConn]struct{}
+}
+</code></pre><p>一个有意思的问题, 为什么分别在 clientConn 和 addrConn都做了一层balancer的封装? 为什么不抽象成一个呢？
+其实, clientConn 并没与对外暴露wrapper的封装, 而是组合的模式, addrConn 也是, 只有专门的功能委托了wrapper, 为了更好的解耦. 职责也更加的单一、内聚.</p>
+<p><em>subConn&amp;addrConn</em></p>
+<p>grpc设计中, 没有很好处理连接抽象, 导致了subConn 和 addrConn, 本质上而言, subConn的实现只是 addrConn 的balancer封装, 对外提供地址更新的功能, 也因此, addrConn 内部维护了地址列表. 我觉得这个完全可以避免, 对于只需要一个连接的场景, 应该是balancer内部处理 并记录所有地址.</p>
+<ul>
+<li>有意思的设计:</li>
+</ul>
+<p>addrConn#tryUpdateAddrs 是对外提供更新地址列表的功能, 如果发现当前连接的地址在新列表里面, 则仅仅更新地址列表, 如果当前连接的地址不在里面, 则会关闭当前连接, 重新创建连接. 这样避免了因为地址变更带来的连接重连.</p>
+<ul>
+<li>多地区rpc请求:</li>
+</ul>
+<p>根据subConn&amp;addrConn的当前特性, 可以设计一套多地区的rpc请求设计: 一个client需要和多个区域发起rpc请求, 但是每个地区一个真实连接.  我们将每个区域设计成一个 subConn, 区域的地址都放到subConn中, 来保证这个区域只连接一个地址</p>
+<p><em>创建和销毁</em></p>
+<p>参考 resolver &amp; loadBalancer 的实现</p>
+<h2 id="服务发现">服务发现</h2>
+<p>在grpc中, 服务发现被抽象成 name resolver, 业务可以根据需要设计自己的 name resolver: 比如基于consul的. 官方提供的resolver 有 passthrough、manual、dns 三种. 也可以通过 <code>resolver.Register</code> 的方式进行注册. grpc 根据创建 <code>grpc.DialContext</code> 传递的 addr的 scheme前缀 判断使用的 resolver, 比如dns的scheme是 <code>dns</code>, passthrough 的scheme是 <code>passthrough</code>.</p>
+<p>看服务发现的实现之前, 我们先思考这几个问题:</p>
+<ol>
+<li>什么时候被动触发 服务发现</li>
+<li>服务发现如何更新内部地址</li>
+</ol>
+<p>关于问题1, grpc中, 服务发现被触发的机会很多, 除了 连接重建, 在loadbalancer创建连接都失败的时候也会触发(pickfirst).
+关于问题2, 这个都是resolver具体实现进行主动触发的, 比如consul, 当定期观察到服务地址变更, 就调用 <code>UpdateState</code> 进行更新</p>
+<p>ClientConn#resolveNow 本身是个异步的操作, 可以通过 connectivity.State 进行同步, 比如 <code>grpc.DialContext</code> 同步等待连接ready.</p>
+<p>代码调用路径:</p>
+<pre><code>业务自定义resolver, 地址发现变更, 需要调用, 自定义定期调用 或者 resolver.ResolveNow 触发更新 -&gt; 手动调用 ccResolverWrapper#UpdateState -&gt; ClientConn#updateResolverState -&gt; ccBalancerWrapper#updateClientConnState -&gt; baseBalancer#UpdateClientConnState (注意, 这里创建了所有的连接, pickfirst的实现不一样) 
+</code></pre><p>有人喜欢在 resolver 定期更新然后调用 ccResolverWrapper#UpdateState, 是不必要的, 因为grpc底层连接断开或者需要连接的时候都会调用 resolveNow</p>
+<h2 id="负载均衡连接创建">负载均衡&amp;连接创建</h2>
+<p>在grpc中, 服务均衡实现很重要, 不仅仅是因为职责本身, 还因为 负载均衡负责了 连接的创建.</p>
+<p>在balancer设计中, balancer被拆分成了两个组件, Balancer 和 Picker. pick 是我们之前认知的 负载均衡模块, 从一堆连接中选择一个. balancer 的设计是为了管理 subConn, 并调用picker进行负载均衡, balancer 主要对外提供 UpdateClientConnState 和 UpdateSubConnState, 处理客户端状态变化 和 连接变化. 客户端状态变化 主要是 resolver的地址信息变更</p>
+<p>grpc内部balancer实现主要有两部分, 一部分是 基于baseBalancer 的实现体系, 比如 random、roundrobin; 另一类是自定义的实现, 主要是 pickfirst. 两者在创建连接的行为上存在差异,</p>
+<p><em>baseBalancer</em>
+baseBalancer在处理 <code>UpdateClientConnState</code> 的时候, 因为是地址发生变更, baseBalancer 会对所有没有记录的地址分别创建一个 subConn并进行连接, 对已经不存在的地址进行关闭. 这样, 连接就被创建了</p>
+<p>针对 <code>UpdateSubConnState</code>, 如果这个连接丢失、新建, 则需要重新构建picker, 保证picker内部的信息是最新的</p>
+<p>具体使用的balancer: roundrobin</p>
+<p><em>pickfirstBalancer</em></p>
+<p>和上面的不同, 在处理 <code>UpdateClientConnState</code> 逻辑的时候, 并不是一个addr一个 subConn, 而是所有的addr都放到了一个 subConn 当中, 这样, 最终 subConn只会创建一个连接, 这个连接是 遍历addr第一个成功创建的.</p>
+<p>在处理 <code>UpdateSubConnState</code> 逻辑的时候, 仅仅负责传递状态, 因为如果连接断开, 并不需要关心.</p>
+<p><em>调用</em></p>
+<p>那么什么时候触发负载均衡呢? 在创建stream的时候触发, 创建stream是生成的代码调用的</p>
+<pre><code>ClientConn#NewStream -&gt; newClientStream -&gt; clientStream#newAttemptLocked -&gt; ClientConn#getTransport -&gt; pickerWrapper#pick 
+</code></pre><h2 id="状态通知">状态通知</h2>
+<p>连接状态变更的行为:</p>
+<pre><code>addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -&gt; ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher实例化启动) -&gt; Balancer#UpdateSubConnState (不同实现不一样) 
+</code></pre><p>因此, 连接状态变更的最终处理是在 Balancer, 在baseBalacer中, 会触发picker重新构建, 这样做是为了确保 picker维护的状态是最新的, 避免 random/roundrobin 返回无用的地址</p>
+<pre><code>baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build
 </code></pre>
-<p>因此, 我们返回了一个地址,</p>
-
             </div>
         </article>
 
@@ -169,10 +203,10 @@ ClientConn#NewStream -&gt; newClientStream -&gt; clientStream#newAttemptLocked -
 
         <div class="post-info">
                 <p>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/untagged">untagged</a></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/grpc">grpc</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>89 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>324 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-07-12 12:40 &#43;0800</p>
         </div>

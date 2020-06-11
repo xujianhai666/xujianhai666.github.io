@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>grpc on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/grpc/</link>
+    <description>Recent content in grpc on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Fri, 12 Jul 2019 12:40:33 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/grpc/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Grpc Client</title>
+      <link>https://xujianhai.fun/posts/grpc-client/</link>
+      <pubDate>Fri, 12 Jul 2019 12:40:33 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/grpc-client/</guid>
+      <description>抽象 在 grpc-go中, 抽象了 几种连接对象, 主要区分如下:
+ addrConn: 指定地址的连接 SubConn: grpc的一个&amp;quot;子连接&amp;quot;抽象接口, 包含一系列地址 acBalancerWrapper: SubConn 的实现, 为了适配 balancer, 对addrConn做了封装, 主要提供了 #UpdateAddresses 方法, 在pickfirst、grclb、v1的balancerWrapper使用. (换句话说, 如果不支持这几种balancer, 这个抽象可以不用) ClientConn: 连接端点的虚拟抽象, 底层可能创建多个连接, 负责处理 name resolution、TCP建连、TLS握手, ccResolverWrapper: 用来解决name resolver的clientConn的封装. 负责调用 resolver实现 ccBalancerWrapper: 用来适配 balancer的clientConn的封装. 负责调用balancer实现 (分析下)  但是有意思的是, addrConn 其实本身并不是一个地址的抽象, 相反addrConn内部维护了多个地址, 但是只是对一个地址发起了连接, 因此, 更准确的说, addrConn 应该是对 地址连接 的抽象.
+除此之外, 虽然有层层wrapper的封装, 但是 clientConn 真正维护的连接对象还是 addrConn, 如下:
+type ClientConn struct { conns map[*addrConn]struct{} } 一个有意思的问题, 为什么分别在 clientConn 和 addrConn都做了一层balancer的封装?</description>
+    </item>
+    
+  </channel>
+</rss>
