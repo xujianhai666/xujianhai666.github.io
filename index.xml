@@ -6,10 +6,34 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 08 Jun 2020 13:11:08 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 13 Jun 2020 00:06:10 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Redis_debug</title>
+      <link>https://xujianhai.fun/posts/redis_debug/</link>
+      <pubDate>Sat, 13 Jun 2020 00:06:10 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/redis_debug/</guid>
+      <description>Preface 最近小伙伴讨论到了如何调试c/cpp 应用, 其中讲到了 compile db 这个组件, 不是很了解, 这里学习下
+redis 先用redis调试, 其中主要参考了 https://my.oschina.net/icebergxty/blog/4309023, 整个过程都成功了, 但是需要注意的是, 在创建调试的配置的时候, 选择的是二进制的应用, 而不是 server.c, 虽然选择的是二进制, 但是调试还是可以的, 打的断点可以执行到.
+使用 compile db 调试, 避免了 在每个模块添加 CMakeList.txt 的操作, 快速很多
+参考的blog是中文的, 可以参考英文官方文档: https://www.jetbrains.com/help/clion/custom-build-targets.html#.
+mysql cmake
+-DCMAKE_INSTALL_PREFIX=/Users/jianhaixu/secrect/opensource/mysql-server/debug
+-DMYSQL_DATADIR=/Users/jianhaixu/secrect/opensource/mysql-server/debug/data
+-DSYSCONFDIR=/Users/jianhaixu/secrect/opensource/mysql-server/debug
+-DMYSQL_UNIX_ADDR=/Users/jianhaixu/secrect/opensource/mysql-server/debug/data/mysql.sock
+-DWITH_DEBUG=1 -DFORCE_INSOURCE_BUILD=1
+-DDOWNLOAD_BOOST=1
+-DWITH_BOOST=/Users/jianhaixu/Downloads/boost_1_70_0
+make -j 4
+make install -j 4
+bin/mysqld &amp;ndash;initialize-insecure &amp;ndash;user=root &amp;ndash;datadir=/Users/jianhaixu/secrect/opensource/mysql-server/debug/data
+bin/mysqld &amp;ndash;defaults-file=/Users/jianhaixu/secrect/opensource/mysql-server/debug/etc/my.cnf</description>
+    </item>
     
     <item>
       <title>Python_tool</title>
@@ -126,20 +150,6 @@ func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) { va
       <description>Preface 最近小组讨论到 &amp;ldquo;too many open files&amp;rdquo; 和 网络模式, 说 bridger 可以实现pod间socket文件句柄的隔离, 引发了一些思考
 network 这里讲到的 network 是 docker 层面的, docker 一共支持四种模式:
  bridger: docker 默认的方式, docker容器有独立的 network namespace、ip和子网, 这种模式下, 主机上会启动一个docker0的虚拟网桥(占有一个网段), 类似物理交换机, 所有的docker容器都会连接到这个网桥上, 分配网段中的ip. host: 使用宿主机的ip和端口, 能看到host上所有的设备 none: 没有网络配置、网卡、ip、路由 container: 容器之间共享一个 network namespace  参考 https://www.docker.org.cn/dockerppt/111.html</description>
-    </item>
-    
-    <item>
-      <title>Cache_alg</title>
-      <link>https://xujianhai.fun/posts/cache_alg/</link>
-      <pubDate>Sun, 17 May 2020 12:33:18 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/cache_alg/</guid>
-      <description>Preface 最近寻思着cache的常见算法进行总结, 同时也考验面试者对cache的深度. 在看相关实现之前, 我们需要理清楚几个问题:
-  lru: 最近最少使用, 最近使用的都会排在前面, 如果使用没有频度差异, 这个算法是okay的. 但是如果说使用频度有差异, 一些数据频繁被使用, 但是短期一次性数据大量使用, 这些频繁使用的数据就会从 lru中刷出去, 到后面再次使用的时候, 就需要从其他地方(磁盘、远程访问) 获取, 不符合预期. 如果经常有这种现象, lru就符合预期了
-  lfu: 为了解决频繁度的问题, 引入了 最近最不频繁的实现, 通过记录 获取次数 的概念, 驱逐使用频次最小的数据, 但是这个还是存在问题, 就是一些数据短期频繁使用, 后面就再不使用了, 这样这个数据就会在很后面才被删除. 需要一个衰变的机制, 让计数拥有一个衰败原理
-  有些时候有人把 fifo 也算作 缓存算法, 其实不然, fifo 如果算作缓存算法, 效果其实和 lru 类似.
-个人想法优化, 需要考虑以下亮点:
- 一段时间内, 大量数据被读取, 使用有限次数后(假设一次) 就不用了 一段时间内, 数据被经常使用, 使用次数很高, 然后就不使用了  使用时间窗口 + lfu 就可以了. 每个元素维护一个 滑动窗口计数. 通过滑动窗口处理 短时间大量使用的场景.</description>
     </item>
     
   </channel>

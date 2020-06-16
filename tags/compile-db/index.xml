@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>redis on zero.xu blog</title>
-    <link>https://xujianhai.fun/tags/redis/</link>
-    <description>Recent content in redis on zero.xu blog</description>
+    <title>compile db on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/compile-db/</link>
+    <description>Recent content in compile db on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Sat, 13 Jun 2020 00:06:10 +0800</lastBuildDate>
     
-	<atom:link href="https://xujianhai.fun/tags/redis/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://xujianhai.fun/tags/compile-db/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -33,17 +33,6 @@ make -j 4
 make install -j 4
 bin/mysqld &amp;ndash;initialize-insecure &amp;ndash;user=root &amp;ndash;datadir=/Users/jianhaixu/secrect/opensource/mysql-server/debug/data
 bin/mysqld &amp;ndash;defaults-file=/Users/jianhaixu/secrect/opensource/mysql-server/debug/etc/my.cnf</description>
-    </item>
-    
-    <item>
-      <title>Redis_basic</title>
-      <link>https://xujianhai.fun/posts/redis_basic/</link>
-      <pubDate>Wed, 08 Apr 2020 09:07:46 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/redis_basic/</guid>
-      <description>背景 最近和小伙伴重新讨论了下 redis 相关的一些知识点, 发现自己很多已经遗忘了, 今天重新学习下. (最早的redis知识点还是从 “” 学习的)
-原理 数据类型/对象 redis支持的数据结构:
- string (sds 采用预分配冗余空间的方式来减少内存的频繁分配, 获取字符串长度也更快) list (双向列表, 可以模拟队列/堆栈; 存储: ziplist, 元素较少使用一块连续的内存空间, 普通列表的附加指针空间大) hash (渐进式rehash, hash碰撞扩容在大数据量的时候耗时很长, 渐进式rehash, 不是立即迁移, 而是在后续的定时任务以及hash结构的读写指令进行迁移, golang sync.map 类似) set: 基于hash实现, value 指向的都是同一个对象 zset/sortedset: hash+跳跃列表, hash 保存的是权重, 跳跃列表给value排序, zrange 的排序方式是 升序, 部分场景是希望最新的排前面, 需要降序 bitmap: bit的操作, 上层 布隆过滤器. 用于验证场景, 签到、是否已经执行. 最大 2^32 Geo: Redis 3.2, 处理地理位置信息 HyperLogLog: 统计计数: 统计uv. 是一种概率数据结构，它使用概率算法来统计集合的近似基数. 参考分析: https://www.zhihu.com/question/53416615 Streams: 流式pub/sub  编码&amp;amp;数据结构 目前支持的编码格式:</description>
     </item>
     
   </channel>
