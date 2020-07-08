@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="preface 看完mit的课程, 意犹未尽, 因为google素有三驾马车之称的论文中, GFS 和 spanner 已经看过, 但是bigtable却没有深入了解过, 虽然基于 bigtable 论文实现的 hbase已经非常知名, 顺便结合之前的 hbase 学习的经验.
+design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed, persistent multidimensional sorted map, 存储的kv结构是 (row:string, column:string, time:int64) → string, 通过key 中包含的time 实现了多版本的机制(会配置只保持最近n个版本, 或者老版本存活多少天), 通过 row 将同一个对象的多个属性(column)进行聚合, column 的分散设计能够高效的并发. bigtable 通过rowkey的字节序排序维护数据, 并且每个table的数据是动态partition的(分布式&amp;amp;负载均衡), partition的row range就是 tablet. 为了更好的管理column, 采用了 column family/cf 的设计, 类似于 group的概念, 一个 cf 下的数据通常是一起压缩的 并且数据类型相同, 访问控制配置也一样. 由于cf的设计, 一个 column key name就会变成: family:qualifier, qualifier 可以理解为 key, 在举例的场景中, web page 存储就分成了 cf: anchor, qualifer 是被引用的站点, 比如 google." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, bigtable, hbase" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/bigtable/" />
+
+
+    <title>
+        
+            Bigtable :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Bigtable">
+<meta itemprop="description" content="preface 看完mit的课程, 意犹未尽, 因为google素有三驾马车之称的论文中, GFS 和 spanner 已经看过, 但是bigtable却没有深入了解过, 虽然基于 bigtable 论文实现的 hbase已经非常知名, 顺便结合之前的 hbase 学习的经验.
+design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed, persistent multidimensional sorted map, 存储的kv结构是 (row:string, column:string, time:int64) → string, 通过key 中包含的time 实现了多版本的机制(会配置只保持最近n个版本, 或者老版本存活多少天), 通过 row 将同一个对象的多个属性(column)进行聚合, column 的分散设计能够高效的并发. bigtable 通过rowkey的字节序排序维护数据, 并且每个table的数据是动态partition的(分布式&amp;负载均衡), partition的row range就是 tablet. 为了更好的管理column, 采用了 column family/cf 的设计, 类似于 group的概念, 一个 cf 下的数据通常是一起压缩的 并且数据类型相同, 访问控制配置也一样. 由于cf的设计, 一个 column key name就会变成: family:qualifier, qualifier 可以理解为 key, 在举例的场景中, web page 存储就分成了 cf: anchor, qualifer 是被引用的站点, 比如 google.">
+<meta itemprop="datePublished" content="2020-07-08T21:26:27&#43;08:00" />
+<meta itemprop="dateModified" content="2020-07-08T21:26:27&#43;08:00" />
+<meta itemprop="wordCount" content="295">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="bigtable,hbase," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Bigtable"/>
+<meta name="twitter:description" content="preface 看完mit的课程, 意犹未尽, 因为google素有三驾马车之称的论文中, GFS 和 spanner 已经看过, 但是bigtable却没有深入了解过, 虽然基于 bigtable 论文实现的 hbase已经非常知名, 顺便结合之前的 hbase 学习的经验.
+design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed, persistent multidimensional sorted map, 存储的kv结构是 (row:string, column:string, time:int64) → string, 通过key 中包含的time 实现了多版本的机制(会配置只保持最近n个版本, 或者老版本存活多少天), 通过 row 将同一个对象的多个属性(column)进行聚合, column 的分散设计能够高效的并发. bigtable 通过rowkey的字节序排序维护数据, 并且每个table的数据是动态partition的(分布式&amp;负载均衡), partition的row range就是 tablet. 为了更好的管理column, 采用了 column family/cf 的设计, 类似于 group的概念, 一个 cf 下的数据通常是一起压缩的 并且数据类型相同, 访问控制配置也一样. 由于cf的设计, 一个 column key name就会变成: family:qualifier, qualifier 可以理解为 key, 在举例的场景中, web page 存储就分成了 cf: anchor, qualifer 是被引用的站点, 比如 google."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-07-08 21:26:27 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/bigtable/">Bigtable</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="preface">preface</h2>
+<p>看完mit的课程, 意犹未尽, 因为google素有<code>三驾马车</code>之称的论文中, GFS 和 spanner 已经看过, 但是bigtable却没有深入了解过, 虽然基于 bigtable 论文实现的 hbase已经非常知名, 顺便结合之前的 hbase 学习的经验.</p>
+<h2 id="design">design</h2>
+<p>在数据模型上, bigtable在论文中是宣称是 <code>sparse, distributed, persistent multidimensional sorted map</code>, 存储的kv结构是 <code>(row:string, column:string, time:int64) → string</code>, 通过key 中包含的time 实现了多版本的机制(会配置只保持最近n个版本, 或者老版本存活多少天), 通过 row 将同一个对象的多个属性(column)进行聚合, column 的分散设计能够高效的并发. bigtable 通过rowkey的字节序排序维护数据, 并且每个table的数据是动态partition的(分布式&amp;负载均衡), partition的row range就是 tablet. 为了更好的管理column, 采用了 <code>column family</code>/cf 的设计, 类似于 group的概念, 一个 cf 下的数据通常是一起压缩的 并且数据类型相同, 访问控制配置也一样. 由于cf的设计, 一个 column key name就会变成: <code>family:qualifier</code>, qualifier 可以理解为 key, 在举例的场景中, web page 存储就分成了 cf: anchor, qualifer 是被引用的站点, 比如 google.com/facebook.com, 因此一个 column name 就会是 <code>anchor:google.com</code>.</p>
+<p>在存储上, 分为 用户数据和元数据. 用户数据依赖底层的GFS做日志和数据存储, 按照论文的说法, bigtable 是和其他应用混部的(怀疑是borglet类似的系统). 除此之外, bigtable 在GFS上还设计了 memtable 和 sstable 的数据结构, 整体逻辑和 leveldb/rocksdb 一致, sstable由 多个block、block index, 64KB一个block, 这样在搜索的时候, 可以二分定位到具体的block, 在从block中读取. 元数据存储在 chubby中, 比如 tablet server的注册信息、schema信息管理、access权限管理等. tablet 的位置信息使用 三层类似 B+ 树的结构存储在chubby中,  root tablet 是顶层, 永远不会分裂, 	METADATA存储row key-&gt;tablet的映射关系, METADATA 的数据存储在 tablet上, root tablet 包含了所有 METADATA 的所有tablets信息 (今日头条/Bytedance的表格存储也是这么设计的), root tablet 是存储在 chubby 中的. 这样读取一次数据 需要3次往返: 1次chubby读取所有METADATA tablet信息、一次根据rowkey读取相应的METADATA tablet获取usertablet信息, 根据cf读取 user tablet.</p>
+<p>在部署上, bigtable 由一个master 和 多个 tablet server 构成, master是用 chubby(基于paxos的持久化布式锁服务) 进行选主出来的, 除此之外, chubby还用来 tablet servers 服务发现和生命周期管理、schema信息管理、access权限管理. (chubby提供了namespace服务, 由文件和目录组成, 每个文件/目录操作都是原子的). master 需要负责分配 tablet -&gt; tablet server, 检测tablet的生命周期(新增/过期), tablet-server 的负载均衡 和 GFS 的gc, 以及schema变化. client的数据处理流程并不需要经过master, 是直接和 tablet server 进行交互的.</p>
+<p>最复杂的地方, 应该就是 tablet的运行时了, 论文讨论了很多意外情况, tablet server 启动后会上报给 chubby(servers目录, 互斥文件保证了信息的准确性).  master 周期性的询问 tablet-server 的lock情况(这种设计还是比较少见), 当tablet-server 上报不持锁以及 服务不可达, 那么master会尝试获取锁(是为了保证chubby正常), 然后删除锁文件确保 tablet-server无法在服务, 然后 master 才能进行重新分配. 当 master 的chubby session过期, 则直接自杀. 为了能够发现未分配的tablet (意外情况未分配: server宕机, 紧跟着master宕机), master会周期性对比 从tablet-server发现的分配的tablet 和 METADATA 中的 tablet, 发现没有分配的tablet.</p>
+<p>为了避免数据重复的问题, 也会进行 <code>minor compaction</code>(memtable-&gt;sstable)、<code>periodic merging compaction</code> 和 <code>major compaciton</code>(所有的sstable重写到一个sstable).</p>
+<p>对外提供的api上, 除了常规的管理接口(cf/table的创建和删除, cluster/table/cf 元信息比如权限控制), 主要是 write、delete、scanner/iterator、RowMutation(多个操作的原子性)、单行事务(rmw)、计数、客户端脚本执行.</p>
+<p>其他的优化, 提供了 多个cf的 <code>Locality groups</code>, 将一个 lg 下面的cf存储在一起. 压缩 和 缓存的读优化. 使用 bloom-filter 减少不必要的查找. 一个tablet-server上的tablet共享一个 commit log, 这个导致在recovery的时候需要排序(table, row name, log sequence number的维度)成有序输出. tablet迁移前进行一次minor-compaction减少不必要的commit-log解压缩状态 来提升恢复时间.</p>
+<p>在性能压测上, 大规模场景下, scan &gt; 内存读 &gt; 顺序读 &gt; 随机读; 写性能差异不大, 随机 ~ 顺序</p>
+<p>整体的论文结构还是很紧凑的.</p>
+<h2 id="问题思考">问题&amp;思考</h2>
+<ul>
+<li>
+<p>kv模型中key的time虽然实现了多版本, 但是并没有解决多个依赖版本的问题.</p>
+</li>
+<li>
+<p>印象中, spanner 的元数据也是存储在 gfs或后继者 中? 头条是这么做的</p>
+</li>
+<li>
+<p>可以参考bigtable, 通过rpc保证下游可用且持有锁, 同时通过持有锁确保 锁服务正常,</p>
+</li>
+<li>
+<p>cf 的选择就很重要了, 最好是同时获取的数据,</p>
+</li>
+<li>
+<p>bigtable 本质上是混部的</p>
+</li>
+</ul>
+<h2 id="implement">implement</h2>
+<p>hbase, 暂时不讨论</p>
+<h2 id="参考">参考</h2>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/bigtable">bigtable</a></span><span class="tag"><a href="https://xujianhai.fun/tags/hbase">hbase</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>295 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-07-08 21:26 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/broken_pipe/">
+                                <span class="button__text">Broken_pipe</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

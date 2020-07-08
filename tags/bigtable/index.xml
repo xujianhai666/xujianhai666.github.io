@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>bigtable on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/bigtable/</link>
+    <description>Recent content in bigtable on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Wed, 08 Jul 2020 21:26:27 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/bigtable/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Bigtable</title>
+      <link>https://xujianhai.fun/posts/bigtable/</link>
+      <pubDate>Wed, 08 Jul 2020 21:26:27 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/bigtable/</guid>
+      <description>preface 看完mit的课程, 意犹未尽, 因为google素有三驾马车之称的论文中, GFS 和 spanner 已经看过, 但是bigtable却没有深入了解过, 虽然基于 bigtable 论文实现的 hbase已经非常知名, 顺便结合之前的 hbase 学习的经验.
+design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed, persistent multidimensional sorted map, 存储的kv结构是 (row:string, column:string, time:int64) → string, 通过key 中包含的time 实现了多版本的机制(会配置只保持最近n个版本, 或者老版本存活多少天), 通过 row 将同一个对象的多个属性(column)进行聚合, column 的分散设计能够高效的并发. bigtable 通过rowkey的字节序排序维护数据, 并且每个table的数据是动态partition的(分布式&amp;amp;负载均衡), partition的row range就是 tablet. 为了更好的管理column, 采用了 column family/cf 的设计, 类似于 group的概念, 一个 cf 下的数据通常是一起压缩的 并且数据类型相同, 访问控制配置也一样. 由于cf的设计, 一个 column key name就会变成: family:qualifier, qualifier 可以理解为 key, 在举例的场景中, web page 存储就分成了 cf: anchor, qualifer 是被引用的站点, 比如 google.</description>
+    </item>
+    
+  </channel>
+</rss>

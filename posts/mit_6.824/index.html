@@ -46,7 +46,7 @@ hadoop 架构
 将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.">
 <meta itemprop="datePublished" content="2020-06-06T10:23:10&#43;08:00" />
 <meta itemprop="dateModified" content="2020-06-06T10:23:10&#43;08:00" />
-<meta itemprop="wordCount" content="1008">
+<meta itemprop="wordCount" content="3391">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -128,7 +128,7 @@ hadoop 架构
     <main class="post">
 
         <div class="post-info">
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>5 minutes
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>16 minutes
 
             
 
@@ -179,13 +179,16 @@ chunkserver的数据特点: chunk内部会划分成 64KB 的 block, 每个block�
 <p>需要注意的时候, 数据的一致性完全依赖客户端的重试. 这样选主之后, 即使primary不是最新的, 也可以通过重试补齐. 有些暴力, 因为很多业务并不需要全部成功, 可以容忍失败, 希望尽快的返回错误, 因此现在基本上使用 raft 的方式同步, 但是相比retry, 复杂了些, 而且raft 至少需要三副本.</p>
 <h3 id="hdfs">hdfs</h3>
 <p>架构</p>
+<p>基本上和GFS一致, 抽象了类似的 Namenode 和 Datanode, NameNode 提供文件的操作行为, client读写直接和 Datanode 交互. 将文件的存储划分成多个block, block size 是每个文件配置好的. Namenode 和 Datanode 通过 Heartbeat(节点正常)/Blockreport(上报block) 维护副本, 副本策略？ 副本leader(hdfs没有副本leader的概念) 支持副本多机房. 读取的时候, 优先读取本地机房(也就是说, 可能读取的是 follower replica), 如果本地机房有多个, 或者没有本地机房的节点, 又该怎么操作呢? 为了保证启动的时候复制的正确性, 提出了 <code>safemode</code>, 保证只有Namenode在收集到所有的block信息之后, 才决定副本复制. Namenode 使用 <code>EditLog</code>的 transaction log来记录变更, 另外使用叫 <code>FsImage</code> 的文件来记录 文件-&gt;blocks的映射, Namenode 也是用 FsImage(相当于checkpoint)+Editlog 重新生成 内存信息(blockMap), 启动操作后, 通常会重新生成一个版本的 FsImage, 为了避免Editlog太大, 启动的时候会进行checkpoint操作截断 transaction log(未来支持周期性的checkpoint). 在Datanode存储上, 因为操作系统对大量文件的目录管理能力弱, 因此会分成多个 目录管理(每个目录会设置最佳数量). 目前hdfs支持的 block size 是 64MB.</p>
+<p>在实现上, 比较呕心的是, 文件创建操作并不是立即触发的, 而是在发生真正的block写的时候才会触发Namenode(需要客户端本地攒一波数据满足block才能发送)(当前版本的目录创建貌似是立即产生的). 在后面写入的时候, 也是本地积攒一个block 然后发送到第一个DataNode(每次rpc应该是4kb), 然后第一个Datanode 通过 <code>chain replication</code>/<code>pipeline</code> 的方式复制. 写入成功通过 <code>dfs.replication.min</code> 确定(因为是chain的方式,所以肯定是前面的写入成功), 类似kafka的min.ack参数.</p>
 <p>开源有hdfs, hdfs存在以下问题:</p>
 <ol>
 <li>不适合低延迟数据访问, hdfs 的设计目标是高吞吐量</li>
 <li>无法存储大量小文件 (参考facebook hystack)</li>
 <li>不支持多用户写入和随机修改 (hdfs的一个文件只有一个写入者, 并且是追加写)</li>
 </ol>
-<h3 id="hbase">hbase</h3>
+<p>补充: 小米和头条都基于hdfs做了MQ, 但是MQ本身是面向大文件存储的, 开源的实现还没有实现 <code>appending-write</code> 的功能, 而且 hdfs 要求只有一个writer写入, 一定程度上限制了吞吐量 (其实倒还好, 一个实例仅仅负责转发写入qps还是可以很高的).</p>
+<p>参考: <a href="https://hadoop.apache.org/docs/r1.2.1/hdfs_design.html#Introduction">https://hadoop.apache.org/docs/r1.2.1/hdfs_design.html#Introduction</a></p>
 <h3 id="新版cfs">新版cfs</h3>
 <p>google 对gfs做了一次升级, 降低master单点故障, 但是思路很神奇, 最终是将元数据存储在chubby+bigtable上. 更多参考</p>
 <ul>
@@ -237,14 +240,14 @@ spanner</p>
 <li>zab 和 paxos 的思考: <a href="https://cwiki.apache.org/confluence/display/ZOOKEEPER/Zab+vs.+Paxos">https://cwiki.apache.org/confluence/display/ZOOKEEPER/Zab+vs.+Paxos</a></li>
 </ul>
 <h2 id="craq7">CRAQ<sup id="fnref:7"><a href="#fn:7" class="footnote-ref" role="doc-noteref">7</a></sup></h2>
-<p>架构参考:</p>
+<p>对象存储的范畴, 架构参考:</p>
 <p><img src="https://xujianhai.fun/chain-replica.png" alt="chain-replica" title=""></p>
 <p>全称是: Chain Replication with Apportioned Queries: 分摊查询的级联复制, 相比CR, 通过分摊查询压力到其他节点提升了整个架构的读吞吐量. 传统的CR模型, head负责write, tail负责read, 写入从head不断下沉到tail, tail 是整个commit的保证, tail commit之后逐级反馈到head, 然后head发送响应到client. 因为tail 是最终commit的保证, 因此从tail读取肯定是已经提交的最新的数据. 那么 CRAQ 模型将读取压力分摊到其他节点, 怎么保证读取的是最新的数据呢？ 根据初始的CQ模型, write是级联下沉的, 当节点收到write但是还没收到commit, 那么就会标记数据为 dirty, 当client read定向到这个节点, 这个节点会请求 tail 节点获取最新的数据, 然后相应给客户端; 如果被请求的节点没有标记dirty, 那么节点直接返回数据. 这样就避免了<code>stale read</code>.</p>
 <p>适配全球化进程, craq 还支持了 多数据中心、多Chain, 但是和raft不一样, 本身不解决协调问题, 而是依赖zk解决 group membership(成员管理)、元数据存储、以及节点变更通知. 但是论文并没有讨论相关细节. 论文中还谈到了 广播协议, 避免逐级传播的网络开销, 加快write和commit流程. 比较遗憾的是, 论文中提到 大对象的原子更新用小事务完成, 不过没有完成. 在节点变更上, 略微有些复杂, 甚至有些地方不是很理解, 实现的话需要认真思考下</p>
 <p>在功能上, 除了 对象存储常规的 read/write, 还支持 prepend/append、incre/decr、test-and.</p>
 <p>在压测结果上, 整个效果还是很理想的.</p>
 <h2 id="aurora-8">AURORA <sup id="fnref:8"><a href="#fn:8" class="footnote-ref" role="doc-noteref">8</a></sup></h2>
-<p>参考论文中的良心架构:</p>
+<p>mysql/postgresql兼容的关系型数据库. 参考论文中的良心架构:</p>
 <p><img src="https://xujianhai.fun/aurora.png" alt="aurora" title=""></p>
 <p>aurora 是 amazon 提供的 OLAP关系型数据库, 在mysql 5.6 分支上改造, 将存储层和计算层进行了分离. aurora 重点在于 <code>the log is the database</code>, 通过同步虚拟分段的redo log 进行存储层之间的数据同步, 减少mysql mirror模型下大量的数据同步, 需要注意的是, aurora 用的是6路复制(3个az, 每个az两个副本). 在一致性层面, 通过quorum达成了最终一致性, 并通过 gossip 进行数据的补齐. 本质上是个 一写多读 的方案. 比较特别的是, 还用了s3做备份</p>
 <p>在架构上, 计算层是 Aurora MySQL/instance, 存储层是 Storage Node. 在工程实践上, 计算层只是简单的 fork 了 mysql源码并简单了修改.</p>
@@ -283,6 +286,311 @@ locking, buffer cache, access methods and undo management; storage node负责: r
 <li><a href="http://www.yunweipai.com/archives/18411.html">http://www.yunweipai.com/archives/18411.html</a></li>
 </ul>
 <h2 id="frangipani-9">Frangipani <sup id="fnref:9"><a href="#fn:9" class="footnote-ref" role="doc-noteref">9</a></sup></h2>
+<p>Frangipani 是基于分层的文件系统设计, 底层存储使用是 Petal的分布式虚拟磁盘服务, 多个 Frangipani 共享底层 petal, 使用 petal 提供的 锁服务 来获取存储, petal 提供的存储也是基于 block 的, 和常规的存储不一样的地方, petal 的存储是非常大的, 有 2^64 的地址空间, 空间分配也是TB级别的.</p>
+<p><em>log</em></p>
+<p>Frangipani 在 petal 开辟了一段空间存放 wal, 用来记录元数据变更, 但是需要注意的是, 变更数据一开始是存放在 Frangipani 内存中的, 然后 周期性同步到 petal 上, 这就意味着如果在 同步到petal之前挂了, 这部分数据也就丢失了. log 设计是两个 64KB 的环形buffer, 只有在apply之后才能从buffer中删除</p>
+<p><em>缓存一致性&amp;lock service</em></p>
+<p>因为是 Frangipani 共享操作 petal 上的数据, 因此需要保证 每个 Frangipani 的数据一致性, Frangipani 使用了 multiple-reader/single-writer lock 来实现同步, writer 的dirty data 在锁冲突的情况下也需要刷回磁盘. 需要注意的是 Frangipani server 互相之间是不通信的, 而是采用数据共享. 除此之外, Frangipani 的锁只有在冲突的时候才会被释放, 因此一定程度上是sticky的, 为了解决 lock holder崩溃的场景, 使用了 lease 概念, 通过续租来长时间持有锁. petal 内部使用 paxos进行数据同步, lock service 也基于内部的 paxos 同步数据.  Frangipani 内部将 lock 拆成了多个 lock group 达成更高的效率. 为了避免过期租约的写入, 使用了 时间比较的措施, 拒绝低于当前时间的写入.</p>
+<p>问题:</p>
+<p>分层的设计中, 缓存只是重点讲了缓存一致性, 并没有讨论缓存的设计.</p>
+<p>更多petal 的资料可以参考: <a href="http://www.scs.stanford.edu/nyu/02fa/sched/petal.pdf">http://www.scs.stanford.edu/nyu/02fa/sched/petal.pdf</a></p>
+<h2 id="spanner10">spanner<sup id="fnref:10"><a href="#fn:10" class="footnote-ref" role="doc-noteref">10</a></sup></h2>
+<p>google spanner 定位可扩展、多版本、全球分布、同步复制的数据库.</p>
+<p>在数据模型上, spanner 支持的sql table, 但是对应的底层是 kv模型, spanner中称之为 tablet, 表示如 <code>(key:string, timestamp:int64) → string</code>. 其中, 通过 timestamp 支持了 多版本和事务的能力. spanner 还将相同前缀的key 抽象成 <code>directory</code>, 通过 分片将 directory 切分成多个 <code>fragments</code>, 不同的fragments可以分布在不同的 paxos group 上. 但是在paxos group中数据移动的单位却是 directory, (感觉应该是gragment). 在</p>
+<p>在存储上, 底层使用了 Colossus(gfs的后续替代版本) 存储了 tablet 的状态(B-tree) 和 wal. 比较有意思的是, 这里的日志需要写两次, 一次写 tablet log, 一次写 paxos log.</p>
+<p>在一致性层面上, 使用 single-paxos state machine 实现 一致性复制, 每个副本的kv状态映射. paxos leader 还基于 lock table(部分key-&gt;state) 实现了并发控制. 事务的实现中, 也是基于 paxos-leader 的参与实现的</p>
+<p>spanner 的版本和事务都依赖 自己提供的 TrueTime api, 保证了 时间的单调性. 底层实现基于 GPS 和 原子钟(石英) 两种模式, 以便灾备: GPS有天线&amp;接受失败、本地频道干扰, 原子时钟会有时钟漂移的问题. 在实现上, 每个机房会部署 一组 time master, 每个集群上会部署 timeslave 后台进程, 大部分 time master 会 配置 GPS 并分散部署, 其他master配置石英钟, 彼此检查确保时间的准确性. 每个机器的后台进程 会拉取很多master并通过 <code>Marzullo’s algorithm</code>网络时间协议进行校准.</p>
+<p>spanner对外提供的操作: readwrite transactions, read-only transactions(snapshot-isolation transactions), snapshot reads. 写事务 在spanner中等价于 readwrite transactions. ps: 这些操作都是内部不断重试的.</p>
+<ul>
+<li>快照读本质上是读过去, 客户端可以提供一个时间戳, 或者提供一个上界(让系统选择一个时间), 快照读可以在任意一个最新的副本上执行.</li>
+<li>read-only transaction 不需要加锁, 按照系统选择的时间执行, 因此写入不会受到阻塞, 并且可以在任意一个最新的副本上执行. 这里需要注意一个问题, 系统选择的时间: 如果读取事务只涉及到一个 group, 则直接使用 paxos last commited write timestamp, 如果涉及到多个group, 直接使用 TT.now().latest (会导致等待保证时间对齐)</li>
+<li>读写事务 最复杂, 需要两阶段锁,
+<ul>
+<li>读取的时候会向相应group leader获取读锁 并读取最近的数据, 为了避免读取导致事务超时, client会向leader发送keepalive消息,</li>
+<li>client本地修改后, 选取一个group 作为 coordinator group</li>
+<li>client 将coordinator group identity 以及 缓存的数据发送给 participant leader</li>
+<li>non-coordinator-participant leader  获取写锁 并 选择一个 prepare timestamp (比之前的事务大) 并通过paxos同步 prepare record</li>
+<li>coordinator leader 也会获取 写锁, 但是跳过了 prepare record, 在收到  participant leaders 的响应后, 选择一个 commit timestamp (大于所有的prepare timestamp, 大于接受请求的时间, 大于之前事务的时间; 为了保证单调性, 会等待时间成为过去) 并通过paxos同步 commit record</li>
+<li>coordinator 发送  commit timestamp 给client 和 其他  participant leaders, participant leaders 通过paxos同步事务结果, 并释放锁</li>
+</ul>
+</li>
+</ul>
+<p>spanner 还支持了 schema change的事务, 但是是非阻塞的, spanner schema change 是面向未来的, 不是立即发生, 只是注册在prepared截断(是因为), 只有在读写触发的时候才执行?</p>
+<p>在部署模型上, 一个spanner部署单元是一个 universe, 比如测开一个, 生产一个. 一个universe由多个zone组合, 每个zone都是一个管理单元, 一个datacenter有一个或者多个zone, zone内部有多个spanner server(负责存储数据)、location proxies(client用来定位数据提供的spanner server)、zonemaster(负责分配数据给spanner server). 每个universe 有 placement diver (负责数据迁移) 和 universe master (展示运行时信息的console).</p>
+<p>问题:</p>
+<ul>
+<li>schema change 的非阻塞的具体是指? 是指读写触发才会阻塞, 触发schema变动的行为?</li>
+</ul>
+<p>其他:</p>
+<p>Marzullo’s algorithm: 参考https://www.wikiwand.com/zh-cn/%E7%B6%B2%E8%B7%AF%E6%99%82%E9%96%93%E5%8D%94%E5%AE%9A</p>
+<h2 id="farm-11">FaRM <sup id="fnref:11"><a href="#fn:11" class="footnote-ref" role="doc-noteref">11</a></sup></h2>
+<p>定位数据库, 但是通过 RDMA、DRAM 达到了一致性和高可用. 常规数据库因为需要复制等一致性相关操作无法达成很高的性能, FaRM 基于 RDMA(Remote Direct Memory Access) 实现数据传输的kernel bypass, 避免频繁cpu中断带来的耗时. 数据先写入DRAM, 然后通过UPS支持, 将 NVDRAM 的数据写回磁盘, 保证性能和可用.</p>
+<p>在 DRAM 的使用上, 用2GB的 region划分了全局地址空间, 每个region都有一个primary和多个backup(f是配置的容错), 每台机器上有多个region, 在读取的时候, 总是读取 primary(本地获取或者RDMA), region的分布情况在CM管理. 有意义的是, 为了保证region-&gt;replica 的有效性, CM 使用了两阶段提交协议, cm发送prepare消息给指定副本来保证副本有region分配, 然后CM在发送commit消息.</p>
+<p>FaRM 使用 vertical Paxos 进行 coordinator 和数据复制. 在事务的处理上, FaRM 采用了乐观并发控制的4阶段协议:</p>
+<ul>
+<li>lock: coordinator 写一个 lock reord 给被修改对象的 primary(版本、新的值、以及region), primary通过cas进行版本锁定, 任意一个失败就都失败了. 失败场景下, coordinator 会写一个 abort record 给所有primary</li>
+<li>validation: coordinator执行读取操作进行读验证 (个人问题: 既然已经lock了, 为什么要validation?)</li>
+<li>commit backup: 给backup发送 COMMIT-BACKUP record 并等待ack (写入non-volatile logs)</li>
+<li>commit primary: coordinator 收到ack之后, 写 COMMITPRIMARY record 给各个primary, primary 就地更细对象, 增加版本号, 释放锁.</li>
+</ul>
+<p>并发控制上, 每个对象都有一个 64bit 的版本用来并发控制.</p>
+<p>因为使用了RDMA, 无法支持lease机制(是因为定时功能所以无法使用?), 因此提出了 <code>precise membership</code> 来确保各个机器之间的配置统一. 在 失败发生的时候, 就会触发一个新的配置, 所有的机器需要对成员达成一致, reconfigure 流程如下:</p>
+<ul>
+<li>Suspect: 1. 机器租约过期, CM 会初始化 re-configure 2. 机器怀疑cm租约过期, 机器会请求一个cm备机(一致性hash的第k个后继？)来初始化配置. 如果配置没有变化, (n it attempts the reconfiguration itself)?? 不懂</li>
+<li>Probe:  新的CM会请求RDMA 读取各个正常的机器, 只有大部分实例响应了, 新的CM才能继续处理reconfigure</li>
+<li>Update configuration: 新的CM通过 znode seq number cas 升级到新的配置, 存储到zk</li>
+<li>Remap regions: remap来保证region replica是 f+1, paimary失败的场景使用, 提升一个backup</li>
+<li>Send new configuration: CM同步配置给所有机器. 如果CM变更了, 还会重置lease协议</li>
+<li>Apply new configuration: 机器执行新的配置, 拒绝来自其他机器的不属于自己region的请求, 并阻塞外部客户端的请求</li>
+<li>Commit new configuration: CM收到所有机器的 NEW-CONFIG-ACK 消息后, 等待 offline机器的租约过期, 然后发送 NEW-CONFIGCOMMIT 作为租约授权. 这个时候, 各个机器才会接触对client的阻塞, 并且 开始事务恢复.</li>
+</ul>
+<p>在事务恢复处理上, FaRM 只会阻塞受影响事务的处理(需要恢复), 对于不需要恢复的事务是可以并发处理的. 在失败检测方便，利用高速网络进行频繁的心跳进行失败检测, 同时利用 priorities 和 pre-allocation防止误判 (论文中却没有展开)</p>
+<p>整体而言, 事务的恢复也很复杂, 流程如下:</p>
+<ul>
+<li>Block access to recovering regions: 当recovering region 的primary挂了, 我们需要阻塞region的获取, 知道新的primary拿到了所有更新region的write lock</li>
+<li>Drain logs: 配置变更的事务场景下,  nic 是不关心configuraiton, 直接ack COMMIT-BACKUP and COMMIT-PRIMARY records(cordinator会等待ack), 因此在收到新的配置, 通过 <code>draining logs</code> 来处理相关的日志. (那是不是可以修改ack实现感知到new configuraiton)</li>
+<li>Find recovering transactions: 如何判断是recovering transaction? primary/backup/coodinator 需要在 c-1,c 变化了, 但是transaction在c-1中正在提交.</li>
+<li>Lock recovery: 并行多线程操作恢复, 被 recovering transaction修改的 对象会被锁住.</li>
+<li>Replicate log records: primary向replica发送 REPLICATE-TXSTATE 补齐事务</li>
+<li>Vote: coordinator 判断是否提交. 取决于region的primary.</li>
+<li>Decide: coordinator 判断是否提交.</li>
+</ul>
+<p>整体而言, 还是比较复杂的.</p>
+<p>其他数据恢复: 副本恢复在正常服务后进行.</p>
+<p>在配置管理上, 使用zookeeper进行存储和配置达成一致, 但是在 租约管理、失败检测、coordinate恢复并不依赖 zookeeper. CM 仅仅在 配置更新的时候调用zk.</p>
+<p>问题: cm 是如何选出来的？</p>
+<h2 id="spark-12">spark <sup id="fnref:12"><a href="#fn:12" class="footnote-ref" role="doc-noteref">12</a></sup></h2>
+<p>通过RDD抽象, 将数据在内存中操作, 极大的提升了性能, 解决了 迭代算法 和 交互式数据挖掘的 性能问题. RDD 相比于其他共享内存方案, 在于提供了 <code>transformation</code> 的语意, 而不是 <code>update</code>, transformation 的特点在于 操作生成新的RDD 而不是 修改现有的 RDD, 目前支持的 transformation 有 <code>map filter flatMap sample groupByKey reduceByKey union join cogroup crossGroup mapValues sort partitionBy</code>. 对于多个RDD之间的依赖, 提供了 <code>wide dependencies</code> 和 <code>narrow dependencies</code>, 从自己的理解的角度, <code>narrow dependencies</code> 是两层RDD 一对一, <code>wide dependencies</code> 是两层 多对多, 也就是 第一级 RDD 产生的结果是否需要传输到其他节点, 一对一是不需要传递的, 因此可以做到 单节点 pipeline 的效果, 减少了 序列化/反序列化 和 网络传输的 开销.</p>
+<p>在用户体验方面, 通过 <code>Class shipping</code> 和 <code>Modified code generation</code> 实现了高级编译器. 内存管理方面, 不仅仅支持内存存储序列化/反序列化的结果, 也支持磁盘存储. 在失败恢复场景, 除了 <code>narrow dependencies</code> 提供了 血缘重计算减少存储开销(直接重新计算就可以了), <code>wide dependencies</code> 还支持 checkpoint 到稳定的存储中.</p>
+<p>spark各种场景兼容了map-reduce的场景, 并且性能对比高出了好几倍.</p>
+<p>在后来的引进中, 引入了 dataFrame 的设计, 支持对内存的数据进行解析, 支持 Avro, CSV, elastic search, and Cassandra 等,再后来有使用 dataSet 取代了 dataFrame, 不仅仅继承了 dataFrame 的优点, 还支持了 自定义对象存储 (dataFrame仅支持row对象), 而且类型安全 (如何实现的呢?)</p>
+<p>参考:
+- <a href="https://www.zhihu.com/question/48684460">https://www.zhihu.com/question/48684460</a></p>
+<h2 id="memcache-13">memcache <sup id="fnref:13"><a href="#fn:13" class="footnote-ref" role="doc-noteref">13</a></sup></h2>
+<p>架构:</p>
+<p>参考 Figure2, 添加 master、salve region/mcrouter/fronted cluster(memcache)/storage</p>
+<p>主要将接了 facebook 大规模使用memcache 构建了分布式kv存储, 并从单个集群 演化成 地理分布式集群. facebook 对 memcache 的使是 cache-aside 模型的, 也就是  先读cache, miss则读取storage(look-aside); write 先操作 数据库, 然后操作cache. 在整体架构上, 最大粒度是 region, 每个region 内有多个集群, 每个集群由 mysql/memcache/mcrouter 构成, 令我惊讶的是, 因为mysql 是 master/salve replication 模型, 因此 架构上对应了 master/slave region. 不理解 cluster 和 region 抽象了意义 ? 在region内, 多个集群(web+mcrouter+memcached=multiple frontend clusters) 共享了一套底层存储, 使用 mcsqueal 同步删除的刷新(通过批量降低请求率), 但是更新操作呢? 不然可能存储旧值. 对于新的cluster上线, cold cluster 会请求 warm cluster 避免请求回源(使用2s避免 cold cluster delete 但是warm cluster没有删除的场景).  对于master/slave region, 对于 master/slave 复制lag的场景, 使用 <code>remote marker </code> 来度量 master/slave 的lag, 每次set/delete操作, 都会在region内生成一个相应key的 remote mark, 后续请求就会检查 remote mark在做决定. 但是并没有解决因为lag导致 读取replicated region 的 <code>stale data</code>的问题.</p>
+<p>在使用上, 为了适配不同的使用场景, 比如 读多(容忍过期)、不频繁获取(cache miss昂贵), 将集群的memcached server 换分成多个 pool, 其中, 有一个default/wildcard pool, 其他根据场景在划分, 比如 small pool 和 large pool. 除此之外, 还设计了 memcached replicate 机制(没说怎么复制), 增强处理能力(上层mrouter怎么知道请求其他的replicated memcached实例). 在面向失败的设计原则(少量机器网络不可达、大范围断电), 采用了 <code>Gutter pool</code>, 当client请求没有响应, client就会请求 Gutter pool, 如果未命中, client在请求数据库后就会插入gutter pool, 降低对数据库的压力. 对于 regional 级别的数据(不止一个fronted cluster), 使用 <code>regional pool</code>的 memcached server存储(按道理应该都是 key hash之类的, 那么什么时候走regional pool?).</p>
+<p>在使用上优化, 使用 UDP 进行get 请求降低延迟, 因为 get 本身存在一定比例的失败. set/delete 还是TCP. 除此之外, 通过 mcrouter 降低memcache的TCP连接数, 简化滚动升级的影响. 并基于DAG的依赖实现 并行、批量的请求, 平均下来可以有每个请求包含24个key, 减少了请求数. 为了避免网络堵塞, 使用了 滑动窗口 控制client 并发的请求数 (window size太小, 请求轮次太多, 延迟会增加; window size太大, 因为并发量太大、网络阻塞, memcache会返回失败, client需要请求数据库导致延迟增加).</p>
+<p>memcache 提供了 set/get/delete 的三种语意, 在大规模、不同场景的使用中进行了优化. 对于set, 存在 <code>stale set</code> 和 <code>thundering herds</code>,  <code>stale set</code>, (两次write, 前一次write最后更新了memcache). fb 提供了 <code>lease</code>机制, memcached miss的时候 memcached 会返回一个 lease token 在set的时候进行校验. 同样, 对于 <code>thundering herds</code>, 频繁读取的key被刷新会导致后续大量的set, memcached 对于每个key返回一个10s过期的token, 对于相同key的miss, 其他的client会进行等待一段时间, 这样前面获取lease的client的set之后, 其他client重试就可以获得数据. 对于过期性质的数据, 使用 <code>Transient Item Cache</code>(环形buffer) 降低内存开销.</p>
+<p>对于 get, 比较有意思的是, 支持 stale read, 在delete的时候缓存被删除的元素(后面flush会删除), app可以使用stale value而不是等待最新值.</p>
+<p>滚动升级的优化, 将数据存放在 <code>System V shared memory regions</code> 确保memcached重启之后数据都会在(但是存在一些stale data)</p>
+<p>问题:</p>
+<ul>
+<li>cluster 和 region 抽象了意义 ? 看样子是, a single storage cluster + mutli fronted cluster = region</li>
+<li>什么时候走regional pool</li>
+<li>更新是否应该同步?</li>
+</ul>
+<p>个人想法:</p>
+<ul>
+<li>对于大量不存在的key, 应该也要存储, 避免大量不存在的请求打垮数据库</li>
+<li>更新应该也同步</li>
+</ul>
+<p>其他需要整理的内容:</p>
+<ul>
+<li>slab改进, 和 linux 的slab 有什么差异? 深入</li>
+</ul>
+<h2 id="cops-14">COPS <sup id="fnref:14"><a href="#fn:14" class="footnote-ref" role="doc-noteref">14</a></sup></h2>
+<p>提供了 causal+ consistency 的kv存储. 核心在于 提供了依赖关系存储, client 在put有依赖关系的kv的时候, storage 除了存储kv, 还会存储 k 的依赖版本信息, 这样在 get_Trans 获取一致性视图的时候, 可以根据依赖的版本, 通过两轮rpc 保证获取数据的因果一致性. 举个论文例子: Alice 更改了相册的ACL: friends only, 然后增加了一些照片. 传统的get操作, 存在 ACL: public 的时候获取了 frends-only 的照片, 因为 <code>time-of-check-to-time-of-use</code> 的时间不一致. 而在 get_Trans 中, 第一轮 get_by_version 获取最新的版本的数据, 第二轮 get_by_version 获取修正后的依赖的版本. 比如 第一轮获取了 ACL: public 和 最新的照片, 那么在第二轮, 会重新获取 最新版本的 ACL: friends only, 这样在本地的数据就是正确的了. 但是维护key的多版本数据会导致存储空间紧张, 因此需要进行GC操作.</p>
+<p>在kv的分布式设计上, 每个集群 都有完整kv copy/副本, 每个集群内, keyspace 通过一致性hash的方式存储在相应的节点上. 在容错的设计上, 通过 <code>chain replication</code> 进行复制, 需要注意的是, 这里的复制是跨集群的, 而不是本集群的复制, 并且复制是异步的, 所有的操作(put/)都是 写到本地, 然后异步复制给远端集群.</p>
+<p>在冲突的设计上, 默认是 lww, 也可以运行自己编写程序解决.</p>
+<p>在设计的接口上, put_after/get_by_version/get_trans, 针对是否使用 get_trans 将系统划分成了 COPS和 COPS-GT版本. 比较有意思的点, 所有的操作 都有一个 ctx 参数, 是用来处理依赖的, 根据依赖的溯源划分成了 <code>Nearest Deps</code> 和 <code>All Deps</code>. put_after 的接口: <code>hbool,versi ← put after (key, val, [deps], nearest, vers=∅)</code>, 后面的参数是客户端根据(dep/nearest), vers在put_after中不需要提交, 提交成功后由节点返回. 版本数 使用 <code>Lamport timestamp</code>(高位) + <code> unique node identifier</code>(低位). 服务端会检查 依赖依赖的版本, 如果依赖的版本没有提交, 则会阻塞, 通常客户端已经实现了保证. get_by_version 可以获取 指定版本的数据. get_trans 可以保证多个key的事务的一致性, 但是, 因为 put_after 可能失败, 会导致 部分数据A最新, 依赖他的数据B (A -&gt; B)没有最新, 那么存在一些冗余数据A, 因为没人使用, 如果事务比较复杂, 存在 C -&gt; A, 但是这次 put_after 只操作了 A、B, 那么 get_trans 的语意会遭到破坏 (每次写都需要因果关系的完整性).</p>
+<p>论文中特地展开了一致性的讨论,</p>
+<pre><code>Linearizability &gt; Sequential &gt; Causal+ 
+&gt; Causal &gt; FIFO
+&gt; Per-Key Sequential &gt; Eventual
+</code></pre><ul>
+<li>
+<p>strict (严格的一致性):</p>
+</li>
+<li>
+<p>Linearizability(线性一致性): 1. 任何读操作都能读取到最新的修改 2. 所有操作的时序与真实物理时间一致 3. 时序不确定的并发操作, 在所有线程最终看到的执行序列是一致的. 这里对多个进程/线程 的执行顺序都需要全局有序</p>
+</li>
+<li>
+<p>sequential consistency(顺序一致性): 1. 单个线程的操作的顺序保留 2. 多个线程/进程/节点 执行的事件的先后顺序与物理时钟顺序不保证. 3. 每个进程读到的该数据的不同值的顺序是一致的.  通常采用了 分布式逻辑时钟（lamport时钟) 设置顺序关系</p>
+</li>
+<li>
+<p>Causal Consistency(因果一致性): 1. 具有因果关系的满足 顺序一致性 2. 不相关操作不需要有序</p>
+</li>
+<li>
+<p>FIFO: 1. 同一进程内的多个操作有序 fifo 2. 不同进程无序. 因果一致性 跨域了多个进程, 单机的 因果一致性 就是 fifo.</p>
+</li>
+</ul>
+<p>除了数据一致性, 还有客户端一致性:</p>
+<ul>
+<li>单调读一致性: 进程对a执行的任何后续读操作总是得到第一次读取的那个值或更新的值 (强调读最新)</li>
+<li>单调写一致性: 进程对数据项a执行的写操作必须在该进程对a执行任何后续写操作前完成 (强调先来先完成)</li>
+<li>写后读一致性: 进程对数据项a执行一次写操作的结果总是会被该进程对a执行的后续读操作看见 (强调写操作的可见, 完成不代表可见)</li>
+<li>读后写一致性: 程对数据项a执行的读操作之后的写操作，保证发生在于a读取值相同或比其更新的值上 (强调最新值上的操作)</li>
+</ul>
+<p>而论文中定义了 <code>Causal+</code>, 是 causal consistency + convergent conflict handling.</p>
+<p>论文中还提到了ALPS系统的定义: avalibility、Low Latency、partition-tolerate 、high scalability 的 system.</p>
+<h2 id="certificate-transparency">certificate Transparency</h2>
+<p>这个是阅读相关材料, 并没有论文.</p>
+<p>先说下中间人攻击, 可以将DNS域名替换成自己的服务器地址, 模拟一个类似的页面让用户填写用户名和密码, 这个时候隐私就被泄露了.</p>
+<p>因此引入了证书&amp;ca、https机制,  证书存储了 DNS-&gt; public key 的映射, ca 包括:  DNS name、 public key of that server 、identity of CA、signature with CA&rsquo;s private key (主要是client验证证书是否被篡改过, browser有ca的公钥, 可以解密出私钥加密的摘要信息, 本地重新对证书摘要计算hash, 常见的是 sha256, 如果一致则没有篡改过), 注意: 浏览器会包含一些可接受ca的公钥. 证书主要是 https 的流程使用, https=http+ssl/tls, 现在基本上使用 tls, ssl 存在问题不再使用. 本质上是通过非对称加解密 协商后续加密使用的 对称加密的秘钥, 在非对称 加解密之前还存在协商的过程. 整体描述如下:</p>
+<ol>
+<li>TCP连接建立之后, client 发送 ClientHello: 客户端支持的 ssl/tls 版本、加密套件、sessionid(复用)、client-random</li>
+<li>server 响应client 返回 ServerHello: 确认的 ssl/tls 版本、加密套件、sessionId、server random、安全证书(含有服务端公钥)</li>
+<li>client 验证server的证书, 并产生随机数 pre-master, 通过 证书的公钥加密后传递给 server</li>
+<li>server 使用服务端私钥 解出 pre-master, 并根据 client-random、server-random、pre-master 产生对称秘钥 master secrect</li>
+<li>client 使用相同的方式产生 对称秘钥 master secrect</li>
+<li>完成 client 和 server 的交互. 分别发送 client 和 server 的消息</li>
+<li>使用对称秘钥传输消息</li>
+</ol>
+<p>可以发现 第二步和第三步 设计到了 证书的传递和校验, 证书的合法性 是后续协商的重要前提.</p>
+<p>在这种场景下, 中间人的攻击会更加困难, 需要提供一个合法证书.</p>
+<p>那么, 为什么证书并没有完美的解决这个问题? 首先 DNS 域名的拥有者 难以确认, 任意ca 也可以颁发证书, 公司雇员的恶意注入伪造的ca.</p>
+<p>因此, 最直接的解决方式是 做一个证书的数据库, 那么谁来运行这个DB呢？如果支持替换证书, 那么一个域名就会有第二个证书(我其实看不出有什么问题&hellip;).</p>
+<p>这里提出的 CT 系统, 本质上就是个 审计系统, 并不能立即解决这个问题, 而是及时检测发现. 在CT的组件中, 有 Monitor、Auditor、Log Server. CA 给每个域名颁发证书后, 都会向 若干个 log server 添加 证书(只能append), 这样 Monitor 就最终会发现这个证书, 验证证书是否是可信的. 对于server传递的证书, Browser/Auditor 在接收到证书后也会检查 Log Server 是否有这样的证书, 只要存在这样的证书, 就可以安心使用(即使这个证书存在问题). 为了保证Log的安全性, 引入了 Merkle Tree, 证明日志中伪造一个证书的不可行. 除此之外, brower 和 monitor 通过 gossip 保证看到的log内容的一致性, 避免日志伪造 (既然都能mock掉log server, 替换掉monitor交互也是可以的, 个人理解也不是100%安全).</p>
+<p>问题, log server 运行在哪里? 对于可疑的证书, 怎么处理?</p>
+<p>看查阅到的资料, google 就有一个 log server, ca 会将 <code>pre-certificate</code> 发送给google 的 log server. 但是有一个问题, 就是 多个log server 是不同monitor维护, 如果有一个monitor发现有问题, 如果通知其他的 log server 呢?</p>
+<p>参考:</p>
+<ul>
+<li><a href="https://www.certificate-transparency.org/what-is-ct">https://www.certificate-transparency.org/what-is-ct</a></li>
+<li><a href="https://www.certificate-transparency.org/how-ct-works">https://www.certificate-transparency.org/how-ct-works</a></li>
+<li><a href="https://research.swtch.com/tlog">https://research.swtch.com/tlog</a></li>
+</ul>
+<h2 id="bitcoin-15">bitcoin <sup id="fnref:15"><a href="#fn:15" class="footnote-ref" role="doc-noteref">15</a></sup></h2>
+<p>没有论文, 很多细节介绍比较缺失. 比如 节点如何添加到 区块链网络、如何演变成发币. 从目前的理解而言, bitcoin 主要解决了 网络可信任的问题, 使用分布式共识 取代了 第三方信任机构, 分布式共识通过 非对称加密的方式(通常是SHA-256) 进行签名和解密验证, 流程:</p>
+<p>对于 double-spend 的场景, 通过 将交易构建成block, 每个block指向前一个block, 构成了 <code>block chain</code>, 对于double-spend, 在广播的时候只有两种情况: 1. 节点同时接受到 两笔交易, 通过校验那么只有一笔会成功 2. 不同节点接受到不同的交易, 分别演化广播, 产生了 两个 <code>block chain</code>, 这种场景下, 是 <code>longest block chain</code> 会成功. 因此, 确定一笔交易会花费很长时间, 对此的解决方案是, 一笔交易的block后续生成5个block就可以得到确认, 每个block的计算都需要花费 10min+, 相当于使用 <code>cpu power</code> 证明 block chain的合法性. 除此之外, 攻击者如果算力超过 50%, 还可以让之前的交易撤销(通过在fork后的版本上构建新的<code>block chain</code>)</p>
+<p>pdf 中主要从几个方面讨论了 bitcoin, transaction、timestamp server、proof-of-work、network、Incentive、Reclaiming Disk Space、Simplified Payment Verification、Combining and Splitting Value、Privacy、Calculations 等维度讨论了bitcoin, 在交易这块, 每个transaciton 是 owner 对 (上一次交易+下一个接受者的public key) 的hash 进行签名的结果, 这些交易都会添加到 coin 的末尾, 验证的时候, 只需要有 公钥, 就可以知道这个交易的内容. 问题: 矿机怎么知道owner的公钥？timestamp server 比较特殊, 使用 block 里面item的hash 作为时间进行广播, 这些hash包含了 之前的时间戳, 这样相当于构成了 单链结构, 通过这个结构确定了时间关系(但是并没有比较的功能). proof-of-work 通过 找到 sha-256 hash后前缀大量0的 数, 这个过程耗时比较大, 这个是 block的最重要的一环, 保证了 block 增长的低速 和 一定程度的避免恶意攻击. 那么什么时候可以确定一个block? 整个网络过程如下:</p>
+<pre><code>New transactions are broadcast to all nodes.
+2) Each node collects new transactions into a block.
+3) Each node works on finding a difficult proof-of-work for its block.
+4) When a node finds a proof-of-work, it broadcasts the block to all nodes.
+5) Nodes accept the block only if all transactions in it are valid and not already spent.
+6) Nodes express their acceptance of the block by working on creating the next block in the
+chain, using the hash of the accepted block as the previous hash.
+</code></pre><p>很明显, 这里的交易和块是两个环节, 新的交易并发的进入每个节点的新块, 新块在通过 proof-of-work 之后广播出去， 并被接受, 那么这个块里面的事务就会被接受, 其他节点就会基于这个接收的快创建新块. 问题: 在接受新块的时候, 是否要检查下本地是否有交易和新块存在冲突? 原有交易是保留还是全部扔掉?</p>
+<p>比较有意思的是, block的第一个交易是block created 的新币, 这就相当于在区块链中发币, 里面讲到 交易输出低于交易输入的值作为 挖矿的费用, 通过这样的机制避免攻击者 (攻击者更愿意赚个钱, 共计成本太高); 在磁盘空间这块, 利用 merkle hash tree 降低了占用.</p>
+<p>没看懂, 除了用到 merkle tree 进行校验，以cpu作为支出，大部分算力确保可信</p>
+<p>问题:</p>
+<ul>
+<li>矿机在验证交易的时候怎么知道owner的公钥？</li>
+<li>block 什么时候被添加? 什么时候添加一个新的block?</li>
+<li>基于hash的timestamp 并没有直接的比较功能, 看样子只能不断解hash, 才能比较两个 timestamp</li>
+<li>item 和 block 是什么关系?</li>
+<li>什么时候交易的输出低于交易的输入?</li>
+<li>计算block的hash 是钱吗？应该也需要广播验证的</li>
+</ul>
+<p>跟进最近的资料显示, 针对 proof-of-work/pof(耗电, 每次打包block解一道数学题), 还有 权益证明机制(PoS)、POC/Proof of Capacity、 &ldquo;时空证明机制”(PoST，proof of space time), 有很多内容需要了解</p>
+<p>以太坊: 开放的区块链技术,  bitcoin 对应 区块链1.0, 中心是货币, 以太坊是区块链 2.0, 中心是 合约. 有人认为 EOS/企业操作系统 是 区块链 3.0, 在于应用</p>
+<p>可以深入了解的内容:</p>
+<ul>
+<li>Adam Back&rsquo;s Hashcash</li>
+</ul>
+<p>参考:</p>
+<ul>
+<li><a href="http://www.michaelnielsen.org/ddi/how-the-bitcoin-protocol-actually-works">http://www.michaelnielsen.org/ddi/how-the-bitcoin-protocol-actually-works</a></li>
+<li><a href="https://bitcoin.org/zh_CN/how-it-works">https://bitcoin.org/zh_CN/how-it-works</a></li>
+</ul>
+<h2 id="blockstack-16">BlockStack <sup id="fnref:16"><a href="#fn:16" class="footnote-ref" role="doc-noteref">16</a></sup></h2>
+<p>blockstack 基于区块链技术实现了网络去中心化, 主要解决的问题是:  identity, discovery, storage and
+survive failures of underlying blockchains. identity 怎么做的?</p>
+<p>discovery 这块, 创建了 BNS(Blockchain Name System) 替换目前的DNS, 在设计上借鉴了 NameCoin, 使用区块链实现了分布式, 那么用户怎么注册? 首先, 名字是由 owner加密的区块链地址,  用户注册一个 name 需要两个阶段: preorders + registers, 避免attacker看到未确认交易的时候进行抢占, 除了注册, 还支持更新. BNS中, name 可以等同于 DNS 中 顶级域名, 并挂载到 root blockchain 上. 为了避免恶意抢占大量域名, 通过 &ldquo;pricing function&rdquo; 降低这种行为 (但是可能会导致域名越卖越贵, 攒着高价卖). 传统的DNS通过证书增强了安全性, BNS 通过 将 public key 和 name 一起存放实现. 在存储上, 每个 peer-networks 都需要存储 BNS 的zone files, 和 DNS 的一致.</p>
+<p>在区块链的抽象上, 	将功能和区块链分离, 提出了 &ldquo;virtual blockchain&rdquo; 的概念, 在区块链上构建多个状态机, 同时做到了区块链的容灾, 并提出了 <code>fork*-consistency</code> 模型概念, 应用通过回放日志达到 每个block的 <code>application level consensus</code>, consensus hash 依旧是 Merkle hash 的实现,  在fork resolver的处理上呢? 通过10个确认来降低这个可能性.</p>
+<p>怎么保证域名的合法性(google的被人抢占了)? 没讲, 需要一套现实系统的迁移映射, 比如 <code>google.com</code> 最好还是叫 <code>google.com</code></p>
+<p>在 blockStack中, blockchain 仅仅存储数据的指针, 而不是真正的数据, 数据存储在 p2p 网络中, 比如  zone files for BNS (类似DNS的zone file), 但是这里用的 p2p 网络并不是传统的实现(容易受到 Sybil attacks), 而是设计了 &ldquo;Atlas Network&rdquo;, 保证数据很小, 并且能够全量索引, 也就意味着, 所有的Atlas都有100%的副本, 并使用了 <code> K-regular random graph</code>的策略(Metropolis-Hastings Random Walk 算法), 除了本地存储, 数据也会写入到远程的云存储上 (dropbox/S3), 相比于p2p的DHT, 网络分区和节点恢复 也好很多.</p>
+<p>在去中心化存储的设计上, 则是加密写入多个云存储, 为此设计了 <code>Gaia</code>.</p>
+<p>个人的感觉上, 最大的亮点反而是 替换了DNS 和 在区块链上构建的 <code>virtual block</code>, 其他存在的问题:</p>
+<ul>
+<li>只有kv接口, 不能使用复杂的SQL</li>
+<li>数据共享困难, 为了保证只有数据只被部分人获取, 那么是每个人加密一次, 还是加密(加密数据的)key, 大规模场景下会更复杂</li>
+<li>能够通过区块链看到别人的数据 (比如通过区块链看到别人的账户)</li>
+</ul>
+<p>更多参考 usenix:
+- <a href="https://www.usenix.org/system/files/conference/atc16/atc16_paper-ali.pdf">https://www.usenix.org/system/files/conference/atc16/atc16_paper-ali.pdf</a></p>
+<p>可以深入的地方:
+- Name coin
+- Lets Encrypt
+- cause forks
+- Nakamoto consensus
+- Simple Name Verification (SNV) protocol
+补充:</p>
+<ul>
+<li>Sybil attack: 女巫攻击, 在Sybil攻击中，攻击者通过创建大量的假名身份来破坏网络服务的信誉系统，并使用它们获得不成比例的巨大影响力</li>
+<li>Ethereum: 主要用来做 智能合约, 数据和程序都放在用户侧, 容易因为记性不一样造成网络阻塞, 需要学习新的编程语言</li>
+<li>Metropolis-Hastings Random Walk:</li>
+</ul>
+<h2 id="扩展">扩展</h2>
+<p>borglet</p>
+<p>CHANDRA, T., GRIESEMER, R., AND REDSTONE, J.
+Paxos made live — An engineering perspective. In Proc.
+of PODC (2007).</p>
+<p>LAMPORT, L. The part-time parliament. ACM TOCS 16,
+2 (1998), 133–169</p>
+<p>AFS？
+Keybase
+megastore: <a href="https://research.google/pubs/pub36971/">https://research.google/pubs/pub36971/</a></p>
+<p>https 加密套件 怎么理解?
+一致性 参考 data-sensitive 和 分布式的课程</p>
+<p>cops 的 chain replication 的概念和之前的 CRAQ 不同. chain replication 的含义 需要了解下</p>
+<p>Chandy-Lamport算法
+<a href="https://netium.gitlab.io/2019/11/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%BF%AB%E7%85%A7-Chandy-Lamport%E7%AE%97%E6%B3%95/">https://netium.gitlab.io/2019/11/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%BF%AB%E7%85%A7-Chandy-Lamport%E7%AE%97%E6%B3%95/</a></p>
+<p>????
+a.弱一致性（Weak Consistency）
+b.释放一致性（Release Consistency）
+c.入口一致性（Entry Consistency）</p>
+<p><a href="https://www.cnblogs.com/cchust/p/10703416.html">https://www.cnblogs.com/cchust/p/10703416.html</a> -&gt; <a href="https://courses.cs.washington.edu/courses/cse444/08au/544M/READING-LIST/fekete-sigmod2008.pdf">https://courses.cs.washington.edu/courses/cse444/08au/544M/READING-LIST/fekete-sigmod2008.pdf</a>
+强一致性: <a href="https://jepsen.io/consistency">https://jepsen.io/consistency</a>
+<a href="https://jepsen.io/consistency">https://jepsen.io/consistency</a></p>
+<p>[6].《Distributed Computing，Principles, Algorithms, and Systems》</p>
+<p>[7].《Designing Data-Intensive Applications》</p>
+<p>一致性模型: lamport</p>
+<p>Amazon’s Dynamo [16], LinkedIn’s Project Voldemort [43], and the
+popular memcached [19]. Facebook’s Cassandra [30]
+Yahoo!’s PNUTS</p>
+<p>公司内的 redis 升级回滚 同城多机房怎么操作呢?</p>
+<ul>
+<li>ceph</li>
+<li>小图片存储, hystack</li>
+<li>tfs? tair</li>
+<li>fastdfs</li>
+</ul>
+<p><a href="https://www.hotbak.net/key/%E6%B5%B7%E9%87%8F%E5%B0%8F%E6%96%87%E4%BB%B6%E7%9A%84%E7%8E%AF%E5%A2%83%E4%B8%8B%E7%A8%B3%E5%AE%9A%E6%80%A7%E5%92%8C%E6%89%A9%E5%B1%95%E6%80%A7%E5%A6%82%E4%BD%95%E9%97%AE%E7%AD%94twt%E4%BC%81%E4%B8%9AIT.html">https://www.hotbak.net/key/%E6%B5%B7%E9%87%8F%E5%B0%8F%E6%96%87%E4%BB%B6%E7%9A%84%E7%8E%AF%E5%A2%83%E4%B8%8B%E7%A8%B3%E5%AE%9A%E6%80%A7%E5%92%8C%E6%89%A9%E5%B1%95%E6%80%A7%E5%A6%82%E4%BD%95%E9%97%AE%E7%AD%94twt%E4%BC%81%E4%B8%9AIT.html</a></p>
+<p><a href="https://www.cnblogs.com/wuhuiyuan/p/ceph-small-file-compound-storage.html">https://www.cnblogs.com/wuhuiyuan/p/ceph-small-file-compound-storage.html</a></p>
+<p>滴滴 gift: <a href="https://cloud.tencent.com/developer/news/359236">https://cloud.tencent.com/developer/news/359236</a>
+其他的fs: advfs</p>
+<p>ceph:</p>
+<ul>
+<li>file:///Users/jianhaixu/Downloads/weil-osdi06.pdf</li>
+<li><a href="https://www.researchgate.net/profile/Ethan_Miller/publication/220851685_Ceph_A_Scalable_High-Performance_Distributed_File_System/links/55e737a808ae21d099c14a71/Ceph-A-Scalable-High-Performance-Distributed-File-System.pdf">https://www.researchgate.net/profile/Ethan_Miller/publication/220851685_Ceph_A_Scalable_High-Performance_Distributed_File_System/links/55e737a808ae21d099c14a71/Ceph-A-Scalable-High-Performance-Distributed-File-System.pdf</a></li>
+</ul>
+<p>fastdfs:</p>
+<ul>
+<li><a href="https://github.com/happyfish100/fastdfs">https://github.com/happyfish100/fastdfs</a></li>
+<li>搞个rust client 版本</li>
+</ul>
+<p>tfs: 淘宝的文件系统</p>
+<p>tair: 淘宝的kv</p>
+<p>vertical Paxos: ???</p>
+<p><a href="https://zhuanlan.zhihu.com/p/96189481">https://zhuanlan.zhihu.com/p/96189481</a></p>
+<p>分布式学习:</p>
+<ul>
+<li><a href="https://link.zhihu.com/?target=https%3A//www.cl.cam.ac.uk/techreports/UCAM-CL-TR-935.pdf">https://link.zhihu.com/?target=https%3A//www.cl.cam.ac.uk/techreports/UCAM-CL-TR-935.pdf</a></li>
+</ul>
+<p>Flexible Paxos 论文?</p>
+<p>vertical paxos:
+LAMPORT, L., MALKHI, D., AND ZHOU, L. Vertical Paxos
+and primary-backup replication. In Proceedings of the 28th
+ACM Symposium on Principles of Distributed Computing
+(2009), PODC’09.</p>
+<p>2pc: <a href="https://zhuanlan.zhihu.com/p/37350460">https://zhuanlan.zhihu.com/p/37350460</a>
+分布式事务还是得看下: preactor</p>
+<p>spanner 深入: Spanner: Becoming a SQL system <a href="https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/46103.pdf">https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/46103.pdf</a></p>
+<p>LeanStore: <a href="https://db.in.tum.de/~leis/papers/leanstore.pdf">https://db.in.tum.de/~leis/papers/leanstore.pdf</a></p>
+<p>其他论文:</p>
+<p>&ldquo;X-Engine: An optimized storage engine for large-scale E-commerce transaction processing</p>
+<p>Optimizing Space Amplification in RocksDB</p>
+<p>Co ckroachDB: The Resilient Geo-Distributed SQL Database</p>
+<p>hbase tidb 有论文吗 ？</p>
+<p>kv 学习:
+Lak- shman et al. [1] developed Cassandra
+linkedin Voldemort
+amazon  DeCandia</p>
+<p>spark深入: dataFrame</p>
+<p>facebook 的 memcache 和 tao 对比下,</p>
 <h2 id="参考">参考:</h2>
 <section class="footnotes" role="doc-endnotes">
 <hr>
@@ -316,6 +624,30 @@ Throughput Cloud-Native Relational Databases</a> <a href="#fnref:8" class="footn
 <li id="fn:9" role="doc-endnote">
 <p>作者: Chandramohan A. Thekkath, Timothy Mann, Edward K. Lee: <a href="https://pdos.csail.mit.edu/6.824/papers/thekkath-frangipani.pdf">Frangipani: A Scalable Distributed File System</a> <a href="#fnref:9" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
+<li id="fn:10" role="doc-endnote">
+<p>作者: Google, Inc.: <a href="https://pdos.csail.mit.edu/6.824/papers/spanner.pdf">Spanner: Google’s Globally-Distributed Database</a> <a href="#fnref:10" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:11" role="doc-endnote">
+<p>作者: Microsoft Research: <a href="https://pdos.csail.mit.edu/6.824/papers/farm-2015.pdf">No compromises: distributed transactions with
+consistency, availability, and performance</a> <a href="#fnref:11" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:12" role="doc-endnote">
+<p>作者: University of California, Berkeley, <a href="https://pdos.csail.mit.edu/6.824/papers/zaharia-spark.pdf">Resilient Distributed Datasets: A Fault-Tolerant Abstraction for
+In-Memory Cluster Computing</a> <a href="#fnref:12" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:13" role="doc-endnote">
+<p>作者: Facebook Inc: <a href="https://pdos.csail.mit.edu/6.824/papers/memcache-fb.pdf">Scaling Memcache at Facebook</a> <a href="#fnref:13" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:14" role="doc-endnote">
+<p>作者: Princeton University: <a href="https://pdos.csail.mit.edu/6.824/papers/cops.pdf">Don’t Settle for Eventual:
+Scalable Causal Consistency for Wide-Area Storage with COPS</a> <a href="#fnref:14" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:15" role="doc-endnote">
+<p>作者: <a href="https://bitcoin.org">https://bitcoin.org</a>: <a href="https://pdos.csail.mit.edu/6.824/papers/bitcoin.pdf">Bitcoin: A Peer-to-Peer Electronic Cash System</a> <a href="#fnref:15" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:16" role="doc-endnote">
+<p>作者: Muneeb Ali, Ryan Shea, Jude Nelson, Michael J. Freedman: <a href="https://pdos.csail.mit.edu/6.824/papers/blockstack-2017.pdf">Blockstack Technical Whitepaper</a> <a href="#fnref:16" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
 </ol>
 </section>
 
@@ -329,7 +661,7 @@ Throughput Cloud-Native Relational Databases</a> <a href="#fnref:8" class="footn
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/mit">mit</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>1008 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>3391 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-06-06 10:23 &#43;0800</p>
         </div>

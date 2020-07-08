@@ -6,10 +6,47 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sat, 13 Jun 2020 00:06:10 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 08 Jul 2020 21:26:27 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Bigtable</title>
+      <link>https://xujianhai.fun/posts/bigtable/</link>
+      <pubDate>Wed, 08 Jul 2020 21:26:27 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/bigtable/</guid>
+      <description>preface 看完mit的课程, 意犹未尽, 因为google素有三驾马车之称的论文中, GFS 和 spanner 已经看过, 但是bigtable却没有深入了解过, 虽然基于 bigtable 论文实现的 hbase已经非常知名, 顺便结合之前的 hbase 学习的经验.
+design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed, persistent multidimensional sorted map, 存储的kv结构是 (row:string, column:string, time:int64) → string, 通过key 中包含的time 实现了多版本的机制(会配置只保持最近n个版本, 或者老版本存活多少天), 通过 row 将同一个对象的多个属性(column)进行聚合, column 的分散设计能够高效的并发. bigtable 通过rowkey的字节序排序维护数据, 并且每个table的数据是动态partition的(分布式&amp;amp;负载均衡), partition的row range就是 tablet. 为了更好的管理column, 采用了 column family/cf 的设计, 类似于 group的概念, 一个 cf 下的数据通常是一起压缩的 并且数据类型相同, 访问控制配置也一样. 由于cf的设计, 一个 column key name就会变成: family:qualifier, qualifier 可以理解为 key, 在举例的场景中, web page 存储就分成了 cf: anchor, qualifer 是被引用的站点, 比如 google.</description>
+    </item>
+    
+    <item>
+      <title>Broken_pipe</title>
+      <link>https://xujianhai.fun/posts/broken_pipe/</link>
+      <pubDate>Tue, 23 Jun 2020 18:33:37 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/broken_pipe/</guid>
+      <description>Preface 最近使用sarama(kafka go client) 发现大量的报错: write: broken pipe, 并且还触发了我们的日志报警, 感到奇怪, 研究了一下
+报错类型 除了 broken pipe, 还有 reset by peer 和 EOF 两种报错. 根据查阅资料, 最终整理如下:
+ Broken pipe: 是 第二次向 closed tcp pipe(收到了rst报文) 写入数据导致的报错 reset by peer: 是 在写入 closed tcp pipe(收到了rst报文) 之后读取操作 报错 io.EOF: 如果对端的写端关闭连接，读端继续读，报错EOF  这里 reset by peer 和 io.EOF 存在一定的雷同, 下面针对这三种情况进行测试:
+program 在 broken pipe 和 EOF 的测试中, 使用的server 和 client 代码是一个, 如下:
+package main import ( &amp;#34;log&amp;#34; &amp;#34;net&amp;#34; &amp;#34;time&amp;#34; &amp;#34;unsafe&amp;#34; ) func main() { doClient() } func doClient() { d := &amp;amp;net.</description>
+    </item>
+    
+    <item>
+      <title>Bytable</title>
+      <link>https://xujianhai.fun/posts/bytable/</link>
+      <pubDate>Mon, 22 Jun 2020 20:34:35 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/bytable/</guid>
+      <description>Preface 最近头条发布了关于 Bytable 的文章: https://juejin.im/post/5ee376fe518825434566d1de , 特地学习下
+Bytable 有三种角色: master(控制平面) 、placement driver(Placement Driver) 、tabletServer(TabletServer)
+feature: 拆分了 tablet 的 raft 的membership 和 Leader Election 到master, 降低心跳的开销 (tablet server 只需要和master进行通信, 不需要为每个 tablet group进行 tablet server 之间的心跳, 后者随着tablet的增长而增长), leader election 放在master 可以自定义更多的策略
+自研了一套WAL 存储引擎 避免同时写入 复制日志和引擎日志 导致的 HDD 盘磁头摇摆, 进而写入性能降低的问题, 按照文章的说法: 不进行 Compaction 时也可以打满 HDD 盘的写入带宽
+问题:
+ Split 和 Merge 使用硬链 降低不可用时间, 但是用了硬链, 文件还是一个, 应该还是存在将分裂的tablet 传给其他 tabletServer, 除非分裂还在本地的taletServer  大概能够明白, 使用硬链避免在传输sst文件的时候，文件被compaction流程删除. (需要确认下)</description>
+    </item>
     
     <item>
       <title>Redis_debug</title>
@@ -47,7 +84,7 @@ vprof https://github.com/nvdv/vprof
 支持cpu火焰图、内存火焰图，代码执行时间、web导出, 看上去很丰富
 profile_online https://github.com/rfyiamcool/profiler_online
 比较简单, 只支持火焰图, 支持web导出
-py-spy https://github.com/benfred/py-spy
+py-spy (目前用这个) https://github.com/benfred/py-spy
 打印堆栈、火焰图、top</description>
     </item>
     
@@ -113,43 +150,6 @@ Redesign 网上关于 redesign(https://docs.google.com/document/d/1rLDmzDOGQQeSi
       <description>Preface 最近IO层面的深入比较多, 顺便研究下 Kafka 底层IO实现,
 深入 直接看下 socketServer 的注释 学习下理论.
 acceptor /***Handles new connections, requests and responses to and from broker. *Kafka supports two types of request planes : *- data-plane : *- Handles requests from clients and other brokers in the cluster. *- The threading model is *1 Acceptor thread per listener, that handles new connections. *It is possible to configure multiple data-planes by specifying multiple &amp;#34;,&amp;#34; separated endpoints for &amp;#34;listeners&amp;#34; in KafkaConfig.</description>
-    </item>
-    
-    <item>
-      <title>Conn_close</title>
-      <link>https://xujianhai.fun/posts/conn_close/</link>
-      <pubDate>Sat, 23 May 2020 11:08:50 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/conn_close/</guid>
-      <description>preface 最近讨论解决服务状态不正确的问题, 涉及到一个连接关闭的手段, 但是网上说法很多, 很难有一篇完整的手段描述, 特别记忆
-实现 首先, 我们使用nc模拟网络的收发. 启动server:
-nc -l -p 4444 启动client:
-nc localhost 4444 -p 5555 使用tcpdump 查看效果:
-sudo tcpdump port 4444 -i lo -xnn -S sudo tcpdump port 5555 -i lo -xnn -S 结果如下:
-查看下连接的状态:
-ss -ant | grep -E &#39;4444|5555&#39; 如下图: 根据参考的文档, 正确关闭的姿势如下(亲测有效):
-sudo iptables -A INPUT -p tcp --dport 4444 -j REJECT --reject-with tcp-reset iptables -nL // n 数字化输出地址和端口, L 列出所有规则 iptables -F // 删除所有规则 iptables -A OUTPUT -p tcp --dport 5555 -j REJECT --reject-with tcp-reset iptables -nL 注意:</description>
-    </item>
-    
-    <item>
-      <title>Kafka_seq</title>
-      <link>https://xujianhai.fun/posts/kafka_seq/</link>
-      <pubDate>Fri, 22 May 2020 18:07:04 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka_seq/</guid>
-      <description>Preface 最近发现sarama的收发延迟很高, 内部研究发现 sarama抽象的broker交互 底层竟然是同步阻塞的调用: sendAndReceive, 比如:
-func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) { var response *ProduceResponse var err error if request.RequiredAcks == NoResponse { err = b.sendAndReceive(request, nil) } else { response = new(ProduceResponse) err = b.sendAndReceive(request, response) // 同步阻塞了 } if err != nil { return nil, err } return response, nil } 这里的broker对象就是 sarma 对 kafka broker 连接的抽象, 从上面可以发现, 对于每个生产请求, 都是顺序发送, 并且下一个请求必须等待上各个请求接收到相应 才能发送. 于是直观的想法就是, 异步的send 和 receive, 也就是说下一个请求并不需要等待上一个请求收到响应.</description>
-    </item>
-    
-    <item>
-      <title>Docker_net</title>
-      <link>https://xujianhai.fun/posts/docker_net/</link>
-      <pubDate>Thu, 21 May 2020 21:38:15 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/docker_net/</guid>
-      <description>Preface 最近小组讨论到 &amp;ldquo;too many open files&amp;rdquo; 和 网络模式, 说 bridger 可以实现pod间socket文件句柄的隔离, 引发了一些思考
-network 这里讲到的 network 是 docker 层面的, docker 一共支持四种模式:
- bridger: docker 默认的方式, docker容器有独立的 network namespace、ip和子网, 这种模式下, 主机上会启动一个docker0的虚拟网桥(占有一个网段), 类似物理交换机, 所有的docker容器都会连接到这个网桥上, 分配网段中的ip. host: 使用宿主机的ip和端口, 能看到host上所有的设备 none: 没有网络配置、网卡、ip、路由 container: 容器之间共享一个 network namespace  参考 https://www.docker.org.cn/dockerppt/111.html</description>
     </item>
     
   </channel>

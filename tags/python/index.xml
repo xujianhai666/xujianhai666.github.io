@@ -23,7 +23,7 @@ vprof https://github.com/nvdv/vprof
 支持cpu火焰图、内存火焰图，代码执行时间、web导出, 看上去很丰富
 profile_online https://github.com/rfyiamcool/profiler_online
 比较简单, 只支持火焰图, 支持web导出
-py-spy https://github.com/benfred/py-spy
+py-spy (目前用这个) https://github.com/benfred/py-spy
 打印堆栈、火焰图、top</description>
     </item>
     

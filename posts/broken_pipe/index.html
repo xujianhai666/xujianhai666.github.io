@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="Preface 最近使用sarama(kafka go client) 发现大量的报错: write: broken pipe, 并且还触发了我们的日志报警, 感到奇怪, 研究了一下
+报错类型 除了 broken pipe, 还有 reset by peer 和 EOF 两种报错. 根据查阅资料, 最终整理如下:
+ Broken pipe: 是 第二次向 closed tcp pipe(收到了rst报文) 写入数据导致的报错 reset by peer: 是 在写入 closed tcp pipe(收到了rst报文) 之后读取操作 报错 io.EOF: 如果对端的写端关闭连接，读端继续读，报错EOF  这里 reset by peer 和 io.EOF 存在一定的雷同, 下面针对这三种情况进行测试:
+program 在 broken pipe 和 EOF 的测试中, 使用的server 和 client 代码是一个, 如下:
+package main import ( &amp;#34;log&amp;#34; &amp;#34;net&amp;#34; &amp;#34;time&amp;#34; &amp;#34;unsafe&amp;#34; ) func main() { doClient() } func doClient() { d := &amp;amp;net." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, sys" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/broken_pipe/" />
+
+
+    <title>
+        
+            Broken_pipe :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Broken_pipe">
+<meta itemprop="description" content="Preface 最近使用sarama(kafka go client) 发现大量的报错: write: broken pipe, 并且还触发了我们的日志报警, 感到奇怪, 研究了一下
+报错类型 除了 broken pipe, 还有 reset by peer 和 EOF 两种报错. 根据查阅资料, 最终整理如下:
+ Broken pipe: 是 第二次向 closed tcp pipe(收到了rst报文) 写入数据导致的报错 reset by peer: 是 在写入 closed tcp pipe(收到了rst报文) 之后读取操作 报错 io.EOF: 如果对端的写端关闭连接，读端继续读，报错EOF  这里 reset by peer 和 io.EOF 存在一定的雷同, 下面针对这三种情况进行测试:
+program 在 broken pipe 和 EOF 的测试中, 使用的server 和 client 代码是一个, 如下:
+package main import ( &#34;log&#34; &#34;net&#34; &#34;time&#34; &#34;unsafe&#34; ) func main() { doClient() } func doClient() { d := &amp;net.">
+<meta itemprop="datePublished" content="2020-06-23T18:33:37&#43;08:00" />
+<meta itemprop="dateModified" content="2020-06-23T18:33:37&#43;08:00" />
+<meta itemprop="wordCount" content="1802">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="sys," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Broken_pipe"/>
+<meta name="twitter:description" content="Preface 最近使用sarama(kafka go client) 发现大量的报错: write: broken pipe, 并且还触发了我们的日志报警, 感到奇怪, 研究了一下
+报错类型 除了 broken pipe, 还有 reset by peer 和 EOF 两种报错. 根据查阅资料, 最终整理如下:
+ Broken pipe: 是 第二次向 closed tcp pipe(收到了rst报文) 写入数据导致的报错 reset by peer: 是 在写入 closed tcp pipe(收到了rst报文) 之后读取操作 报错 io.EOF: 如果对端的写端关闭连接，读端继续读，报错EOF  这里 reset by peer 和 io.EOF 存在一定的雷同, 下面针对这三种情况进行测试:
+program 在 broken pipe 和 EOF 的测试中, 使用的server 和 client 代码是一个, 如下:
+package main import ( &#34;log&#34; &#34;net&#34; &#34;time&#34; &#34;unsafe&#34; ) func main() { doClient() } func doClient() { d := &amp;net."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-06-23 18:33:37 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>9 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/broken_pipe/">Broken_pipe</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="preface">Preface</h2>
+<p>最近使用sarama(kafka go client) 发现大量的报错: <code>write: broken pipe</code>, 并且还触发了我们的日志报警, 感到奇怪, 研究了一下</p>
+<h2 id="报错类型">报错类型</h2>
+<p>除了 <code>broken pipe</code>, 还有 <code>reset by peer</code> 和 <code>EOF</code> 两种报错. 根据查阅资料, 最终整理如下:</p>
+<ul>
+<li>Broken pipe: 是 第二次向 closed tcp pipe(收到了rst报文) 写入数据导致的报错</li>
+<li>reset by peer: 是 在写入 closed tcp pipe(收到了rst报文) 之后读取操作 报错</li>
+<li>io.EOF: 如果对端的写端关闭连接，读端继续读，报错EOF</li>
+</ul>
+<p>这里 <code>reset by peer</code> 和 <code>io.EOF</code> 存在一定的雷同, 下面针对这三种情况进行测试:</p>
+<h2 id="program">program</h2>
+<p>在 <code>broken pipe</code> 和 <code>EOF</code> 的测试中, 使用的server 和 client 代码是一个, 如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-client.go" data-lang="client.go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;log&#34;</span>
+	<span style="color:#e6db74">&#34;net&#34;</span>
+	<span style="color:#e6db74">&#34;time&#34;</span>
+	<span style="color:#e6db74">&#34;unsafe&#34;</span>
+)
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+	<span style="color:#a6e22e">doClient</span>()
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">doClient</span>() {
+	<span style="color:#a6e22e">d</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Dialer</span>{
+		<span style="color:#a6e22e">KeepAlive</span>: <span style="color:#ae81ff">3</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,
+	}
+	<span style="color:#a6e22e">conn</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">d</span>.<span style="color:#a6e22e">Dial</span>(<span style="color:#e6db74">&#34;tcp&#34;</span>, <span style="color:#e6db74">&#34;127.0.0.1:8090&#34;</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		panic(<span style="color:#a6e22e">err</span>)
+	}
+
+	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+
+
+	<span style="color:#a6e22e">buffer</span> <span style="color:#f92672">:=</span> []byte(<span style="color:#e6db74">&#34;hello world&#34;</span>)
+	<span style="color:#66d9ef">for</span> {
+		<span style="color:#a6e22e">n</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Write</span>(<span style="color:#a6e22e">buffer</span>)
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;err: %v\n&#34;</span>, <span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">return</span>
+		}
+		<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;i: %v successfully send: %v\n&#34;</span>, <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">n</span>)
+		<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">5</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+	}
+}
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-server.go" data-lang="server.go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;log&#34;</span>
+	<span style="color:#e6db74">&#34;net&#34;</span>
+	<span style="color:#e6db74">&#34;syscall&#34;</span>
+	<span style="color:#e6db74">&#34;time&#34;</span>
+	<span style="color:#e6db74">&#34;unsafe&#34;</span>
+)
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+	<span style="color:#a6e22e">setRlimitNOFile</span>(<span style="color:#ae81ff">5</span>)
+	<span style="color:#a6e22e">serve</span>()
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">serve</span>() <span style="color:#66d9ef">error</span> {
+	<span style="color:#a6e22e">addr</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;127.0.0.1:8090&#34;</span>
+	<span style="color:#a6e22e">listner</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Listen</span>(<span style="color:#e6db74">&#34;tcp&#34;</span>, <span style="color:#a6e22e">addr</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+	}
+
+	<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;server listen...&#34;</span>)
+	<span style="color:#66d9ef">for</span> {
+		<span style="color:#a6e22e">conn</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">listner</span>.<span style="color:#a6e22e">Accept</span>()
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;listener accept err: %v\n&#34;</span>, <span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">continue</span>
+		}
+		<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">5</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+		<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">serveConn</span>(<span style="color:#a6e22e">conn</span>)
+	}
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">serveConn</span>(<span style="color:#a6e22e">conn</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>) {
+	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+
+	<span style="color:#75715e">// just for test, not for production
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">buffer</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">byte</span>, <span style="color:#ae81ff">256</span>)
+	<span style="color:#66d9ef">for</span> {
+		<span style="color:#a6e22e">n</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Read</span>(<span style="color:#a6e22e">buffer</span>)
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;conn read err: %v\n&#34;</span>, <span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">return</span>
+		}
+		<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;recv msg: %v with len: %v\n&#34;</span>, <span style="color:#a6e22e">BytesToString</span>(<span style="color:#a6e22e">buffer</span>), <span style="color:#a6e22e">n</span>)
+	}
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">BytesToString</span>(<span style="color:#a6e22e">b</span> []<span style="color:#66d9ef">byte</span>) <span style="color:#66d9ef">string</span> {
+	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>))
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">setRlimitNOFile</span>(<span style="color:#a6e22e">nofile</span> <span style="color:#66d9ef">uint64</span>) <span style="color:#66d9ef">error</span> {
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">nofile</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+	}
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">lim</span> <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">Rlimit</span>
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">Getrlimit</span>(<span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">RLIMIT_NOFILE</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">lim</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+	}
+	<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;lim.Cur: %v&#34;</span>, <span style="color:#a6e22e">lim</span>.<span style="color:#a6e22e">Cur</span>)
+	<span style="color:#a6e22e">lim</span>.<span style="color:#a6e22e">Cur</span> = <span style="color:#a6e22e">nofile</span>
+	<span style="color:#a6e22e">lim</span>.<span style="color:#a6e22e">Max</span> = <span style="color:#a6e22e">nofile</span>
+	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">Setrlimit</span>(<span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">RLIMIT_NOFILE</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">lim</span>)
+}
+</code></pre></div><p>但是测试 <code>reset by peer</code> 的场景就比较复杂了, 需要 ulimit 限制, 因为是 mac 机器, 我这里采用的是 代码指定 limit大小, 而没有通过 文件配置. 如下代码</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-client.go" data-lang="client.go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;log&#34;</span>
+	<span style="color:#e6db74">&#34;net&#34;</span>
+	<span style="color:#e6db74">&#34;time&#34;</span>
+	<span style="color:#e6db74">&#34;unsafe&#34;</span>
+)
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">10</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+		<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">doClient</span>(<span style="color:#a6e22e">i</span>)
+	}
+	<span style="color:#a6e22e">doClient</span>(<span style="color:#ae81ff">10</span>)
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">doClient</span>(<span style="color:#a6e22e">i</span> <span style="color:#66d9ef">int</span>) {
+	<span style="color:#a6e22e">d</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Dialer</span>{
+		<span style="color:#a6e22e">KeepAlive</span>: <span style="color:#ae81ff">3</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,
+	}
+	<span style="color:#a6e22e">conn</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">d</span>.<span style="color:#a6e22e">Dial</span>(<span style="color:#e6db74">&#34;tcp&#34;</span>, <span style="color:#e6db74">&#34;127.0.0.1:8090&#34;</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		panic(<span style="color:#a6e22e">err</span>)
+	}
+
+	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+
+	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+		<span style="color:#a6e22e">buffer</span> <span style="color:#f92672">:=</span> []byte(<span style="color:#e6db74">&#34;hello world&#34;</span>)
+		<span style="color:#66d9ef">for</span> {
+			<span style="color:#a6e22e">n</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Write</span>(<span style="color:#a6e22e">buffer</span>)
+			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+				<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;err: %v\n&#34;</span>, <span style="color:#a6e22e">err</span>)
+				<span style="color:#66d9ef">return</span>
+			}
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;i: %v successfully send: %v\n&#34;</span>, <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">n</span>)
+			<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">5</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+		}
+	}()
+	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+		<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">1</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+		<span style="color:#a6e22e">rbuffer</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">byte</span>, <span style="color:#ae81ff">256</span>)
+		<span style="color:#66d9ef">for</span> {
+			<span style="color:#a6e22e">n</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Read</span>(<span style="color:#a6e22e">rbuffer</span>)
+			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+				<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;i:%v conn read err: %v\n&#34;</span>, <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">err</span>)
+				<span style="color:#66d9ef">return</span>
+			}
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;i: %v client recv msg: %v with len: %v\n&#34;</span>, <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">BytesToString</span>(<span style="color:#a6e22e">rbuffer</span>), <span style="color:#a6e22e">n</span>)
+		}
+	}()
+	<span style="color:#a6e22e">stop</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{})
+	<span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">stop</span>
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">BytesToString</span>(<span style="color:#a6e22e">b</span> []<span style="color:#66d9ef">byte</span>) <span style="color:#66d9ef">string</span> {
+	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>))
+}
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-server.go" data-lang="server.go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;log&#34;</span>
+	<span style="color:#e6db74">&#34;net&#34;</span>
+	<span style="color:#e6db74">&#34;syscall&#34;</span>
+	<span style="color:#e6db74">&#34;time&#34;</span>
+	<span style="color:#e6db74">&#34;unsafe&#34;</span>
+)
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+	<span style="color:#a6e22e">setRlimitNOFile</span>(<span style="color:#ae81ff">5</span>)
+	<span style="color:#a6e22e">serve</span>()
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">serve</span>() <span style="color:#66d9ef">error</span> {
+	<span style="color:#a6e22e">addr</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;127.0.0.1:8090&#34;</span>
+	<span style="color:#a6e22e">listner</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Listen</span>(<span style="color:#e6db74">&#34;tcp&#34;</span>, <span style="color:#a6e22e">addr</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+	}
+
+	<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;server listen...&#34;</span>)
+	<span style="color:#66d9ef">for</span> {
+		<span style="color:#a6e22e">conn</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">listner</span>.<span style="color:#a6e22e">Accept</span>()
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;listener accept err: %v\n&#34;</span>, <span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">continue</span>
+		}
+		<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">5</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+		<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">serveConn</span>(<span style="color:#a6e22e">conn</span>)
+	}
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">serveConn</span>(<span style="color:#a6e22e">conn</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>) {
+	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+
+	<span style="color:#75715e">// just for test, not for production
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">buffer</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">byte</span>, <span style="color:#ae81ff">256</span>)
+	<span style="color:#66d9ef">for</span> {
+		<span style="color:#a6e22e">n</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Read</span>(<span style="color:#a6e22e">buffer</span>)
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;conn read err: %v\n&#34;</span>, <span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">return</span>
+		}
+		<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;recv msg: %v with len: %v\n&#34;</span>, <span style="color:#a6e22e">BytesToString</span>(<span style="color:#a6e22e">buffer</span>), <span style="color:#a6e22e">n</span>)
+		<span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+		<span style="color:#66d9ef">return</span>
+	}
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">BytesToString</span>(<span style="color:#a6e22e">b</span> []<span style="color:#66d9ef">byte</span>) <span style="color:#66d9ef">string</span> {
+	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>))
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">setRlimitNOFile</span>(<span style="color:#a6e22e">nofile</span> <span style="color:#66d9ef">uint64</span>) <span style="color:#66d9ef">error</span> {
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">nofile</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+	}
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">lim</span> <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">Rlimit</span>
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">Getrlimit</span>(<span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">RLIMIT_NOFILE</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">lim</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+	}
+	<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;lim.Cur: %v&#34;</span>, <span style="color:#a6e22e">lim</span>.<span style="color:#a6e22e">Cur</span>)
+	<span style="color:#a6e22e">lim</span>.<span style="color:#a6e22e">Cur</span> = <span style="color:#a6e22e">nofile</span>
+	<span style="color:#a6e22e">lim</span>.<span style="color:#a6e22e">Max</span> = <span style="color:#a6e22e">nofile</span>
+	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">Setrlimit</span>(<span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">RLIMIT_NOFILE</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">lim</span>)
+}
+</code></pre></div><h2 id="broken-pipe">broken pipe</h2>
+<p>demo中, 只要server端先关闭, 那么client端就会显示 <code>err: write tcp 127.0.0.1:62221-&gt;127.0.0.1:8090: write: broken pipe</code></p>
+<p>通过tcpdump观察, 简化如下:</p>
+<pre><code>-&gt; % sudo tcpdump -i lo0  port 8090 -X
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo0, link-type NULL (BSD loopback), capture size 262144 bytes
+
+22:45:49.526730 IP localhost.64918 &gt; localhost.8090: Flags [S], seq 2559638747, win 65535, options [mss 16344,nop,wscale 6,nop,nop,TS val 899979569 ecr 0,sackOK,eol], length 0
+
+22:45:49.526866 IP localhost.8090 &gt; localhost.64918: Flags [S.], seq 3624627785, ack 2559638748, win 65535, options [mss 16344,nop,wscale 6,nop,nop,TS val 899979569 ecr 899979569,sackOK,eol], length 0
+
+22:45:49.526880 IP localhost.64918 &gt; localhost.8090: Flags [.], ack 1, win 6379, options [nop,nop,TS val 899979569 ecr 899979569], length 0
+
+22:45:49.526892 IP localhost.8090 &gt; localhost.64918: Flags [.], ack 1, win 6379, options [nop,nop,TS val 899979569 ecr 899979569], length 0
+
+22:45:49.526937 IP localhost.64918 &gt; localhost.8090: Flags [P.], seq 1:12, ack 1, win 6379, options [nop,nop,TS val 899979569 ecr 899979569], length 11
+	0x0030:  35a4 9931 6865 6c6c 6f20 776f 726c 64    5..1hello.world  // 第一轮 发送数据
+
+22:45:49.526954 IP localhost.8090 &gt; localhost.64918: Flags [.], ack 12, win 6379, options [nop,nop,TS val 899979569 ecr 899979569], length 0
+
+22:45:51.485368 IP localhost.8090 &gt; localhost.64918: Flags [F.], seq 1, ack 12, win 6379, options [nop,nop,TS val 899981520 ecr 899979569], length 0
+
+22:45:51.485398 IP localhost.64918 &gt; localhost.8090: Flags [.], ack 2, win 6379, options [nop,nop,TS val 899981520 ecr 899981520], length 0
+
+22:45:54.530274 IP localhost.64918 &gt; localhost.8090: Flags [P.], seq 12:23, ack 2, win 6379, options [nop,nop,TS val 899984540 ecr 899981520], length 11
+	0x0030:  35a4 a0d0 6865 6c6c 6f20 776f 726c 64    5...hello.world   // 第二轮 发送的数据, 底层返回rst, 数据其实没有写出
+
+22:45:54.530340 IP localhost.8090 &gt; localhost.64918: Flags [R], seq 3624627787, win 0, length 0
+
+// 第三轮发送 数据 报错 Broken Pipe
+</code></pre><p>可以发现 在 client 处于 CLOSE_WAIT 状态, server处于 FIN_WAIT_2 的时候, 这个时候 突然有发送了第二轮 <code>hello world</code>, 触发了server端响应 reset 报文, 导致了 <code>broken pipe</code>.</p>
+<h2 id="reset">reset</h2>
+<p>通过增大client的连接并发度超过server的处理能力(accept队列大小), 那么client read端就会触发 <code>connection reset by peer</code>, 但是从日志上来看, 其实会先发送一个写命令, 虽然server端并没有提取出来. 从 tcpdump 的角度来看:</p>
+<pre><code>-&gt; % sudo tcpdump  -i lo0 src port 8090 -X
+Password:
+Sorry, try again.
+Password:
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo0, link-type NULL (BSD loopback), capture size 262144 bytes
+11:15:59.200150 IP localhost.8090 &gt; localhost.59394: Flags [S.], seq 3079437778, ack 787178163, win 65535, options [mss 16344,nop,wscale 6,nop,nop,TS val 912764939 ecr 912764939,sackOK,eol], length 0
+	0x0000:  4500 0040 0000 4000 4006 0000 7f00 0001  E..@..@.@.......
+	0x0010:  7f00 0001 1f9a e802 b78c 7dd2 2eeb 62b3  ..........}...b.
+	0x0020:  b012 ffff fe34 0000 0204 3fd8 0103 0306  .....4....?.....
+	0x0030:  0101 080a 3667 b00b 3667 b00b 0402 0000  ....6g..6g......
+11:15:59.200187 IP localhost.8090 &gt; localhost.59394: Flags [.], ack 1, win 6379, options [nop,nop,TS val 912764939 ecr 912764939], length 0
+	0x0000:  4500 0034 0000 4000 4006 0000 7f00 0001  E..4..@.@.......
+	0x0010:  7f00 0001 1f9a e802 b78c 7dd3 2eeb 62b3  ..........}...b.
+	0x0020:  8010 18eb fe28 0000 0101 080a 3667 b00b  .....(......6g..
+	0x0030:  3667 b00b                                6g..
+11:15:59.200304 IP localhost.8090 &gt; localhost.59394: Flags [F.], seq 1, ack 1, win 6379, options [nop,nop,TS val 912764939 ecr 912764939], length 0
+	0x0000:  4500 0034 0000 4000 4006 0000 7f00 0001  E..4..@.@.......
+	0x0010:  7f00 0001 1f9a e802 b78c 7dd3 2eeb 62b3  ..........}...b.
+	0x0020:  8011 18eb fe28 0000 0101 080a 3667 b00b  .....(......6g..
+	0x0030:  3667 b00b                                6g..
+11:15:59.200441 IP localhost.8090 &gt; localhost.59394: Flags [R], seq 3079437780, win 0, length 0
+	0x0000:  4500 0028 0000 4000 4006 0000 7f00 0001  E..(..@.@.......
+	0x0010:  7f00 0001 1f9a e802 b78c 7dd4 0000 0000  ..........}.....
+	0x0020:  5004 0000 fe1c 0000                      P.......
+</code></pre><p>可以明显观察到, 连握手都没有完成, client 发送的sync, server 只返回了 ack 的内容, 但是没有 sync, 接着 server 发送了 fin 包关闭连接, 当 client 发起写入动作的时候, 触发了 server 端发送 reset 报文, client 再次读取的时候就发生了 <code>reset by peer</code> 的报错.</p>
+<p>但是从 java的复现角度, <code>https://imroc.io/posts/kubernetes/no-route-to-host/</code>, 看上去java在 select closed conn 也会有这种情况 (待确认)</p>
+<p>从目前找到的资料而言, 比较合理的解释如下:</p>
+<ul>
+<li>连接被意外复用, 通过 ”connection reset by peer” 达到连接被关闭</li>
+<li>请求量过多，服务端直接拒绝了该请求 (可以通过 ulimit 复现)</li>
+</ul>
+<h3 id="关于-limit">关于 limit:</h3>
+<p>代码中通过设置 resource limit 实现了效果, resource limit 有 soft 和 hard 两种, 分别如下:</p>
+<ul>
+<li>soft limit 程序的进程可以自行修改, 内核支持的资源上限.</li>
+<li>hard limit 非特权程序的上线, soft limit小于 hard limit. 特权用户进程使用 soft limit的限制</li>
+</ul>
+<p>可以修改 <code>/etc/sysctl.conf</code> 相当于修改 hard limit, <code>/etc/security/limit.conf</code> ?</p>
+<h3 id="参考">参考:</h3>
+<ul>
+<li><a href="https://studygolang.com/articles/27622">https://studygolang.com/articles/27622</a></li>
+<li><a href="https://testerhome.com/articles/23296">https://testerhome.com/articles/23296</a></li>
+<li><a href="https://andremouche.github.io/golang/golang-http-tips.html">https://andremouche.github.io/golang/golang-http-tips.html</a></li>
+</ul>
+<h2 id="ioeof">io.eof</h2>
+<p>demo中, 只需要 client 进程先关闭, 那么server端就会显示 <code>conn read err: EOF</code>. 对应简化的tcpdump</p>
+<pre><code>-&gt; % sudo tcpdump -i lo0  port 8090 -X
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo0, link-type NULL (BSD loopback), capture size 262144 bytes
+
+22:33:30.265967 IP localhost.64599 &gt; localhost.8090: Flags [S], seq 455781167, win 65535, options [mss 16344,nop,wscale 6,nop,nop,TS val 899251467 ecr 0,sackOK,eol], length 0
+
+22:33:30.266046 IP localhost.8090 &gt; localhost.64599: Flags [S.], seq 2848968819, ack 455781168, win 65535, options [mss 16344,nop,wscale 6,nop,nop,TS val 899251467 ecr 899251467,sackOK,eol], length 0
+
+22:33:30.266056 IP localhost.64599 &gt; localhost.8090: Flags [.], ack 1, win 6379, options [nop,nop,TS val 899251467 ecr 899251467], length 0
+
+22:33:30.266064 IP localhost.8090 &gt; localhost.64599: Flags [.], ack 1, win 6379, options [nop,nop,TS val 899251467 ecr 899251467], length 0
+
+22:33:30.266120 IP localhost.64599 &gt; localhost.8090: Flags [P.], seq 1:12, ack 1, win 6379, options [nop,nop,TS val 899251467 ecr 899251467], length 11
+
+22:33:30.266131 IP localhost.8090 &gt; localhost.64599: Flags [.], ack 12, win 6379, options [nop,nop,TS val 899251467 ecr 899251467], length 0
+
+22:33:33.377102 IP localhost.64599 &gt; localhost.8090: Flags [F.], seq 12, ack 1, win 6379, options [nop,nop,TS val 899254528 ecr 899251467], length 0
+
+22:33:33.377164 IP localhost.8090 &gt; localhost.64599: Flags [.], ack 13, win 6379, options [nop,nop,TS val 899254528 ecr 899254528], length 0
+
+22:33:40.273472 IP localhost.8090 &gt; localhost.64599: Flags [F.], seq 1, ack 13, win 6379, options [nop,nop,TS val 899261312 ecr 899254528], length 0
+
+22:33:40.273521 IP localhost.64599 &gt; localhost.8090: Flags [.], ack 2, win 6379, options [nop,nop,TS val 899261312 ecr 899261312], length 0
+</code></pre><h2 id="怎么多了一个ack">怎么多了一个ack</h2>
+<p>三次握手 sync-send -&gt; senc-recvd -&gt; establised 本质上就创建好了连接, 对应的tcp报文是 sync、sync(+ack)、ack 就可以了. 但是可以发现上面多了一个ack, 这是因为tcp报文对每个相应都会有一个 ack ?</p>
+<h2 id="源码">源码</h2>
+<p>根据网上小伙伴的排查, reset by peer 和 broken pipe 在 glibc 中, 位置： <code>sysdeps/gnu/errlist.c</code></p>
+<pre><code> 354 /*
+ 355 TRANS There is no process reading from the other end of a pipe.
+ 356 TRANS Every library function that returns this error code also generates a
+ 357 TRANS @code{SIGPIPE} signal; this signal terminates the program if not handled
+ 358 TRANS or blocked.  Thus, your program will never actually see @code{EPIPE}
+ 359 TRANS unless it has handled or blocked @code{SIGPIPE}. */
+ 360     [ERR_REMAP (EPIPE)] = N_(&quot;Broken pipe&quot;),
+
+ 611 /*
+ 612 TRANS A network connection was closed for reasons outside the control of the
+ 613 TRANS local host, such as by the remote machine rebooting or an unrecoverable
+ 614 TRANS protocol violation. */
+ 615     [ERR_REMAP (ECONNRESET)] = N_(&quot;Connection reset by peer&quot;),
+</code></pre><p>在golang实现中, 对应操作系统, 也梳理了一下向上的报错, 对应如下:</p>
+<pre><code>{104, &quot;ECONNRESET&quot;, &quot;connection reset by peer&quot;},
+{13, &quot;SIGPIPE&quot;, &quot;broken pipe&quot;},
+{32, &quot;EPIPE&quot;, &quot;broken pipe&quot;},
+</code></pre><p>但是在linux源码中, 处理rst报文的逻辑 根据不同状态的操作是不一样的:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-tcp_input.c" data-lang="tcp_input.c"><span style="color:#75715e">/* When we get a reset we do this. */</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">tcp_reset</span>(<span style="color:#66d9ef">struct</span> sock <span style="color:#f92672">*</span>sk)
+{
+	trace_tcp_receive_reset(sk);
+
+	<span style="color:#75715e">/* We want the right error as BSD sees it (and indeed as we do). */</span>
+	<span style="color:#66d9ef">switch</span> (sk<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>sk_state) {
+	<span style="color:#66d9ef">case</span> TCP_SYN_SENT:
+		sk<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>sk_err <span style="color:#f92672">=</span> ECONNREFUSED;
+		<span style="color:#66d9ef">break</span>;
+	<span style="color:#66d9ef">case</span> TCP_CLOSE_WAIT:
+		sk<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>sk_err <span style="color:#f92672">=</span> EPIPE;
+		<span style="color:#66d9ef">break</span>;
+	<span style="color:#66d9ef">case</span> TCP_CLOSE:
+		<span style="color:#66d9ef">return</span>;
+	<span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
+		sk<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>sk_err <span style="color:#f92672">=</span> ECONNRESET;
+	}
+	<span style="color:#75715e">/* This barrier is coupled with smp_rmb() in tcp_poll() */</span>
+	smp_wmb();
+
+	tcp_write_queue_purge(sk);
+	tcp_done(sk);
+
+	<span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>sock_flag(sk, SOCK_DEAD))
+		sk<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>sk_error_report(sk);
+}
+</code></pre></div><p>可以发现, 只要不是 TCP_SYN_SENT、TCP_CLOSE_WAIT 和 TCP_CLOSE, 只要收到 rst 报文, 都会显示 <code>ECONNRESET</code>. 我们的demo演示 client处于 ESTABLISHED 的状态.</p>
+<h2 id="补充">补充</h2>
+<h3 id="too-many-open-files">too many open files</h3>
+<p>常见问题, 不赘述</p>
+<h2 id="类似">类似</h2>
+<p>这个用户的场景不是很理解: <code>https://testerhome.com/articles/23296</code></p>
+<h2 id="面试题">面试题</h2>
+<p>用什么工具观察 tcpip 的交互流程?</p>
+<p>tcp有哪些包(packet)的类型, 分别代表什么意思, 什么场景用: SYN(建立连接), FIN(关闭连接), ACK(响应), PSH(DATA数据传输), RST(连接重置), URG(紧急); RST一般是在FIN之后才会出现, 一般出现FIN包或RST包时，我们便认为客户端与服务器端断开了连接.</p>
+<h2 id="意外">意外</h2>
+<p>查阅资料的时候, 无意间竟然发现了 寒泉子 的blog记录了相关的post, 参考: <code>http://lovestblog.cn/blog/2014/05/20/tcp-broken-pipe/</code>, 寒泉子目前创业, 之前在 jvm 工作.</p>
+<p>另外, <code>Broken pipe</code> 和 <code>reset by peer</code> 竟然在 glic 中有, 也是很奇怪的, 看了资料才知道, 很多linux逻辑其实也是封装在了glibc</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/sys">sys</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>1802 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-06-23 18:33 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/bigtable/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Bigtable</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/bytable/">
+                                <span class="button__text">Bytable</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

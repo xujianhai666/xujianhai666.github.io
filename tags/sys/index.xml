@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>sys on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/sys/</link>
+    <description>Recent content in sys on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 23 Jun 2020 18:33:37 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/sys/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Broken_pipe</title>
+      <link>https://xujianhai.fun/posts/broken_pipe/</link>
+      <pubDate>Tue, 23 Jun 2020 18:33:37 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/broken_pipe/</guid>
+      <description>Preface 最近使用sarama(kafka go client) 发现大量的报错: write: broken pipe, 并且还触发了我们的日志报警, 感到奇怪, 研究了一下
+报错类型 除了 broken pipe, 还有 reset by peer 和 EOF 两种报错. 根据查阅资料, 最终整理如下:
+ Broken pipe: 是 第二次向 closed tcp pipe(收到了rst报文) 写入数据导致的报错 reset by peer: 是 在写入 closed tcp pipe(收到了rst报文) 之后读取操作 报错 io.EOF: 如果对端的写端关闭连接，读端继续读，报错EOF  这里 reset by peer 和 io.EOF 存在一定的雷同, 下面针对这三种情况进行测试:
+program 在 broken pipe 和 EOF 的测试中, 使用的server 和 client 代码是一个, 如下:
+package main import ( &amp;#34;log&amp;#34; &amp;#34;net&amp;#34; &amp;#34;time&amp;#34; &amp;#34;unsafe&amp;#34; ) func main() { doClient() } func doClient() { d := &amp;amp;net.</description>
+    </item>
+    
+  </channel>
+</rss>

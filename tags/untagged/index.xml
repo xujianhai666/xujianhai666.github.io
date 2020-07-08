@@ -6,10 +6,24 @@
     <description>Recent content in untagged on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 26 Mar 2020 17:49:31 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 22 Jun 2020 20:34:35 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/untagged/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Bytable</title>
+      <link>https://xujianhai.fun/posts/bytable/</link>
+      <pubDate>Mon, 22 Jun 2020 20:34:35 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/bytable/</guid>
+      <description>Preface 最近头条发布了关于 Bytable 的文章: https://juejin.im/post/5ee376fe518825434566d1de , 特地学习下
+Bytable 有三种角色: master(控制平面) 、placement driver(Placement Driver) 、tabletServer(TabletServer)
+feature: 拆分了 tablet 的 raft 的membership 和 Leader Election 到master, 降低心跳的开销 (tablet server 只需要和master进行通信, 不需要为每个 tablet group进行 tablet server 之间的心跳, 后者随着tablet的增长而增长), leader election 放在master 可以自定义更多的策略
+自研了一套WAL 存储引擎 避免同时写入 复制日志和引擎日志 导致的 HDD 盘磁头摇摆, 进而写入性能降低的问题, 按照文章的说法: 不进行 Compaction 时也可以打满 HDD 盘的写入带宽
+问题:
+ Split 和 Merge 使用硬链 降低不可用时间, 但是用了硬链, 文件还是一个, 应该还是存在将分裂的tablet 传给其他 tabletServer, 除非分裂还在本地的taletServer  大概能够明白, 使用硬链避免在传输sst文件的时候，文件被compaction流程删除. (需要确认下)</description>
+    </item>
     
     <item>
       <title>Rocketmq_dledger</title>
