@@ -3,6 +3,36 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xujianhai.fun/tags/batch/</loc>
+    <lastmod>2020-07-10T15:22:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/message/</loc>
+    <lastmod>2020-07-10T15:22:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/message_batch/</loc>
+    <lastmod>2020-07-10T15:22:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/</loc>
+    <lastmod>2020-07-10T15:22:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/</loc>
+    <lastmod>2020-07-10T15:22:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2020-07-10T15:22:42+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xujianhai.fun/posts/bigtable/</loc>
     <lastmod>2020-07-08T21:26:27+08:00</lastmod>
   </url>
@@ -14,21 +44,6 @@
   
   <url>
     <loc>https://xujianhai.fun/tags/hbase/</loc>
-    <lastmod>2020-07-08T21:26:27+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-07-08T21:26:27+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-07-08T21:26:27+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
     <lastmod>2020-07-08T21:26:27+08:00</lastmod>
   </url>
   

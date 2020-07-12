@@ -36,7 +36,7 @@ design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed,
 design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed, persistent multidimensional sorted map, 存储的kv结构是 (row:string, column:string, time:int64) → string, 通过key 中包含的time 实现了多版本的机制(会配置只保持最近n个版本, 或者老版本存活多少天), 通过 row 将同一个对象的多个属性(column)进行聚合, column 的分散设计能够高效的并发. bigtable 通过rowkey的字节序排序维护数据, 并且每个table的数据是动态partition的(分布式&amp;负载均衡), partition的row range就是 tablet. 为了更好的管理column, 采用了 column family/cf 的设计, 类似于 group的概念, 一个 cf 下的数据通常是一起压缩的 并且数据类型相同, 访问控制配置也一样. 由于cf的设计, 一个 column key name就会变成: family:qualifier, qualifier 可以理解为 key, 在举例的场景中, web page 存储就分成了 cf: anchor, qualifer 是被引用的站点, 比如 google.">
 <meta itemprop="datePublished" content="2020-07-08T21:26:27&#43;08:00" />
 <meta itemprop="dateModified" content="2020-07-08T21:26:27&#43;08:00" />
-<meta itemprop="wordCount" content="295">
+<meta itemprop="wordCount" content="337">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -159,7 +159,30 @@ design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed,
 </li>
 </ul>
 <h2 id="implement">implement</h2>
-<p>hbase, 暂时不讨论</p>
+<p>hbase, 整体实现和 bigtable一致, 首先确定元数据流程如下:</p>
+<ol>
+<li>client访问zk获取root表, root表中记录了meta表信息存储在了哪些regionServer</li>
+<li>读取regionServer获取meta表信息, 计算数据所在的 regionServer</li>
+</ol>
+<p>这个流程和 bigtable 一致.</p>
+<p>写入流程差异不大:</p>
+<ol>
+<li>确定元数据流程</li>
+<li>确定当前要写入的HRegion和HRegionServer</li>
+<li>clinet向HRegionServer发出写相应的请求，HRegionServer收到请求并响应</li>
+<li>HRegion将数据写入到HLog中，以防数据丢失, 然后写入 MemStore. (需要都成功才表示成功)</li>
+<li>MemStore 达到阈值, 会flush到 StoreFile, StoreFile太多会触发 Compact合并. 当Region太大会触发split. 整个逻辑和 bigtable一致</li>
+</ol>
+<p>读取流程差异也不大:</p>
+<ol>
+<li>确定元数据流程</li>
+<li>读取HRegionServer, 根据MemStore和StoreFile查询数据</li>
+<li>将数据传给client</li>
+</ol>
+<p>文件类型:
+HLog: Hadoop sequence file
+StoreFile: HFile</p>
+<p>因为有时候面试大数据背景的小伙伴, 参考了这个: <a href="https://zhuanlan.zhihu.com/p/75454915">https://zhuanlan.zhihu.com/p/75454915</a></p>
 <h2 id="参考">参考</h2>
 
             </div>
@@ -172,7 +195,7 @@ design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed,
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/bigtable">bigtable</a></span><span class="tag"><a href="https://xujianhai.fun/tags/hbase">hbase</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>295 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>337 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-07-08 21:26 &#43;0800</p>
         </div>
@@ -185,6 +208,13 @@ design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed,
                 </div>
 
                 <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/message_batch/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Message_batch</span>
+                            </a>
+                        </span>
                     
 
                     

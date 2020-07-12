@@ -18,9 +18,10 @@
       
       <guid>https://xujianhai.fun/posts/kafka_group_coordinator/</guid>
       <description>preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
-coordinator coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
+coordinator group coordinator 是计算出来的, 是hash groupId计算出来取模元数据的partition个数, 代码如 Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount, 然后取这个partition的leader broker 就是这个group的coordinator. 具体在findCoordinator的实现中.
+coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
 coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
-客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer.</description>
+客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol.</description>
     </item>
     
     <item>

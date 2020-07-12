@@ -5,8 +5,62 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Wed, 08 Jul 2020 21:26:27 +0800</lastBuildDate>
+        <lastBuildDate>Fri, 10 Jul 2020 15:22:42 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Message_batch</title>
+            <link>https://xujianhai.fun/posts/message_batch/</link>
+            <pubDate>Fri, 10 Jul 2020 15:22:42 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/message_batch/</guid>
+            <description>序 最近小伙伴聊到 batch消息 在ack的处理方式, 是一个个ack? 还是批量ack? 如果是多个消息存储成1个, 那么 offset 是怎么管理的呢? 消费的时候, ack掉一个就多个消息都被ack了? 那么因为分成了多个消息消费, 会不会导致重复ack?
+根据之前写rocketm-client-go的经验, client 传递给broker的消息确实是 batch后的 一条消息, 可是后面的路子就不是很清楚了. 因此深入研究下.
+RocketMQ 应用实战  首先, 重新验证下 对批量消息的理解, 运行下 org.apache.rocketmq.example.batch.SimpleBatchProducer 和 org.apache.rocketmq.example.simple.PushConsumer 的例子, SimpleBatchProducer 发送批量消息后, 可以发现 PushConsumer 消费的时候, 其实是一条条消费的:
+message: Hello world 0 0A5DE93A000018B4AAC231F9BC180000 3 message: Hello world 2 0A5DE93A000018B4AAC231F9BC180002 5 message: Hello world 1 0A5DE93A000018B4AAC231F9BC180001 4 这样就郁闷了, 发送的时候是批量成一条消息发送的(见下文), 那么什么时候解成一条条消息的呢? 而且打印的时候, 我特意打印了每个消息的 messageId 和 queueOffset, 可以发现这些消息的 queueOffset 确实不一样, 也就是说消息确实不一样.
+ client  首先看下 client 是怎么传递消息的.</description>
+            <content type="html"><![CDATA[<h2 id="序">序</h2>
+<p>最近小伙伴聊到 batch消息 在ack的处理方式, 是一个个ack? 还是批量ack? 如果是多个消息存储成1个, 那么 offset 是怎么管理的呢? 消费的时候, ack掉一个就多个消息都被ack了? 那么因为分成了多个消息消费, 会不会导致重复ack?</p>
+<p>根据之前写rocketm-client-go的经验, client 传递给broker的消息确实是 batch后的 一条消息, 可是后面的路子就不是很清楚了. 因此深入研究下.</p>
+<h2 id="rocketmq">RocketMQ</h2>
+<ol start="0">
+<li>应用实战</li>
+</ol>
+<p>首先, 重新验证下 对批量消息的理解, 运行下 <code>org.apache.rocketmq.example.batch.SimpleBatchProducer</code> 和 <code>org.apache.rocketmq.example.simple.PushConsumer</code> 的例子, SimpleBatchProducer 发送批量消息后, 可以发现 PushConsumer 消费的时候, 其实是一条条消费的:</p>
+<pre><code>message: Hello world 0 0A5DE93A000018B4AAC231F9BC180000 3 
+message: Hello world 2 0A5DE93A000018B4AAC231F9BC180002 5 
+message: Hello world 1 0A5DE93A000018B4AAC231F9BC180001 4 
+</code></pre><p>这样就郁闷了, 发送的时候是批量成一条消息发送的(见下文), 那么什么时候解成一条条消息的呢? 而且打印的时候, 我特意打印了每个消息的 messageId 和 queueOffset, 可以发现这些消息的 queueOffset 确实不一样, 也就是说消息确实不一样.</p>
+<ol>
+<li>client</li>
+</ol>
+<p>首先看下 client 是怎么传递消息的. client 在传递消息的时候, 会对消息进行编码, 一般消息和batch消息的编码方式是不一样的, 参考 MessageDecoder#encodeMessage 和  MessageDecoder#encodeMessages. 批量消息的编码如下:</p>
+<pre><code>    public static byte[] encodeMessages(List&lt;Message&gt; messages) {
+        //TO DO refactor, accumulate in one buffer, avoid copies
+        List&lt;byte[]&gt; encodedMessages = new ArrayList&lt;byte[]&gt;(messages.size());
+        int allSize = 0;
+        for (Message message : messages) {
+            byte[] tmp = encodeMessage(message);
+            encodedMessages.add(tmp);
+            allSize += tmp.length;
+        }
+        byte[] allBytes = new byte[allSize];
+        int pos = 0;
+        for (byte[] bytes : encodedMessages) {
+            System.arraycopy(bytes, 0, allBytes, pos, bytes.length);
+            pos += bytes.length;
+        }
+        return allBytes;
+    }
+</code></pre><p>可以发现 消息其实是一个个编码然后放在一起的, 然后放到消息体里面, 然后传递给broker. 那么broker又是怎么处理批量消息的呢?</p>
+<ol start="2">
+<li>broker</li>
+</ol>
+<p>broker抽象了processor模型, 批处理消息的处理逻辑位于 <code>SendMessageProcessor#sendBatchMessage</code>, 在这个方法中, 首先将 请求的消息体 放到了 messageExtBatch对象的body中, 然后调用了底层存储, 这里以 CommitLog 为例 (DLedgerCommitLog存储类似, 只是做了raft同步). 在 <code>CommitLog#putMessages</code> 中, 会对批量消息进行编码, 参照: <code>messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));</code>, 深入看 batchEncoder 可以发现, 其实就是将 客户端传过来的消息体 当做了一条条物理消息进行了编码, 也就是说, 客户端将多个消息编码成了一条消息传输, 但是broker在存储层却又重新编码成一条条消息的物理格式, 最终在 <code>CommitLog#doAppend</code> 的时候进行了循环写入.</p>
+<h2 id="kafka">kafka</h2>
+<p>在kafka里面, 批量发送是底层的聚合效果, 在 <code>kafkaApis#handleProduceRequest</code>, 最终会遍历topicPartition维度的消息写入磁盘文件, 并根据 ack的条件决定是否直接响应</p>
+]]></content>
+        </item>
         
         <item>
             <title>Bigtable</title>
@@ -47,7 +101,30 @@ design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed,
 </li>
 </ul>
 <h2 id="implement">implement</h2>
-<p>hbase, 暂时不讨论</p>
+<p>hbase, 整体实现和 bigtable一致, 首先确定元数据流程如下:</p>
+<ol>
+<li>client访问zk获取root表, root表中记录了meta表信息存储在了哪些regionServer</li>
+<li>读取regionServer获取meta表信息, 计算数据所在的 regionServer</li>
+</ol>
+<p>这个流程和 bigtable 一致.</p>
+<p>写入流程差异不大:</p>
+<ol>
+<li>确定元数据流程</li>
+<li>确定当前要写入的HRegion和HRegionServer</li>
+<li>clinet向HRegionServer发出写相应的请求，HRegionServer收到请求并响应</li>
+<li>HRegion将数据写入到HLog中，以防数据丢失, 然后写入 MemStore. (需要都成功才表示成功)</li>
+<li>MemStore 达到阈值, 会flush到 StoreFile, StoreFile太多会触发 Compact合并. 当Region太大会触发split. 整个逻辑和 bigtable一致</li>
+</ol>
+<p>读取流程差异也不大:</p>
+<ol>
+<li>确定元数据流程</li>
+<li>读取HRegionServer, 根据MemStore和StoreFile查询数据</li>
+<li>将数据传给client</li>
+</ol>
+<p>文件类型:
+HLog: Hadoop sequence file
+StoreFile: HFile</p>
+<p>因为有时候面试大数据背景的小伙伴, 参考了这个: <a href="https://zhuanlan.zhihu.com/p/75454915">https://zhuanlan.zhihu.com/p/75454915</a></p>
 <h2 id="参考">参考</h2>
 ]]></content>
         </item>
@@ -1014,6 +1091,7 @@ Paxos made live — An engineering perspective. In Proc.
 of PODC (2007).</p>
 <p>LAMPORT, L. The part-time parliament. ACM TOCS 16,
 2 (1998), 133–169</p>
+<p><a href="https://www.infoq.cn/article/2010/10/google-percolator?utm_source=related_read&amp;utm_medium=article">https://www.infoq.cn/article/2010/10/google-percolator?utm_source=related_read&amp;utm_medium=article</a></p>
 <p>AFS？
 Keybase
 megastore: <a href="https://research.google/pubs/pub36971/">https://research.google/pubs/pub36971/</a></p>
@@ -1154,12 +1232,14 @@ Scalable Causal Consistency for Wide-Area Storage with COPS</a> <a href="#fnref:
             
             <guid>https://xujianhai.fun/posts/kafka_group_coordinator/</guid>
             <description>preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
-coordinator coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
+coordinator group coordinator 是计算出来的, 是hash groupId计算出来取模元数据的partition个数, 代码如 Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount, 然后取这个partition的leader broker 就是这个group的coordinator. 具体在findCoordinator的实现中.
+coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
 coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
-客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer.</description>
+客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol.</description>
             <content type="html"><![CDATA[<h2 id="preface">preface</h2>
 <p>因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator</p>
 <h2 id="coordinator">coordinator</h2>
+<p>group coordinator 是计算出来的, 是hash groupId计算出来取模元数据的partition个数, 代码如 <code>Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount</code>, 然后取这个partition的leader broker 就是这个group的coordinator. 具体在findCoordinator的实现中.</p>
 <p>coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理</p>
 <p>coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:</p>
 <pre><code>客户端找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 
@@ -8952,7 +9032,7 @@ v0 从zk读, 后面的版本通过 GroupCoordinator#handleFetchOffsets 获取off
 </li>
 <li>
 <p>ListOffsets</p>
-<p>获取Offset</p>
+<p>获取Offset(分区的偏移量有效范围, lso和leo)</p>
 </li>
 <li>
 <p>Fetch</p>

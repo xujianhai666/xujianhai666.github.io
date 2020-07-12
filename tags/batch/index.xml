@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>batch on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/batch/</link>
+    <description>Recent content in batch on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Fri, 10 Jul 2020 15:22:42 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/batch/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Message_batch</title>
+      <link>https://xujianhai.fun/posts/message_batch/</link>
+      <pubDate>Fri, 10 Jul 2020 15:22:42 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/message_batch/</guid>
+      <description>序 最近小伙伴聊到 batch消息 在ack的处理方式, 是一个个ack? 还是批量ack? 如果是多个消息存储成1个, 那么 offset 是怎么管理的呢? 消费的时候, ack掉一个就多个消息都被ack了? 那么因为分成了多个消息消费, 会不会导致重复ack?
+根据之前写rocketm-client-go的经验, client 传递给broker的消息确实是 batch后的 一条消息, 可是后面的路子就不是很清楚了. 因此深入研究下.
+RocketMQ 应用实战  首先, 重新验证下 对批量消息的理解, 运行下 org.apache.rocketmq.example.batch.SimpleBatchProducer 和 org.apache.rocketmq.example.simple.PushConsumer 的例子, SimpleBatchProducer 发送批量消息后, 可以发现 PushConsumer 消费的时候, 其实是一条条消费的:
+message: Hello world 0 0A5DE93A000018B4AAC231F9BC180000 3 message: Hello world 2 0A5DE93A000018B4AAC231F9BC180002 5 message: Hello world 1 0A5DE93A000018B4AAC231F9BC180001 4 这样就郁闷了, 发送的时候是批量成一条消息发送的(见下文), 那么什么时候解成一条条消息的呢? 而且打印的时候, 我特意打印了每个消息的 messageId 和 queueOffset, 可以发现这些消息的 queueOffset 确实不一样, 也就是说消息确实不一样.
+ client  首先看下 client 是怎么传递消息的.</description>
+    </item>
+    
+  </channel>
+</rss>

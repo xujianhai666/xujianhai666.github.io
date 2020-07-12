@@ -6,9 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="author" content="Zero xu ">
 <meta name="description" content="preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
-coordinator coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
+coordinator group coordinator 是计算出来的, 是hash groupId计算出来取模元数据的partition个数, 代码如 Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount, 然后取这个partition的leader broker 就是这个group的coordinator. 具体在findCoordinator的实现中.
+coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
 coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
-客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer." />
+客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol." />
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming, kafka" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
@@ -35,12 +36,13 @@ coordinator rebalance 模块比较简单, 之前客户端开发的时候总结�
 
 <meta itemprop="name" content="Kafka_group_coordinator">
 <meta itemprop="description" content="preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
-coordinator coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
+coordinator group coordinator 是计算出来的, 是hash groupId计算出来取模元数据的partition个数, 代码如 Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount, 然后取这个partition的leader broker 就是这个group的coordinator. 具体在findCoordinator的实现中.
+coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
 coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
-客户端找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer.">
+客户端找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol.">
 <meta itemprop="datePublished" content="2020-05-30T21:27:58&#43;08:00" />
 <meta itemprop="dateModified" content="2020-05-30T21:27:58&#43;08:00" />
-<meta itemprop="wordCount" content="460">
+<meta itemprop="wordCount" content="473">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -50,9 +52,10 @@ coordinator rebalance 模块比较简单, 之前客户端开发的时候总结�
 
 <meta name="twitter:title" content="Kafka_group_coordinator"/>
 <meta name="twitter:description" content="preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
-coordinator coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
+coordinator group coordinator 是计算出来的, 是hash groupId计算出来取模元数据的partition个数, 代码如 Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount, 然后取这个partition的leader broker 就是这个group的coordinator. 具体在findCoordinator的实现中.
+coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
 coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
-客户端找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol. 在处理join操作的时候, 一个重点就是维护参加 rebalane 的consumer, 为此, Kafka 抽象了 MemberMetadata 表示 member 的状态, MemberMetadata 维护了 joinCallback 和 syncCallback, 这样join/sync结束的时候可以通过 joinCallback 通知consumer."/>
+客户端找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol."/>
 
 
 
@@ -137,6 +140,7 @@ coordinator rebalance 模块比较简单, 之前客户端开发的时候总结�
                 <h2 id="preface">preface</h2>
 <p>因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator</p>
 <h2 id="coordinator">coordinator</h2>
+<p>group coordinator 是计算出来的, 是hash groupId计算出来取模元数据的partition个数, 代码如 <code>Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount</code>, 然后取这个partition的leader broker 就是这个group的coordinator. 具体在findCoordinator的实现中.</p>
 <p>coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理</p>
 <p>coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:</p>
 <pre><code>客户端找到一个Node -&gt; find coordinator protocol -&gt; onJoinPrepare(子类) -&gt; join group protocol -&gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&gt; enable heartbeat -&gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 
@@ -223,7 +227,7 @@ Stable：rebalance完成！可以开始消费了
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/kafka">kafka</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>460 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>473 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-05-30 21:27 &#43;0800</p>
         </div>

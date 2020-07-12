@@ -6,10 +6,28 @@
     <description>Recent content in Tags on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 08 Jul 2020 21:26:27 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 10 Jul 2020 15:22:42 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>batch</title>
+      <link>https://xujianhai.fun/tags/batch/</link>
+      <pubDate>Fri, 10 Jul 2020 15:22:42 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/batch/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>message</title>
+      <link>https://xujianhai.fun/tags/message/</link>
+      <pubDate>Fri, 10 Jul 2020 15:22:42 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/message/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>bigtable</title>
@@ -80,24 +98,6 @@
       <pubDate>Sat, 06 Jun 2020 10:23:10 +0800</pubDate>
       
       <guid>https://xujianhai.fun/tags/mit/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>kafka</title>
-      <link>https://xujianhai.fun/tags/kafka/</link>
-      <pubDate>Sat, 30 May 2020 21:27:58 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/kafka/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>linux</title>
-      <link>https://xujianhai.fun/tags/linux/</link>
-      <pubDate>Tue, 26 May 2020 22:32:44 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/linux/</guid>
       <description></description>
     </item>
     

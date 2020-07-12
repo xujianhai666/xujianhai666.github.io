@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="序 最近小伙伴聊到 batch消息 在ack的处理方式, 是一个个ack? 还是批量ack? 如果是多个消息存储成1个, 那么 offset 是怎么管理的呢? 消费的时候, ack掉一个就多个消息都被ack了? 那么因为分成了多个消息消费, 会不会导致重复ack?
+根据之前写rocketm-client-go的经验, client 传递给broker的消息确实是 batch后的 一条消息, 可是后面的路子就不是很清楚了. 因此深入研究下.
+RocketMQ 应用实战  首先, 重新验证下 对批量消息的理解, 运行下 org.apache.rocketmq.example.batch.SimpleBatchProducer 和 org.apache.rocketmq.example.simple.PushConsumer 的例子, SimpleBatchProducer 发送批量消息后, 可以发现 PushConsumer 消费的时候, 其实是一条条消费的:
+message: Hello world 0 0A5DE93A000018B4AAC231F9BC180000 3 message: Hello world 2 0A5DE93A000018B4AAC231F9BC180002 5 message: Hello world 1 0A5DE93A000018B4AAC231F9BC180001 4 这样就郁闷了, 发送的时候是批量成一条消息发送的(见下文), 那么什么时候解成一条条消息的呢? 而且打印的时候, 我特意打印了每个消息的 messageId 和 queueOffset, 可以发现这些消息的 queueOffset 确实不一样, 也就是说消息确实不一样.
+ client  首先看下 client 是怎么传递消息的." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, batch, message" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/message_batch/" />
+
+
+    <title>
+        
+            Message_batch :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Message_batch">
+<meta itemprop="description" content="序 最近小伙伴聊到 batch消息 在ack的处理方式, 是一个个ack? 还是批量ack? 如果是多个消息存储成1个, 那么 offset 是怎么管理的呢? 消费的时候, ack掉一个就多个消息都被ack了? 那么因为分成了多个消息消费, 会不会导致重复ack?
+根据之前写rocketm-client-go的经验, client 传递给broker的消息确实是 batch后的 一条消息, 可是后面的路子就不是很清楚了. 因此深入研究下.
+RocketMQ 应用实战  首先, 重新验证下 对批量消息的理解, 运行下 org.apache.rocketmq.example.batch.SimpleBatchProducer 和 org.apache.rocketmq.example.simple.PushConsumer 的例子, SimpleBatchProducer 发送批量消息后, 可以发现 PushConsumer 消费的时候, 其实是一条条消费的:
+message: Hello world 0 0A5DE93A000018B4AAC231F9BC180000 3 message: Hello world 2 0A5DE93A000018B4AAC231F9BC180002 5 message: Hello world 1 0A5DE93A000018B4AAC231F9BC180001 4 这样就郁闷了, 发送的时候是批量成一条消息发送的(见下文), 那么什么时候解成一条条消息的呢? 而且打印的时候, 我特意打印了每个消息的 messageId 和 queueOffset, 可以发现这些消息的 queueOffset 确实不一样, 也就是说消息确实不一样.
+ client  首先看下 client 是怎么传递消息的.">
+<meta itemprop="datePublished" content="2020-07-10T15:22:42&#43;08:00" />
+<meta itemprop="dateModified" content="2020-07-10T15:22:42&#43;08:00" />
+<meta itemprop="wordCount" content="192">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="batch,message," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Message_batch"/>
+<meta name="twitter:description" content="序 最近小伙伴聊到 batch消息 在ack的处理方式, 是一个个ack? 还是批量ack? 如果是多个消息存储成1个, 那么 offset 是怎么管理的呢? 消费的时候, ack掉一个就多个消息都被ack了? 那么因为分成了多个消息消费, 会不会导致重复ack?
+根据之前写rocketm-client-go的经验, client 传递给broker的消息确实是 batch后的 一条消息, 可是后面的路子就不是很清楚了. 因此深入研究下.
+RocketMQ 应用实战  首先, 重新验证下 对批量消息的理解, 运行下 org.apache.rocketmq.example.batch.SimpleBatchProducer 和 org.apache.rocketmq.example.simple.PushConsumer 的例子, SimpleBatchProducer 发送批量消息后, 可以发现 PushConsumer 消费的时候, 其实是一条条消费的:
+message: Hello world 0 0A5DE93A000018B4AAC231F9BC180000 3 message: Hello world 2 0A5DE93A000018B4AAC231F9BC180002 5 message: Hello world 1 0A5DE93A000018B4AAC231F9BC180001 4 这样就郁闷了, 发送的时候是批量成一条消息发送的(见下文), 那么什么时候解成一条条消息的呢? 而且打印的时候, 我特意打印了每个消息的 messageId 和 queueOffset, 可以发现这些消息的 queueOffset 确实不一样, 也就是说消息确实不一样.
+ client  首先看下 client 是怎么传递消息的."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-07-10 15:22:42 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>One minute
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/message_batch/">Message_batch</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="序">序</h2>
+<p>最近小伙伴聊到 batch消息 在ack的处理方式, 是一个个ack? 还是批量ack? 如果是多个消息存储成1个, 那么 offset 是怎么管理的呢? 消费的时候, ack掉一个就多个消息都被ack了? 那么因为分成了多个消息消费, 会不会导致重复ack?</p>
+<p>根据之前写rocketm-client-go的经验, client 传递给broker的消息确实是 batch后的 一条消息, 可是后面的路子就不是很清楚了. 因此深入研究下.</p>
+<h2 id="rocketmq">RocketMQ</h2>
+<ol start="0">
+<li>应用实战</li>
+</ol>
+<p>首先, 重新验证下 对批量消息的理解, 运行下 <code>org.apache.rocketmq.example.batch.SimpleBatchProducer</code> 和 <code>org.apache.rocketmq.example.simple.PushConsumer</code> 的例子, SimpleBatchProducer 发送批量消息后, 可以发现 PushConsumer 消费的时候, 其实是一条条消费的:</p>
+<pre><code>message: Hello world 0 0A5DE93A000018B4AAC231F9BC180000 3 
+message: Hello world 2 0A5DE93A000018B4AAC231F9BC180002 5 
+message: Hello world 1 0A5DE93A000018B4AAC231F9BC180001 4 
+</code></pre><p>这样就郁闷了, 发送的时候是批量成一条消息发送的(见下文), 那么什么时候解成一条条消息的呢? 而且打印的时候, 我特意打印了每个消息的 messageId 和 queueOffset, 可以发现这些消息的 queueOffset 确实不一样, 也就是说消息确实不一样.</p>
+<ol>
+<li>client</li>
+</ol>
+<p>首先看下 client 是怎么传递消息的. client 在传递消息的时候, 会对消息进行编码, 一般消息和batch消息的编码方式是不一样的, 参考 MessageDecoder#encodeMessage 和  MessageDecoder#encodeMessages. 批量消息的编码如下:</p>
+<pre><code>    public static byte[] encodeMessages(List&lt;Message&gt; messages) {
+        //TO DO refactor, accumulate in one buffer, avoid copies
+        List&lt;byte[]&gt; encodedMessages = new ArrayList&lt;byte[]&gt;(messages.size());
+        int allSize = 0;
+        for (Message message : messages) {
+            byte[] tmp = encodeMessage(message);
+            encodedMessages.add(tmp);
+            allSize += tmp.length;
+        }
+        byte[] allBytes = new byte[allSize];
+        int pos = 0;
+        for (byte[] bytes : encodedMessages) {
+            System.arraycopy(bytes, 0, allBytes, pos, bytes.length);
+            pos += bytes.length;
+        }
+        return allBytes;
+    }
+</code></pre><p>可以发现 消息其实是一个个编码然后放在一起的, 然后放到消息体里面, 然后传递给broker. 那么broker又是怎么处理批量消息的呢?</p>
+<ol start="2">
+<li>broker</li>
+</ol>
+<p>broker抽象了processor模型, 批处理消息的处理逻辑位于 <code>SendMessageProcessor#sendBatchMessage</code>, 在这个方法中, 首先将 请求的消息体 放到了 messageExtBatch对象的body中, 然后调用了底层存储, 这里以 CommitLog 为例 (DLedgerCommitLog存储类似, 只是做了raft同步). 在 <code>CommitLog#putMessages</code> 中, 会对批量消息进行编码, 参照: <code>messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));</code>, 深入看 batchEncoder 可以发现, 其实就是将 客户端传过来的消息体 当做了一条条物理消息进行了编码, 也就是说, 客户端将多个消息编码成了一条消息传输, 但是broker在存储层却又重新编码成一条条消息的物理格式, 最终在 <code>CommitLog#doAppend</code> 的时候进行了循环写入.</p>
+<h2 id="kafka">kafka</h2>
+<p>在kafka里面, 批量发送是底层的聚合效果, 在 <code>kafkaApis#handleProduceRequest</code>, 最终会遍历topicPartition维度的消息写入磁盘文件, 并根据 ack的条件决定是否直接响应</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/batch">batch</a></span><span class="tag"><a href="https://xujianhai.fun/tags/message">message</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>192 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-07-10 15:22 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/bigtable/">
+                                <span class="button__text">Bigtable</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
