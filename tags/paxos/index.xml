@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>paxos on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/paxos/</link>
+    <description>Recent content in paxos on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 12 Jul 2020 21:18:49 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/paxos/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Paxos</title>
+      <link>https://xujianhai.fun/posts/paxos/</link>
+      <pubDate>Sun, 12 Jul 2020 21:18:49 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/paxos/</guid>
+      <description>preface 在分布式系统中, 共识算法是基层能力, 分布式锁、名字服务、服务注册&amp;amp;发现 都依赖分布式共识算法. 分布式共识的本质是多个server就value达成一致. 目前最流程的是raft, 早期流行过paxos, 讨论paxos的时候需要了解 basic paxos 和 multi paxos. paxos/basic paxos 讨论的是多个副本如何就一个value达成一致, multi paxos 是对一系列value达成一致(一般会提出master+lease+epoch的策略). 下面针对paxos深入学习
+ps: 严格意义上说, zab 不是paxos, 但是接近, ZAB是为了构建高可用的分布式主备系统, paxos则是用于构建分布式的一致性状态机. 因此这里放在一起讨论
+essay  paxos made simple 1  入门级读物, 讨论了如何确定一个value: propose + chosen + learn (basic paxos). 提出了paxos中的三个角色: proposer、acceptor、learner. value 被choose的定义是 足够多的acceptor 接受value, 足够多 的定义是基于 quorum协议的. 但是acceptor的accept的行为, 在论文中讨论了几个必要条件:
+ P1. An acceptor must accept the first proposal that it receives P1a. An acceptor can accept a proposal numbered n iff it has not responded to a prepare request having a number greater than n.</description>
+    </item>
+    
+  </channel>
+</rss>

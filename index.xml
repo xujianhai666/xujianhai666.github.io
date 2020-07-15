@@ -6,10 +6,22 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Fri, 10 Jul 2020 15:22:42 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 12 Jul 2020 21:18:49 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Paxos</title>
+      <link>https://xujianhai.fun/posts/paxos/</link>
+      <pubDate>Sun, 12 Jul 2020 21:18:49 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/paxos/</guid>
+      <description>preface 在分布式系统中, 共识算法是基层能力, 分布式锁、名字服务、服务注册&amp;amp;发现 都依赖分布式共识算法. 分布式共识的本质是多个server就value达成一致. 目前最流程的是raft, 早期流行过paxos, 讨论paxos的时候需要了解 basic paxos 和 multi paxos. paxos/basic paxos 讨论的是多个副本如何就一个value达成一致, multi paxos 是对一系列value达成一致(一般会提出master+lease+epoch的策略). 下面针对paxos深入学习
+ps: 严格意义上说, zab 不是paxos, 但是接近, ZAB是为了构建高可用的分布式主备系统, paxos则是用于构建分布式的一致性状态机. 因此这里放在一起讨论
+essay  paxos made simple 1  入门级读物, 讨论了如何确定一个value: propose + chosen + learn (basic paxos). 提出了paxos中的三个角色: proposer、acceptor、learner. value 被choose的定义是 足够多的acceptor 接受value, 足够多 的定义是基于 quorum协议的. 但是acceptor的accept的行为, 在论文中讨论了几个必要条件:
+ P1. An acceptor must accept the first proposal that it receives P1a. An acceptor can accept a proposal numbered n iff it has not responded to a prepare request having a number greater than n.</description>
+    </item>
     
     <item>
       <title>Message_batch</title>
@@ -141,18 +153,6 @@ coordinator rebalance 模块比较简单, 之前客户端开发的时候总结�
 io_uring   定位: 更高 IOPS 的 async syscall api. (io层的异步api, 主打高性能)
   特点&amp;amp;主要概念
  基于ringbuffer 的设计, 提交队列和完成队列只存储索引, SQEs(submission queue entries) 存储请求, 这样提交的请求可以内存不连续 用户态和系统态 通过 mmap 共享 提交队列 和 完成队列, 减少地址映射开销 在poll模式下, IO提交和收割 可以由 kernel 完成, 不需要系统调用, 系统会启动一个 SQ Poll 的内核线程不断poll (没有请求会睡眠), 处理 sq 和 cq 非poll模式下, io_uring_enter 会阻塞, 完成 SQ Poll 线程的任务 提供了polling和非polling两种模式, 和底层实现有关, 非polling性能比 libaio 提升不了多少, polling 模式和 SPDK 非常接近.</description>
-    </item>
-    
-    <item>
-      <title>Kafka_controller</title>
-      <link>https://xujianhai.fun/posts/kafka_controller/</link>
-      <pubDate>Tue, 26 May 2020 11:45:58 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka_controller/</guid>
-      <description>Preface kafka controller 是 kafka 设计中重要的一环, 负责 kafka 集群状态 、topic 元数据的缓存和管理(topic、replica的管理), 下面分成两部分分析 kafka controller. 一部分是 kafka controller 的redesign 设计, 第二部分是从源代码分析和思考
-Redesign 网上关于 redesign(https://docs.google.com/document/d/1rLDmzDOGQQeSiMANP0rC2RYp_L7nUGHzFD9MQISgXYM/edit#heading=h.pxfjarumuhko) 翻译的版本很多, 但是在看这个内容之前, 我们需要思考几个问题: 1. 为什么要redesign, 存在什么问题 2. 如何解决这些问题.
-从文章内容上来看, 主要存在以下问题:
- 每个partition的zk写入是同步, 并发度不够(比如broker宕机导致的 partition leader重新选举、replica摘除) controller-broker 的请求也是每个partition 顺序的 (StopReplicaRequests LeaderAndIsrRequest UpdateMetadataRequest 这些并发量很大的请求, broker宕机的时候触发) 并发管理复杂 (controller-broker channel、zk、kafkaApi 都会操作) controller 代码组织混乱 (replicaStateMachine 和 topicStateMachine 的状态边界分的不是很清晰, 需要一些状态同步) 控制面和数据面没有分离, 控制面的命令不能及时下达, 会导致什么问题呢? (新选举的leader无法及时通知正在忙于处理用户数据的旧的leader, ack=1 和0 的会导致数据丢失) controller-broker 的请求 没有 broker generation, 会导致什么问题呢? (broker收到之前的controller过期的请求) zkClinet 没有状态管理 导致了什么问题?</description>
     </item>
     
   </channel>

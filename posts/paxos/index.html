@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="preface 在分布式系统中, 共识算法是基层能力, 分布式锁、名字服务、服务注册&amp;amp;发现 都依赖分布式共识算法. 分布式共识的本质是多个server就value达成一致. 目前最流程的是raft, 早期流行过paxos, 讨论paxos的时候需要了解 basic paxos 和 multi paxos. paxos/basic paxos 讨论的是多个副本如何就一个value达成一致, multi paxos 是对一系列value达成一致(一般会提出master&#43;lease&#43;epoch的策略). 下面针对paxos深入学习
+ps: 严格意义上说, zab 不是paxos, 但是接近, ZAB是为了构建高可用的分布式主备系统, paxos则是用于构建分布式的一致性状态机. 因此这里放在一起讨论
+essay  paxos made simple 1  入门级读物, 讨论了如何确定一个value: propose &#43; chosen &#43; learn (basic paxos). 提出了paxos中的三个角色: proposer、acceptor、learner. value 被choose的定义是 足够多的acceptor 接受value, 足够多 的定义是基于 quorum协议的. 但是acceptor的accept的行为, 在论文中讨论了几个必要条件:
+ P1. An acceptor must accept the first proposal that it receives P1a. An acceptor can accept a proposal numbered n iff it has not responded to a prepare request having a number greater than n." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, paxos" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/paxos/" />
+
+
+    <title>
+        
+            Paxos :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Paxos">
+<meta itemprop="description" content="preface 在分布式系统中, 共识算法是基层能力, 分布式锁、名字服务、服务注册&amp;发现 都依赖分布式共识算法. 分布式共识的本质是多个server就value达成一致. 目前最流程的是raft, 早期流行过paxos, 讨论paxos的时候需要了解 basic paxos 和 multi paxos. paxos/basic paxos 讨论的是多个副本如何就一个value达成一致, multi paxos 是对一系列value达成一致(一般会提出master&#43;lease&#43;epoch的策略). 下面针对paxos深入学习
+ps: 严格意义上说, zab 不是paxos, 但是接近, ZAB是为了构建高可用的分布式主备系统, paxos则是用于构建分布式的一致性状态机. 因此这里放在一起讨论
+essay  paxos made simple 1  入门级读物, 讨论了如何确定一个value: propose &#43; chosen &#43; learn (basic paxos). 提出了paxos中的三个角色: proposer、acceptor、learner. value 被choose的定义是 足够多的acceptor 接受value, 足够多 的定义是基于 quorum协议的. 但是acceptor的accept的行为, 在论文中讨论了几个必要条件:
+ P1. An acceptor must accept the first proposal that it receives P1a. An acceptor can accept a proposal numbered n iff it has not responded to a prepare request having a number greater than n.">
+<meta itemprop="datePublished" content="2020-07-12T21:18:49&#43;08:00" />
+<meta itemprop="dateModified" content="2020-07-12T21:18:49&#43;08:00" />
+<meta itemprop="wordCount" content="1105">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="paxos," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Paxos"/>
+<meta name="twitter:description" content="preface 在分布式系统中, 共识算法是基层能力, 分布式锁、名字服务、服务注册&amp;发现 都依赖分布式共识算法. 分布式共识的本质是多个server就value达成一致. 目前最流程的是raft, 早期流行过paxos, 讨论paxos的时候需要了解 basic paxos 和 multi paxos. paxos/basic paxos 讨论的是多个副本如何就一个value达成一致, multi paxos 是对一系列value达成一致(一般会提出master&#43;lease&#43;epoch的策略). 下面针对paxos深入学习
+ps: 严格意义上说, zab 不是paxos, 但是接近, ZAB是为了构建高可用的分布式主备系统, paxos则是用于构建分布式的一致性状态机. 因此这里放在一起讨论
+essay  paxos made simple 1  入门级读物, 讨论了如何确定一个value: propose &#43; chosen &#43; learn (basic paxos). 提出了paxos中的三个角色: proposer、acceptor、learner. value 被choose的定义是 足够多的acceptor 接受value, 足够多 的定义是基于 quorum协议的. 但是acceptor的accept的行为, 在论文中讨论了几个必要条件:
+ P1. An acceptor must accept the first proposal that it receives P1a. An acceptor can accept a proposal numbered n iff it has not responded to a prepare request having a number greater than n."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-07-12 21:18:49 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>6 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/paxos/">Paxos</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="preface">preface</h2>
+<p>在分布式系统中, 共识算法是基层能力, 分布式锁、名字服务、服务注册&amp;发现 都依赖分布式共识算法. 分布式共识的本质是多个server就value达成一致. 目前最流程的是raft, 早期流行过paxos, 讨论paxos的时候需要了解 basic paxos 和 multi paxos.  paxos/basic paxos 讨论的是多个副本如何就一个value达成一致, multi paxos 是对一系列value达成一致(一般会提出master+lease+epoch的策略). 下面针对paxos深入学习</p>
+<p>ps: 严格意义上说, zab 不是paxos, 但是接近, ZAB是为了构建高可用的分布式主备系统, paxos则是用于构建分布式的一致性状态机. 因此这里放在一起讨论</p>
+<h2 id="essay">essay</h2>
+<ol>
+<li>paxos made simple <sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></li>
+</ol>
+<p>入门级读物, 讨论了如何确定一个value: propose + chosen + learn (basic paxos). 提出了paxos中的三个角色: proposer、acceptor、learner. value 被choose的定义是 足够多的acceptor 接受value, 足够多 的定义是基于 quorum协议的. 但是acceptor的accept的行为, 在论文中讨论了几个必要条件:</p>
+<ul>
+<li>P1. An acceptor must accept the first proposal that it receives</li>
+<li>P1a. An acceptor can accept a proposal numbered n iff it has not responded
+to a prepare request having a number greater than n.</li>
+<li>P2. If a proposal with value v is chosen, then every higher-numbered proposal that is chosen has value v</li>
+<li>P2a. If a proposal with value v is chosen, then every higher-numbered proposal accepted by any acceptor has value v.</li>
+<li>P2b. If a proposal with value v is chosen, then every higher-numbered proposal issued by any proposer has value v.</li>
+<li>P2c.  For any v and n, if a proposal with value v and number n is issued, then there is a set S consisting of a majority of acceptors such that either (a) no acceptor in S has accepted any proposal numbered less than n, or (b) v is the value of the highest-numbered proposal among all proposals numbered less than n accepted by the acceptors in S (要么没accept过, 要么accept的都是loewer-number的)</li>
+</ul>
+<p>整个proposal分成两个阶段, phase1 就是 proposal 阶段:</p>
+<ul>
+<li>(a) A proposer selects a proposal number n and sends a prepare
+request with number n to a majority of acceptors.</li>
+<li>(b) If an acceptor receives a prepare request with number n greater
+than that of any prepare request to which it has already responded,
+then it responds to the request with a promise not to accept any more
+proposals numbered less than n and with the highest-numbered proposal (if any) that it has accepted</li>
+</ul>
+<p>phase2 是 accept阶段:</p>
+<ul>
+<li>(a) If the proposer receives a response to its prepare requests
+(numbered n) from a majority of acceptors, then it sends an accept
+request to each of those acceptors for a proposal numbered n with a
+value v, where v is the value of the highest-numbered proposal among
+the responses, or is any value if the responses reported no proposals.</li>
+<li>(b) If an acceptor receives an accept request for a proposal numbered
+n, it accepts the proposal unless it has already responded to a prepare
+request having a number greater than n.</li>
+</ul>
+<p><em>Learning</em></p>
+<p>learner 为了保证获取被大部分acceptor接受的proposal, 需要每个acceptor给每个learner响应(acceptor * learner). 后来做了一个优化, 通过learner互相通信发现 <code>chosen value</code>, 不过通信次数也很多(acceptor+learner), 但是learner fail一定程度上导致 不可信. 又提出 acceptor -&gt; 一组learner 传递的方式, 虽然带来一定复杂度的同时, 但是可信任程度提高了. 因为acceptor可以在没有learner的情况下<code>accept value</code>, 那么, learner 想要知道一个value是否被accepted, 就得走上面的算法</p>
+<p><em>progress</em></p>
+<p>提出最好选取一个唯一的proposer负责propose, 并且选取递增的proposal number. 对于唯一proposer的选择, 建议使用随机、实时、超时.</p>
+<p><em>协议实现</em></p>
+<p>在实现阶段, 进一步提出了 <code>leader</code> 的概念(是不是和raft很像), 取代唯一proposer的概念.</p>
+<p><em>状态机实现</em></p>
+<p>每个server一个状态机, 因为输入和输出是确定性的. 正常情况下没有讨论, 主要讨论 讨论失败恢复leader选举的场景, 这里简单提出了 <code>leader should know most of the commands that have already been chosen</code> (是不是和raft很像, 这里没有给出具体实现), 对于存在空洞的proposal(没有被proposal), 这里使用了 no-op的处理方式让acceptor进行accept. 选举之后的传播, 保证了连续的value被choose的条件(这是个隐藏的条件), 那么什么时候产生空洞呢? 因为leader可以并发几个命令进行 accept流程, 那么可能后面的proposal先被chosen, 而前面的proposal失败的场景.</p>
+<p>提到了一个优化方法, 将多个value使用相同的proposal number进行传递. 并且, 没有leader, 就不会propose command.</p>
+<p>问题:</p>
+<ul>
+<li>没有提出确保 learner 的 同步是正确的最终解决方案</li>
+<li>没有讨论具体的 leader 的选举实现, 需要保证知道最多的commands这个条件在prepare-accept中没有体现, 需要单独讨论</li>
+</ul>
+<ol start="2">
+<li>zab <sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup></li>
+</ol>
+<p>论文主要介绍和论证了 zookeeper 内部zab的核心组件. zab 本质上是个 primary-backup 模式, primary 将写入原子广播到follower, 比较特殊的是, zab 将写入当做为 之前状态的一次状态变更. 对于每个写入, 都会使用 zxid(epoch+counter) 保证总体有序, 同时支持多个并发 transaction. 在崩溃恢复方面, 论文中只讲述了三个阶段 (1) discovery, (2) synchronization, and (3) broadcast, 其实省略了 (0) leader election, 只是说 任意协议. 直到phase3,  elected leader 才会成为 epoch e 的 established leader, isovery 是为了通过quorum找到quorum接受的最新事务的序列号, 复制到leader; synchronization 是leader同步history给各个follower(ack后提交), (如果有一个落后太多, 应该snapshot同步, 这个做了吗?)</p>
+<p>在概念上, 用instance 区分不同时间的 primary, 个人倾向于后面使用的 epoch 的术语. 在失败检测上, 也是基于连接状态+心跳实现的.</p>
+<p>在Claim/Proof, 谈到了几个关键名词, 针对 causal atomic broadcast, 提出 PO atomic broadcast(PO=partitial Order?), 因为不同generation之间不可比较, 在每个generation层面, 又是 strict order 的. proof 主要是证明:</p>
+<ol>
+<li>Integrity: 广播之后才会被传递(个人理解)</li>
+<li>Total order: 所有进程的delier顺序是一致的(个人理解)</li>
+<li>Agreement: 多个进程、多个值之间的传播会达成一致</li>
+<li>Local primary order: primary broadcast的顺序就是delivery的顺序</li>
+<li>Global primary order: 多个primary的value broadcast顺序, 如果进程都delivery, 那么delivery顺序和broadcast一致</li>
+<li>Primary integrity: 新的primary 必须在 delivery完之前的value才能进行broadcast</li>
+</ol>
+<p>在性能侧, 压测结构上性能足够了，没继续优化：比如chain replication.</p>
+<p>问题:</p>
+<ul>
+<li>论文中没有讨论具体的leader election 策略</li>
+<li>learner 角色没有讨论</li>
+<li>discovery 阶段的history 会不会太大, 应该支持snap</li>
+</ul>
+<p>相比而言, chubby的几篇论文更加详尽</p>
+<ol start="3">
+<li>zab theory and practice <sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup></li>
+</ol>
+<p>ps: 可以直接略过这篇论文, 略微冗余</p>
+<p>这个是对zab的一些优化, 显示对zab 回顾. 主要研究了 <code>3.3.3</code>的版本, 讲到了一个优化实现: fast leader election, 通过从quorum的进程中选举具有最新历史的peer作为leader, 这样就避免了 phase1. 在阶段二, 使用 SNAP/DIFF/TRUNC 保持同步. 谈到因为缺少 acceptedEpoch+currentEpoch的概念, 导致了false leader(epoch+1, 但是还没有得到quorum的ack) 不断选举的问题; 以及错误使用 DIFF 而不是 TRUNC 导致不一致日志的场景.</p>
+<ol start="4">
+<li>chubby lock service  <sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup></li>
+</ol>
+<p>chubby是google内部基于paxos实现的分布式锁服务(不仅仅是锁服务, 还取代了名字服务, 还可以存储少量数据, 比如bigtable/gfs的元数据), 在接口上, chubby 更像是个 分布式文件系统, chubby 侧重于 可用性&amp;可依赖性, 而不是高性能.</p>
+<p>在设计上, 提供了一下几个能力:</p>
+<ul>
+<li>允许大量客户端观察primary的文件 (因为是基于文件进行的选主)</li>
+<li>提供事件通知机制 (及时的知道primary变更了, 通知相比polling设计更优良)</li>
+<li>支持文件缓存</li>
+<li>提供 consistent caching</li>
+<li>提供访问控制的安全策略</li>
+</ul>
+<p>需要注意的是, 文章中提供的粗粒度锁和细粒度锁, 其实指的是 锁持有的时间. 粗粒度的锁往往是几个小时甚至几天, 细粒度锁一般是几秒钟甚至更短. 粗粒度的锁可以减少 1. 锁服务的负载 2. 客户端编码更加简单(避免考虑锁服务不可用) 3. 增加了失败的锁服务的存活. 细粒度的锁需要业务方自己实现.</p>
+<p>chubby 由server和client组成, 也支持proxy的第三方组件(增加读性能), 相比于paxos协议, chubby 明确提出了 master选举 以及 master lease(在lease内, replica承若不选举其他master. 可以通过renew增长租约). 每个server维护一个database, 所有读写都要经过 master(读只需要走本地). 比较有意思的是, 看上去并没有专门的learner的角色, 但是有类似的设计, 副本必须追上master才能允许投票 (对于吞吐量较高的kv是需要优化的), master 会每几个小时写一份快照到GFS(不同的单元上的GFS, 为了避免循环依赖)上用于恢复.</p>
+<p>在文件/目录的设计上, 格式类似于 Unix, 但是不支持移动, 也不维护 目录的修改时间, 文件的权限也存储在文件上(不依赖前缀的目录), 不支持符号链接和硬链接. 支持 永久文件和临时文件. 支持ACL, 需要注意ACL本身也是文件, 存户在local路径下, 并且ACL目录具有继承关系(意味着文件读写权限继承). 每个文件/目录 也是个 读写锁, 为了解决多个锁持有者这件操作的有序性, 除了 virtual time(保证全局有序操作)/sequencer test(第三方组件, 配合chubby的CheckSequencer()使用,), chubby 提供了 <code>lock-delay</code> 来避免lock holder 不可用或者不可达时 其他client持有锁.</p>
+<p>event 支持在当时应该是个亮点, 也是通知设计的关键.</p>
+<p>在性能上, 通过client cache 文件数据和节点数据 降低server端压力, master 通过发送 <code>invalidations</code> 来保证一致性, 缓存是基于lease的, 就是 保证session不会被关闭的一段时间, session 是client和 master server通过周期性的keepalive维护的, session在没有被释放的情况下, session 持有的 缓存数据和锁 都是有效的. 在高负载场景下, 可以增加lease来减少keepAlive RPC(KeepAlive还被用来传递缓存失效、事件通知). session lease 在client本地也会维护一个, 因此存在client本地lease过期的场景, 这里设计了 <code>grace period</code>, 来尽量进入下一个lease重用缓存.</p>
+<p>在failover章节, 讲解了部分 session lease的逻辑, 也讲到了 master 选举之后的一些操作. 需要注意的是, 这里明确谈到了 <code>epoch number</code>, 来区分不同的master(kafka也是用这个, zk也是用这个). 需要注意的是, master重新选举会导致 缓存刷新.</p>
+<p>底层数据库的使用上, 是自己实现的 wal+snapshot 类似于 <code>Birrell et al</code>的设计, 虽然一开始是 Berkeley DB(应该是不信任他的复制算法).</p>
+<p>一些零散的点: 基于GFS的快照备份功能, 文件Mirror功能(配置文件同步),</p>
+<p>针对扩容场景, 提出了 proxy、数据分片、协议适配DNS(因为替换了DNS)、客户端缓存、增大租约等.</p>
+<p>最后总结了在实践中遇到的问题和设计失误, 比如 不存在的缓存, 缺乏 quota机制, 对RPC层面的优化, 使用UDP进行 KeepAlive、GetEvent (UDP不保证送达, 这个不可信任, 是不是使用了增强版本?)</p>
+<p><em>问题:</em></p>
+<ul>
+<li>master选举直说通过共识算法paxos?, 没有具体展开.</li>
+<li>比较有意思的是, chubby server 是通过DNS被client发现的, 但是DNS的能力却被chubby取代了&hellip; 那么 chubby 的DNS是哪一种?</li>
+</ul>
+<ol start="5">
+<li>paxos made live <sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup></li>
+</ol>
+<p>chubby的另一篇论文. 主要讨论的是工程实践的经验: 问题和解决方案. 特别提到了理论和工程实践的差距. 在chubby的第一个版本中, 是基于 商业版本的 “3DB”, 但是因为复制算法是未证明的, 因此使用paxos进行了替换.</p>
+<p>在整体结构上, 分成了三层, 底层是基于paxos的replicated log, 用来保证所有副本都有相同序列的entries; 然后是中间的 replicated database, 每个副本一个数据库, 有本地snap+replay-log组成. 最上层上是chubby, 基于database存储状态, client-&gt;chubby server 用的是 chubby的协议. 需要注意的是, chubby 是多线程的, 允许并发提交多个value(paxos原生没讨论, zab支持).</p>
+<p>论文中列举了算法层的挑战和解决方案, 1. 针对磁盘故障, 使用checksum检测文件内容损坏, 针对空盘损坏重启的场景, 借助GFS上的标记空盘启动来达到第二次启动发现. 故障副本重启后, 不能投票, 直到catch-up, 通过这一系列优化, 避免了故障盘实例选举落后的实例;  2. 为了解决读最新值和度吞吐量问题, 使用了master机制. 3. 使用epoch number区分新的master 4. 副本变更的 group membership协议, 但是没细讲 5. 使用snapshots降低磁盘使用, 加快恢复 6. 在事务层, 支持 cas + MultiOp</p>
+<p>在工程实践上, 1. 为了高效的表达算法, 先设计了一个状态机规格语言, 能够翻译成c++, 然后基于这个语言设计  2. 除了assert和数据结构测试, 还基于 database log的checksum一致性检查 3. 测试是重点功能之一, 包含了 safety test 和 liveness mode 两种 4. 增加多线程并发 导致不确定性, 但是产品需要成长</p>
+<p>Unexpected failures 主要是叙述踩过的坑</p>
+<p>最后性能测试对比了下 3DB: 完爆, 顺便吐槽了分布式系统的理论-&gt;实践鸿沟</p>
+<ol start="6">
+<li>fast paxos [^6]</li>
+</ol>
+<h2 id="总述">总述</h2>
+<p>paxos/zab 都是由leader来协调多个follower, 都是基于quorum的两阶段提交, 对于每个提案, 都有一个epoch(zab)/bullet(paxis)的概念, 用来唯一标志当前的primary/leader. 在崩溃恢复层面, paxos有读阶段(提交之前leader的proposal, 是否重复了? 可以优化)和写阶段(开始新的自己的提案), zab有发现(获取上一个leader的最高zxid, 同步到leader)和同步阶段(leader将最高的zxid的历史同步到follower); 但是从论文的角度上来讲, zab没有明确说leader的选举算法, paxos是整体一致的, 那么是不是可以用 paxos 做zab的leader选举?</p>
+<p>总的分析, <a href="https://www.alibabacloud.com/blog/a-brief-analysis-of-consensus-protocol-from-logical-clock-to-raft_594675">https://www.alibabacloud.com/blog/a-brief-analysis-of-consensus-protocol-from-logical-clock-to-raft_594675</a>
+感觉还是不错的, 得看看</p>
+<h2 id="其他可以学习的">其他可以学习的:</h2>
+<ul>
+<li>
+<p>Michael J. Fischer, Nancy Lynch, and Michael S. Paterson. Impossibility
+of distributed consensus with one faulty process. Journal of the ACM,
+32(2):374–382, April 1985.</p>
+</li>
+<li>
+<p>BIRRELL, A., JONES, M. B., AND WOBBER, E. A simple and efficient implementation for small databases. In
+11th SOSP (1987), pp. 149–154.</p>
+</li>
+<li>
+<p><a href="https://zookeeper.apache.org/doc/r3.2.2/zookeeperInternals.html">https://zookeeper.apache.org/doc/r3.2.2/zookeeperInternals.html</a></p>
+</li>
+<li>
+<p>[Ω failure detector](T. D. Chandra, V. Hadzilacos, and S. Toueg, “The weakest failure
+detector for solving consensus,” in PODC ’92: Proceedings of the
+eleventh annual ACM symposium on Principles of distributed computing.
+ACM, 1992, pp. 147–158)</p>
+</li>
+<li>
+<p>[Defago ´ et al](X. Defago, A. Schiper, and P. Urb ´ an, “Total order broadcast and mul- ´
+ticast algorithms: Taxonomy and survey,” ACM Comput. Surv., vol. 36,
+no. 4, pp. 372–421, 2004.)</p>
+</li>
+</ul>
+<h2 id="参考">参考:</h2>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>作者: Leslie Lamport: <a href="https://lamport.azurewebsites.net/pubs/paxos-simple.pdf">Paxos Made Simple</a> <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2" role="doc-endnote">
+<p>作者: Yahoo! Research: <a href="https://github.com/lshmouse/reading-papers/blob/master/distributed-system/Zab:%20High-performance%20broadcast%20for%0Aprimary-backup%20systems.pdf">Zab: High-performance broadcast for primary-backup systems</a> <a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3" role="doc-endnote">
+<p>作者: Andr´e Medeiros: <a href="http://www.tcs.hut.fi/Studies/T-79.5001/reports/2012-deSouzaMedeiros.pdf">ZooKeeper’s atomic broadcast protocol: Theory and practice</a> <a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:4" role="doc-endnote">
+<p>作者: Google Inc: <a href="https://static.googleusercontent.com/media/research.google.com/zh-CN//archive/chubby-osdi06.pdf">The Chubby lock service for loosely-coupled distributed systems</a> <a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:5" role="doc-endnote">
+<p>作者: Google Inc: []() <a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/paxos">paxos</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>1105 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-07-12 21:18 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/message_batch/">
+                                <span class="button__text">Message_batch</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
