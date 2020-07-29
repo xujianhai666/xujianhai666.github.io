@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="序 读论文的路上继续. 这里主要围绕 spanner sql 、megaStore、F1、dremel 相关的论文.
+spanner sql 1 在之前spanner kv的基础上, 主要介绍了sql的实现(从kv-&amp;gt;rdbms), 不同于其他sql&#43;存储松耦合的实现方式(两套系统), spanner 采取了内部紧耦合的策略. 除了sql, 还提及了一个新的数据存储格式: Ressi, 和 SSTable 不同的是, block之间是面向 row的, 但是block内部存储却是面向 列的, 这样既保留了 rowkey 的有序性, 还让单个column的读取更加高效. 除此之外, 还支持冷热数据(老版本数据被放在inactive files) 以及 大value另外存储(避免不必要的读取), Ressi 的底层数据结构是 vector(能够更好的压缩).
+sql的研究方面, 介绍了 QUERY DISTRIBUTION （Distributed query compilation 、Distributed Execution、 Distributed joins、Query distribution APIs), QUERY RANGE EXTRACTION(Compile-time rewriting、Filter tree), QUERY RESTARTS(用户体验上的提升, ), 除此之外, 还使用了公司统一的SQL Diaect, 重点介绍了测试. (没有太深的经验, 勿喷)
+ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话时间立即学习&amp;hellip;)
+可以参考: https://zhuanlan.zhihu.com/p/27544985 学习下" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, google, distributed" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/google_article/" />
+
+
+    <title>
+        
+            Google_article :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Google_article">
+<meta itemprop="description" content="序 读论文的路上继续. 这里主要围绕 spanner sql 、megaStore、F1、dremel 相关的论文.
+spanner sql 1 在之前spanner kv的基础上, 主要介绍了sql的实现(从kv-&gt;rdbms), 不同于其他sql&#43;存储松耦合的实现方式(两套系统), spanner 采取了内部紧耦合的策略. 除了sql, 还提及了一个新的数据存储格式: Ressi, 和 SSTable 不同的是, block之间是面向 row的, 但是block内部存储却是面向 列的, 这样既保留了 rowkey 的有序性, 还让单个column的读取更加高效. 除此之外, 还支持冷热数据(老版本数据被放在inactive files) 以及 大value另外存储(避免不必要的读取), Ressi 的底层数据结构是 vector(能够更好的压缩).
+sql的研究方面, 介绍了 QUERY DISTRIBUTION （Distributed query compilation 、Distributed Execution、 Distributed joins、Query distribution APIs), QUERY RANGE EXTRACTION(Compile-time rewriting、Filter tree), QUERY RESTARTS(用户体验上的提升, ), 除此之外, 还使用了公司统一的SQL Diaect, 重点介绍了测试. (没有太深的经验, 勿喷)
+ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话时间立即学习&hellip;)
+可以参考: https://zhuanlan.zhihu.com/p/27544985 学习下">
+<meta itemprop="datePublished" content="2020-07-21T23:06:09&#43;08:00" />
+<meta itemprop="dateModified" content="2020-07-21T23:06:09&#43;08:00" />
+<meta itemprop="wordCount" content="536">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="google,distributed," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Google_article"/>
+<meta name="twitter:description" content="序 读论文的路上继续. 这里主要围绕 spanner sql 、megaStore、F1、dremel 相关的论文.
+spanner sql 1 在之前spanner kv的基础上, 主要介绍了sql的实现(从kv-&gt;rdbms), 不同于其他sql&#43;存储松耦合的实现方式(两套系统), spanner 采取了内部紧耦合的策略. 除了sql, 还提及了一个新的数据存储格式: Ressi, 和 SSTable 不同的是, block之间是面向 row的, 但是block内部存储却是面向 列的, 这样既保留了 rowkey 的有序性, 还让单个column的读取更加高效. 除此之外, 还支持冷热数据(老版本数据被放在inactive files) 以及 大value另外存储(避免不必要的读取), Ressi 的底层数据结构是 vector(能够更好的压缩).
+sql的研究方面, 介绍了 QUERY DISTRIBUTION （Distributed query compilation 、Distributed Execution、 Distributed joins、Query distribution APIs), QUERY RANGE EXTRACTION(Compile-time rewriting、Filter tree), QUERY RESTARTS(用户体验上的提升, ), 除此之外, 还使用了公司统一的SQL Diaect, 重点介绍了测试. (没有太深的经验, 勿喷)
+ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话时间立即学习&hellip;)
+可以参考: https://zhuanlan.zhihu.com/p/27544985 学习下"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-07-21 23:06:09 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/google_article/">Google_article</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="序">序</h2>
+<p>读论文的路上继续. 这里主要围绕 spanner sql 、megaStore、F1、dremel 相关的论文.</p>
+<h2 id="spanner-sql-1">spanner sql <sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></h2>
+<p>在之前spanner kv的基础上, 主要介绍了sql的实现(从kv-&gt;rdbms), 不同于其他sql+存储松耦合的实现方式(两套系统), spanner 采取了内部紧耦合的策略. 除了sql, 还提及了一个新的数据存储格式: Ressi, 和 SSTable 不同的是, block之间是面向 row的, 但是block内部存储却是面向 列的, 这样既保留了 rowkey 的有序性, 还让单个column的读取更加高效. 除此之外, 还支持冷热数据(老版本数据被放在inactive files) 以及 大value另外存储(避免不必要的读取), Ressi 的底层数据结构是 vector(能够更好的压缩).</p>
+<p>sql的研究方面, 介绍了 QUERY DISTRIBUTION （Distributed query compilation 、Distributed Execution、 Distributed joins、Query distribution APIs), QUERY RANGE EXTRACTION(Compile-time rewriting、Filter tree), QUERY RESTARTS(用户体验上的提升, ), 除此之外, 还使用了公司统一的SQL Diaect, 重点介绍了测试.
+(没有太深的经验, 勿喷)</p>
+<p>ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话时间立即学习&hellip;)</p>
+<p>可以参考: <a href="https://zhuanlan.zhihu.com/p/27544985">https://zhuanlan.zhihu.com/p/27544985</a>  学习下</p>
+<p>问题:</p>
+<ul>
+<li>sql 的入口和请求处理在哪里？谁负责合并unoin响应? distributed join 和 distributed apply.</li>
+</ul>
+<p>看论文, 感觉是 任意一台spanner服务器.</p>
+<h2 id="megastore-2">megaStore <sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup></h2>
+<p>基于 bigtable 实现了 traditional RDBMS 功能, 提供了 interactive service, 通过同步复制达到高可用, 除此之外, 也是将数据分区(抽象了entity group), 每个分区独立复制, 支持二级索引等功能, 以及 partition内部的 scheme.</p>
+<p>问题:</p>
+<ol>
+<li>
+<p>bigtable 本身就是paxos同步的, 为什么还需要自己写个paxos?</p>
+</li>
+<li>
+<p>全局索引的存储</p>
+</li>
+<li>
+<p>数据模型&amp;feature</p>
+</li>
+</ol>
+<p>底层基于bigtable存储数据, pk: rowkey, tableName+column Name 作为 bigtable的列名, 来区分不同的table, 这样不同table的主键可以存储在一起, 方便查询.</p>
+<p>在可扩展性上, 将数据分区, 每个分区抽象为 &ldquo;entity groups&quot;的集合, 通过分区, 可以实现 单个 entity group 内部的 ACID 事务(paxos复制), entity group 的边界选择上, 论文中举了 Email、Blogs、Maps, 主要是尽量避免跨组的操作, 实现group操作内聚.</p>
+<p>entity group 由一个 root entity 和 多个 child entities, root entities 存储在 root table, child entities 存储在 child table, (也就是说, Megastore tables 由 root tables 和 child tables 构成, child table 通过 外键引用 root table的数据), 每个 entity 就是一个 Bigtable 的一个row. 针对递增的key, 通过前缀添加两个字节的hash 进行scatter避免 局部热点. root entity 存储 事务和复制的元数据(复制日志),</p>
+<p>比较注意的是, root entity 也是存储数据的, 比如 论文中 user 是 root entity, photo 是 child entity.</p>
+<p>索引的设计上, 也有 单个  entity group 内部的 local index, 还有global index(没有说存在哪里, 估计是单独的bigtable). 除此之外, 还支持  Storing Clause(索引内部存储额外数据, 减少pk数据的读取) 、Repeated Indexes、Inline Indexes(从例子上比较好理解. user table 和 photo table, 查询 user 的所有photo 的方式中, 经常是 user某个时间范围或者时间点的 照片, 那么就需要 user+publish timestamp 做一个索引, 这里的做法就是, user id 作为rowkey, 将 photo publish timestamp 作为 column 存储起来, value 就是 photo 的 id). 对标存储结构上, 每个索引是 root table pk+index value+pk, 比如 <code>(user id, time, primary key)</code>, repeated index  是每个field一个 entry. 除此之外, 也支持全文索引</p>
+<p>对外的api上, 没有支持 join 操作，依赖应用程序自己实现.</p>
+<p>schemas设计 除了对标 RDBMS, 还支持了 pb类型, 以及 申明key是升级还是降级.</p>
+<p>写入上, 是先通过paxos同步操作的wal, 然后apply写入bigtable, 事务通过 timestamp实现 mvcc. 读取提供了 &ldquo;current, snapshot, and inconsistent&rdquo; 三种. Current and snapshot 都是entity group内部的, 需要等待前面的write被applied, 比较有意思的是, write transaction 需要一次 current read来获取下一个 log position, commit operation 将所有写聚合成一个 log entry, 并 通过paxos 协议append 到 log. (log position的处理可以参考paxos协议)</p>
+<p>跨entity group的写事务 通过 queue + async实现, 同时也支持 two-phase commit 来做 atomic update(但是不鼓励).</p>
+<p>其他的设计:</p>
+<ul>
+<li>灾备的考虑, 除了副本, 还有 full snapshot.</li>
+<li>加密</li>
+</ul>
+<ol start="2">
+<li>复制</li>
+</ol>
+<p>在复制模型上, 评估了三种复制模型: 同步/异步/乐观复制(类似多主), 最后选择了paxos, 通过复制 wal 来同步(同步成功后, 数据写入bigtable). megaStore创新的优化: 最新副本的local read(避免走paxos流程), 一轮的写(paxos需要两阶段), 分别也叫 fast read 和 fast write. 根据数据模型的特征, 每个分区运行独立的 paxos, 这里称之为 &ldquo;multiple replicated logs&rdquo;.</p>
+<p>典型的paxos write需要两轮操作: prepares + accepts, read 也需要一轮确定最新的value. 业界常规的优化是 master-lease (batch write, 减少一次prepare, 因为放到了 accept里面了, 读走master). 但是这种设计, 会导致 slave资源浪费，master资源热点，master failover 需要复杂的流程(状态流转+timer). megastore 设计中, 通过coordinator的设计, coordinator 跟踪哪些已经是最新写入的 副本(意味着数据是最新的),  达到了 local read 的效果. 但是这就需要 write流程的改动(writer过程需要coordinator登记, 中间写入失败也需要 invalidate), 在write的优化上, 也和业界不一样, 论文称之为 &ldquo;leaders&rdquo;, 每个 log position 都是一轮 paxos, 每个 log position 的leader 都是不一样的副本, 只有第一个提交给leader的才会被accept, 其他写入会退化成 两轮的 paxos, leader 的选择也是基于write submit的观察(coordinator?)  这种设计可以让 writer 选择最近的副本. leader 的确立也是通过 accept流程中被 接受的. 因为写入可能中间失败, 因此 coordinator 还需要支持 invalidation.</p>
+<p>除此之外, 还支持 乱序proposal(没细讲). 读取优化上, coordinator的参与, 可以判断本地是否是最新的, 如果不是最新, 可以选择一个 responseive 或者 最新的 副本执行 catch-up/追赶(可能需要paxos执行no-op处理没有提交的value), 在正式apply前, 会更新下 coordinator的信息.</p>
+<p>coordinator的引入会导致一些可用性问题, 不过按照论文的说法, coordinator实现比较简单), 在 coordinator出现问题的时候, writer leader 会退化到 两阶段paxos, 解决 n+1 log position 需要投票. 而带来的好处: 1. 简单没什么依赖 2. workload很大 3. 轻量级网络流量, 更高的QOS 4. chubby 加持 5. 可禁止</p>
+<p>除此之外, coordinator 为了解决多副本 读吞吐量问题的, 会影响write, 导致 outage, coordinator 拿的是 另个机房的锁, 这个时候存在 coordinator 和 对端机房的chubby 一起分区了, 需要手动操作&hellip; 另外, client 尽量一个, 避免回退到paxos.</p>
+<p>比较有意识的是, 提出 commit point 和 visibility point 的概念.</p>
+<p>在副本设计上, 不仅仅有 full replica, 还有 Witnesses replca(只投票, 不apply), 以及 read-only replica.</p>
+<p>在实践上, 也特意提到了 随机测试框架, 提前发现了很多问题. 因为底层依赖 bigtable, MegaStore直接将控制权交给了用户, 让用户配置(所以查询慢了, 用户也需要直接找bigtable).</p>
+<h2 id="参考">参考</h2>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>作者: Google, Inc: <a href="https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/46103.pdf">Spanner: Becoming a SQL System</a> <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2" role="doc-endnote">
+<p>作者: Google, Inc: []() <a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/google">google</a></span><span class="tag"><a href="https://xujianhai.fun/tags/distributed">distributed</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>536 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-07-21 23:06 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/paxos/">
+                                <span class="button__text">Paxos</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -5,8 +5,86 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Sun, 12 Jul 2020 21:18:49 +0800</lastBuildDate>
+        <lastBuildDate>Tue, 21 Jul 2020 23:06:09 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Google_article</title>
+            <link>https://xujianhai.fun/posts/google_article/</link>
+            <pubDate>Tue, 21 Jul 2020 23:06:09 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/google_article/</guid>
+            <description>序 读论文的路上继续. 这里主要围绕 spanner sql 、megaStore、F1、dremel 相关的论文.
+spanner sql 1 在之前spanner kv的基础上, 主要介绍了sql的实现(从kv-&amp;gt;rdbms), 不同于其他sql+存储松耦合的实现方式(两套系统), spanner 采取了内部紧耦合的策略. 除了sql, 还提及了一个新的数据存储格式: Ressi, 和 SSTable 不同的是, block之间是面向 row的, 但是block内部存储却是面向 列的, 这样既保留了 rowkey 的有序性, 还让单个column的读取更加高效. 除此之外, 还支持冷热数据(老版本数据被放在inactive files) 以及 大value另外存储(避免不必要的读取), Ressi 的底层数据结构是 vector(能够更好的压缩).
+sql的研究方面, 介绍了 QUERY DISTRIBUTION （Distributed query compilation 、Distributed Execution、 Distributed joins、Query distribution APIs), QUERY RANGE EXTRACTION(Compile-time rewriting、Filter tree), QUERY RESTARTS(用户体验上的提升, ), 除此之外, 还使用了公司统一的SQL Diaect, 重点介绍了测试. (没有太深的经验, 勿喷)
+ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话时间立即学习&amp;hellip;)
+可以参考: https://zhuanlan.zhihu.com/p/27544985 学习下</description>
+            <content type="html"><![CDATA[<h2 id="序">序</h2>
+<p>读论文的路上继续. 这里主要围绕 spanner sql 、megaStore、F1、dremel 相关的论文.</p>
+<h2 id="spanner-sql-1">spanner sql <sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></h2>
+<p>在之前spanner kv的基础上, 主要介绍了sql的实现(从kv-&gt;rdbms), 不同于其他sql+存储松耦合的实现方式(两套系统), spanner 采取了内部紧耦合的策略. 除了sql, 还提及了一个新的数据存储格式: Ressi, 和 SSTable 不同的是, block之间是面向 row的, 但是block内部存储却是面向 列的, 这样既保留了 rowkey 的有序性, 还让单个column的读取更加高效. 除此之外, 还支持冷热数据(老版本数据被放在inactive files) 以及 大value另外存储(避免不必要的读取), Ressi 的底层数据结构是 vector(能够更好的压缩).</p>
+<p>sql的研究方面, 介绍了 QUERY DISTRIBUTION （Distributed query compilation 、Distributed Execution、 Distributed joins、Query distribution APIs), QUERY RANGE EXTRACTION(Compile-time rewriting、Filter tree), QUERY RESTARTS(用户体验上的提升, ), 除此之外, 还使用了公司统一的SQL Diaect, 重点介绍了测试.
+(没有太深的经验, 勿喷)</p>
+<p>ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话时间立即学习&hellip;)</p>
+<p>可以参考: <a href="https://zhuanlan.zhihu.com/p/27544985">https://zhuanlan.zhihu.com/p/27544985</a>  学习下</p>
+<p>问题:</p>
+<ul>
+<li>sql 的入口和请求处理在哪里？谁负责合并unoin响应? distributed join 和 distributed apply.</li>
+</ul>
+<p>看论文, 感觉是 任意一台spanner服务器.</p>
+<h2 id="megastore-2">megaStore <sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup></h2>
+<p>基于 bigtable 实现了 traditional RDBMS 功能, 提供了 interactive service, 通过同步复制达到高可用, 除此之外, 也是将数据分区(抽象了entity group), 每个分区独立复制, 支持二级索引等功能, 以及 partition内部的 scheme.</p>
+<p>问题:</p>
+<ol>
+<li>
+<p>bigtable 本身就是paxos同步的, 为什么还需要自己写个paxos?</p>
+</li>
+<li>
+<p>全局索引的存储</p>
+</li>
+<li>
+<p>数据模型&amp;feature</p>
+</li>
+</ol>
+<p>底层基于bigtable存储数据, pk: rowkey, tableName+column Name 作为 bigtable的列名, 来区分不同的table, 这样不同table的主键可以存储在一起, 方便查询.</p>
+<p>在可扩展性上, 将数据分区, 每个分区抽象为 &ldquo;entity groups&quot;的集合, 通过分区, 可以实现 单个 entity group 内部的 ACID 事务(paxos复制), entity group 的边界选择上, 论文中举了 Email、Blogs、Maps, 主要是尽量避免跨组的操作, 实现group操作内聚.</p>
+<p>entity group 由一个 root entity 和 多个 child entities, root entities 存储在 root table, child entities 存储在 child table, (也就是说, Megastore tables 由 root tables 和 child tables 构成, child table 通过 外键引用 root table的数据), 每个 entity 就是一个 Bigtable 的一个row. 针对递增的key, 通过前缀添加两个字节的hash 进行scatter避免 局部热点. root entity 存储 事务和复制的元数据(复制日志),</p>
+<p>比较注意的是, root entity 也是存储数据的, 比如 论文中 user 是 root entity, photo 是 child entity.</p>
+<p>索引的设计上, 也有 单个  entity group 内部的 local index, 还有global index(没有说存在哪里, 估计是单独的bigtable). 除此之外, 还支持  Storing Clause(索引内部存储额外数据, 减少pk数据的读取) 、Repeated Indexes、Inline Indexes(从例子上比较好理解. user table 和 photo table, 查询 user 的所有photo 的方式中, 经常是 user某个时间范围或者时间点的 照片, 那么就需要 user+publish timestamp 做一个索引, 这里的做法就是, user id 作为rowkey, 将 photo publish timestamp 作为 column 存储起来, value 就是 photo 的 id). 对标存储结构上, 每个索引是 root table pk+index value+pk, 比如 <code>(user id, time, primary key)</code>, repeated index  是每个field一个 entry. 除此之外, 也支持全文索引</p>
+<p>对外的api上, 没有支持 join 操作，依赖应用程序自己实现.</p>
+<p>schemas设计 除了对标 RDBMS, 还支持了 pb类型, 以及 申明key是升级还是降级.</p>
+<p>写入上, 是先通过paxos同步操作的wal, 然后apply写入bigtable, 事务通过 timestamp实现 mvcc. 读取提供了 &ldquo;current, snapshot, and inconsistent&rdquo; 三种. Current and snapshot 都是entity group内部的, 需要等待前面的write被applied, 比较有意思的是, write transaction 需要一次 current read来获取下一个 log position, commit operation 将所有写聚合成一个 log entry, 并 通过paxos 协议append 到 log. (log position的处理可以参考paxos协议)</p>
+<p>跨entity group的写事务 通过 queue + async实现, 同时也支持 two-phase commit 来做 atomic update(但是不鼓励).</p>
+<p>其他的设计:</p>
+<ul>
+<li>灾备的考虑, 除了副本, 还有 full snapshot.</li>
+<li>加密</li>
+</ul>
+<ol start="2">
+<li>复制</li>
+</ol>
+<p>在复制模型上, 评估了三种复制模型: 同步/异步/乐观复制(类似多主), 最后选择了paxos, 通过复制 wal 来同步(同步成功后, 数据写入bigtable). megaStore创新的优化: 最新副本的local read(避免走paxos流程), 一轮的写(paxos需要两阶段), 分别也叫 fast read 和 fast write. 根据数据模型的特征, 每个分区运行独立的 paxos, 这里称之为 &ldquo;multiple replicated logs&rdquo;.</p>
+<p>典型的paxos write需要两轮操作: prepares + accepts, read 也需要一轮确定最新的value. 业界常规的优化是 master-lease (batch write, 减少一次prepare, 因为放到了 accept里面了, 读走master). 但是这种设计, 会导致 slave资源浪费，master资源热点，master failover 需要复杂的流程(状态流转+timer). megastore 设计中, 通过coordinator的设计, coordinator 跟踪哪些已经是最新写入的 副本(意味着数据是最新的),  达到了 local read 的效果. 但是这就需要 write流程的改动(writer过程需要coordinator登记, 中间写入失败也需要 invalidate), 在write的优化上, 也和业界不一样, 论文称之为 &ldquo;leaders&rdquo;, 每个 log position 都是一轮 paxos, 每个 log position 的leader 都是不一样的副本, 只有第一个提交给leader的才会被accept, 其他写入会退化成 两轮的 paxos, leader 的选择也是基于write submit的观察(coordinator?)  这种设计可以让 writer 选择最近的副本. leader 的确立也是通过 accept流程中被 接受的. 因为写入可能中间失败, 因此 coordinator 还需要支持 invalidation.</p>
+<p>除此之外, 还支持 乱序proposal(没细讲). 读取优化上, coordinator的参与, 可以判断本地是否是最新的, 如果不是最新, 可以选择一个 responseive 或者 最新的 副本执行 catch-up/追赶(可能需要paxos执行no-op处理没有提交的value), 在正式apply前, 会更新下 coordinator的信息.</p>
+<p>coordinator的引入会导致一些可用性问题, 不过按照论文的说法, coordinator实现比较简单), 在 coordinator出现问题的时候, writer leader 会退化到 两阶段paxos, 解决 n+1 log position 需要投票. 而带来的好处: 1. 简单没什么依赖 2. workload很大 3. 轻量级网络流量, 更高的QOS 4. chubby 加持 5. 可禁止</p>
+<p>除此之外, coordinator 为了解决多副本 读吞吐量问题的, 会影响write, 导致 outage, coordinator 拿的是 另个机房的锁, 这个时候存在 coordinator 和 对端机房的chubby 一起分区了, 需要手动操作&hellip; 另外, client 尽量一个, 避免回退到paxos.</p>
+<p>比较有意识的是, 提出 commit point 和 visibility point 的概念.</p>
+<p>在副本设计上, 不仅仅有 full replica, 还有 Witnesses replca(只投票, 不apply), 以及 read-only replica.</p>
+<p>在实践上, 也特意提到了 随机测试框架, 提前发现了很多问题. 因为底层依赖 bigtable, MegaStore直接将控制权交给了用户, 让用户配置(所以查询慢了, 用户也需要直接找bigtable).</p>
+<h2 id="参考">参考</h2>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>作者: Google, Inc: <a href="https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/46103.pdf">Spanner: Becoming a SQL System</a> <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2" role="doc-endnote">
+<p>作者: Google, Inc: []() <a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+]]></content>
+        </item>
         
         <item>
             <title>Paxos</title>
@@ -1048,7 +1126,7 @@ locking, buffer cache, access methods and undo management; storage node负责: r
 <p>更多petal 的资料可以参考: <a href="http://www.scs.stanford.edu/nyu/02fa/sched/petal.pdf">http://www.scs.stanford.edu/nyu/02fa/sched/petal.pdf</a></p>
 <h2 id="spanner10">spanner<sup id="fnref:10"><a href="#fn:10" class="footnote-ref" role="doc-noteref">10</a></sup></h2>
 <p>google spanner 定位可扩展、多版本、全球分布、同步复制的数据库.</p>
-<p>在数据模型上, spanner 支持的sql table, 但是对应的底层是 kv模型, spanner中称之为 tablet, 表示如 <code>(key:string, timestamp:int64) → string</code>. 其中, 通过 timestamp 支持了 多版本和事务的能力. spanner 还将相同前缀的key 抽象成 <code>directory</code>, 通过 分片将 directory 切分成多个 <code>fragments</code>, 不同的fragments可以分布在不同的 paxos group 上. 但是在paxos group中数据移动的单位却是 directory, (感觉应该是gragment). 在</p>
+<p>在数据模型上, spanner 支持的sql table, 但是对应的底层是 kv模型, spanner中称之为 tablet, 表示如 <code>(key:string, timestamp:int64) → string</code>. 其中, 通过 timestamp 支持了 多版本和事务的能力. spanner 还将相同前缀的key 抽象成 <code>directory</code>, 通过 分片将 directory 切分成多个 <code>fragments</code>, 不同的fragments可以分布在不同的 paxos group 上. 但是在paxos group中数据移动的单位却是 directory, (感觉应该是gragment).</p>
 <p>在存储上, 底层使用了 Colossus(gfs的后续替代版本) 存储了 tablet 的状态(B-tree) 和 wal. 比较有意思的是, 这里的日志需要写两次, 一次写 tablet log, 一次写 paxos log.</p>
 <p>在一致性层面上, 使用 single-paxos state machine 实现 一致性复制, 每个副本的kv状态映射. paxos leader 还基于 lock table(部分key-&gt;state) 实现了并发控制. 事务的实现中, 也是基于 paxos-leader 的参与实现的</p>
 <p>spanner 的版本和事务都依赖 自己提供的 TrueTime api, 保证了 时间的单调性. 底层实现基于 GPS 和 原子钟(石英) 两种模式, 以便灾备: GPS有天线&amp;接受失败、本地频道干扰, 原子时钟会有时钟漂移的问题. 在实现上, 每个机房会部署 一组 time master, 每个集群上会部署 timeslave 后台进程, 大部分 time master 会 配置 GPS 并分散部署, 其他master配置石英钟, 彼此检查确保时间的准确性. 每个机器的后台进程 会拉取很多master并通过 <code>Marzullo’s algorithm</code>网络时间协议进行校准.</p>
@@ -8855,6 +8933,8 @@ DefaultMQPushConsumer#start -&amp;gt; DefaultMQPushConsumerImpl#start -&amp;gt; 
 <li>在 pull 模式中, 当发生 rebalance 的时候, 会取消不存在queue的PullTaskImpl, 同时对新的queue,添加PullTaskImpl, 参看类 MQPullConsumerScheduleService</li>
 <li>在 push模式中, 触发 PullMessageService 立即执行 新分配的的queue的PullRequest</li>
 </ul>
+<p><strong>特殊的地方</strong></p>
+<p>CONSUME_FROM_LAST_OFFSET 如果偏移量0还在磁盘中, 是从头开始消费的, 而不是最新. 参考: <a href="https://juejin.im/post/5d72724cf265da03be48fd24">https://juejin.im/post/5d72724cf265da03be48fd24</a></p>
 ]]></content>
         </item>
         

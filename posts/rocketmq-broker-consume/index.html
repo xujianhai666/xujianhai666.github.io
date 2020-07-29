@@ -40,7 +40,7 @@ DefaultMQPushConsumer#start -&gt; DefaultMQPushConsumerImpl#start -&gt; MQClient
  PullMessageProcessor#processRequest -&gt; DefaultMessageStore#getMessage -&gt; ConsumeQueue.getIndexBuffer &#43; CommitLog#getMessage 逻辑: 先从ConsumeQueue查找索引内容, 再到 CommitLog 中读取文件内容.">
 <meta itemprop="datePublished" content="2019-03-13T23:11:04&#43;08:00" />
 <meta itemprop="dateModified" content="2019-03-13T23:11:04&#43;08:00" />
-<meta itemprop="wordCount" content="186">
+<meta itemprop="wordCount" content="193">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -194,6 +194,8 @@ DefaultMQPushConsumer#start -&gt; DefaultMQPushConsumerImpl#start -&gt; MQClient
 <li>在 pull 模式中, 当发生 rebalance 的时候, 会取消不存在queue的PullTaskImpl, 同时对新的queue,添加PullTaskImpl, 参看类 MQPullConsumerScheduleService</li>
 <li>在 push模式中, 触发 PullMessageService 立即执行 新分配的的queue的PullRequest</li>
 </ul>
+<p><strong>特殊的地方</strong></p>
+<p>CONSUME_FROM_LAST_OFFSET 如果偏移量0还在磁盘中, 是从头开始消费的, 而不是最新. 参考: <a href="https://juejin.im/post/5d72724cf265da03be48fd24">https://juejin.im/post/5d72724cf265da03be48fd24</a></p>
 
             </div>
         </article>
@@ -202,7 +204,7 @@ DefaultMQPushConsumer#start -&gt; DefaultMQPushConsumerImpl#start -&gt; MQClient
 
         <div class="post-info">
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>186 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>193 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-03-13 23:11 &#43;0800</p>
         </div>

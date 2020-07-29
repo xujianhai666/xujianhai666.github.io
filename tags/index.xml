@@ -6,10 +6,28 @@
     <description>Recent content in Tags on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 12 Jul 2020 21:18:49 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 21 Jul 2020 23:06:09 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>distributed</title>
+      <link>https://xujianhai.fun/tags/distributed/</link>
+      <pubDate>Tue, 21 Jul 2020 23:06:09 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/distributed/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>google</title>
+      <link>https://xujianhai.fun/tags/google/</link>
+      <pubDate>Tue, 21 Jul 2020 23:06:09 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/google/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>paxos</title>
@@ -80,24 +98,6 @@
       <pubDate>Sat, 13 Jun 2020 00:06:10 +0800</pubDate>
       
       <guid>https://xujianhai.fun/tags/compile-db/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>redis</title>
-      <link>https://xujianhai.fun/tags/redis/</link>
-      <pubDate>Sat, 13 Jun 2020 00:06:10 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/redis/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>python</title>
-      <link>https://xujianhai.fun/tags/python/</link>
-      <pubDate>Mon, 08 Jun 2020 13:11:08 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/python/</guid>
       <description></description>
     </item>
     

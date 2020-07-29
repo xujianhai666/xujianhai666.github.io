@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>google on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/google/</link>
+    <description>Recent content in google on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 21 Jul 2020 23:06:09 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/google/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Google_article</title>
+      <link>https://xujianhai.fun/posts/google_article/</link>
+      <pubDate>Tue, 21 Jul 2020 23:06:09 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/google_article/</guid>
+      <description>序 读论文的路上继续. 这里主要围绕 spanner sql 、megaStore、F1、dremel 相关的论文.
+spanner sql 1 在之前spanner kv的基础上, 主要介绍了sql的实现(从kv-&amp;gt;rdbms), 不同于其他sql+存储松耦合的实现方式(两套系统), spanner 采取了内部紧耦合的策略. 除了sql, 还提及了一个新的数据存储格式: Ressi, 和 SSTable 不同的是, block之间是面向 row的, 但是block内部存储却是面向 列的, 这样既保留了 rowkey 的有序性, 还让单个column的读取更加高效. 除此之外, 还支持冷热数据(老版本数据被放在inactive files) 以及 大value另外存储(避免不必要的读取), Ressi 的底层数据结构是 vector(能够更好的压缩).
+sql的研究方面, 介绍了 QUERY DISTRIBUTION （Distributed query compilation 、Distributed Execution、 Distributed joins、Query distribution APIs), QUERY RANGE EXTRACTION(Compile-time rewriting、Filter tree), QUERY RESTARTS(用户体验上的提升, ), 除此之外, 还使用了公司统一的SQL Diaect, 重点介绍了测试. (没有太深的经验, 勿喷)
+ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话时间立即学习&amp;hellip;)
+可以参考: https://zhuanlan.zhihu.com/p/27544985 学习下</description>
+    </item>
+    
+  </channel>
+</rss>
