@@ -71,6 +71,14 @@ ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话�
 <p>比较有意识的是, 提出 commit point 和 visibility point 的概念.</p>
 <p>在副本设计上, 不仅仅有 full replica, 还有 Witnesses replca(只投票, 不apply), 以及 read-only replica.</p>
 <p>在实践上, 也特意提到了 随机测试框架, 提前发现了很多问题. 因为底层依赖 bigtable, MegaStore直接将控制权交给了用户, 让用户配置(所以查询慢了, 用户也需要直接找bigtable).</p>
+<h2 id="percolater-3">percolater <sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup></h2>
+<p>为了解决 Map/Reduce 新增索引无法实时的问题(因为需要批量), 设计了 percolator, 通过observer的实现了 新增变更实时处理的效果. observer机制需要依赖 1. timestamp oracle(提供严格递增的时间戳, 用于快照隔离机制) 和 2. 轻量级锁服务(更高效的搜索脏的通知). percolator 和 megaStore 类似, percolator 也是基于 bigtable的, 但是提供bigtable没有提供的多行事务 以及 observer.</p>
+<p>设计上, 锁信息 作为column family 存储在 row的数据中: c:lock、c:write、c:notif、c:ack O. 用于多个事务的排序(避免冲突) 以及 失败解决. 还特意设计了 primary lock(多个事务的其中一个cell) 避免多个事务之间的 commit/delete. 为了避免worker分配到任务 没有执行, 使用了 chubby token(aliver) + wall time(blocking).</p>
+<p>其他的feature: 有个特殊的设计, 多个事务变更, 只会有一次notify用于observer正在处理. 为了避免 scan 的聚集问题 (多线程扫描一块区域, 导致热点), 采取了随机化的策略. 为了提高性能, 采用了聚合读写 以及 predict read.</p>
+<p>事件上, 改写了原来的indx服务, 性能提升了很大: 100x.</p>
+<p>缺陷: observer 是链接进去的, 看上去不能动态加载.</p>
+<h2 id="dremel">dremel</h2>
+<p>不需要像hive一样将 查询召唤为 MR jobs.</p>
 <h2 id="参考">参考</h2>
 <section class="footnotes" role="doc-endnotes">
 <hr>
@@ -79,7 +87,12 @@ ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话�
 <p>作者: Google, Inc: <a href="https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/46103.pdf">Spanner: Becoming a SQL System</a> <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 <li id="fn:2" role="doc-endnote">
-<p>作者: Google, Inc: []() <a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+<p>作者: Google, Inc: <a href="https://storage.googleapis.com/pub-tools-public-publication-data/pdf/36971.pdf">Megastore: Providing Scalable, Highly Available
+Storage for Interactive Services</a> <a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3" role="doc-endnote">
+<p>作者: Google, Inc: <a href="https://storage.googleapis.com/pub-tools-public-publication-data/pdf/36726.pdf">Large-scale Incremental Processing
+Using Distributed Transactions and Notifications</a> <a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 </ol>
 </section>
