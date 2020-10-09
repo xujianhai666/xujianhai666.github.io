@@ -6,10 +6,19 @@
     <description>Recent content in grpc on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Fri, 12 Jul 2019 12:40:33 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2020 13:11:35 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/grpc/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Network_grpc</title>
+      <link>https://xujianhai.fun/posts/network_grpc/</link>
+      <pubDate>Sat, 19 Sep 2020 13:11:35 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/network_grpc/</guid>
+      <description>准备  client  package main import ( &amp;quot;context&amp;quot; &amp;quot;log&amp;quot; &amp;quot;time&amp;quot; &amp;quot;google.golang.org/grpc&amp;quot; pb &amp;quot;google.golang.org/grpc/examples/helloworld/helloworld&amp;quot; ) const ( address = &amp;quot;localhost:50051&amp;quot; defaultName = &amp;quot;world&amp;quot; ) func main() { // Set up a connection to the server. ctx, cancel := context.WithTimeout(context.Background(), time.Second*3) defer cancel() conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock()) if err != nil { log.Fatalf(&amp;quot;did not connect: %v&amp;quot;, err) } defer conn.Close() c := pb.NewGreeterClient(conn) // Contact the server and print out its response.</description>
+    </item>
     
     <item>
       <title>Grpc Client</title>

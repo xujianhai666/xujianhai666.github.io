@@ -6,10 +6,46 @@
     <description>Recent content in Tags on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 21 Jul 2020 23:06:09 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 20 Sep 2020 10:00:09 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>generic</title>
+      <link>https://xujianhai.fun/tags/generic/</link>
+      <pubDate>Sun, 20 Sep 2020 10:00:09 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/generic/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>golang</title>
+      <link>https://xujianhai.fun/tags/golang/</link>
+      <pubDate>Sun, 20 Sep 2020 10:00:09 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/golang/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>grpc</title>
+      <link>https://xujianhai.fun/tags/grpc/</link>
+      <pubDate>Sat, 19 Sep 2020 13:11:35 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/grpc/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>network</title>
+      <link>https://xujianhai.fun/tags/network/</link>
+      <pubDate>Sat, 19 Sep 2020 13:11:35 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/tags/network/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>distributed</title>
@@ -62,42 +98,6 @@
       <pubDate>Wed, 08 Jul 2020 21:26:27 +0800</pubDate>
       
       <guid>https://xujianhai.fun/tags/bigtable/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>hbase</title>
-      <link>https://xujianhai.fun/tags/hbase/</link>
-      <pubDate>Wed, 08 Jul 2020 21:26:27 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/hbase/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>sys</title>
-      <link>https://xujianhai.fun/tags/sys/</link>
-      <pubDate>Tue, 23 Jun 2020 18:33:37 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/sys/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>untagged</title>
-      <link>https://xujianhai.fun/tags/untagged/</link>
-      <pubDate>Mon, 22 Jun 2020 20:34:35 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/untagged/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>compile db</title>
-      <link>https://xujianhai.fun/tags/compile-db/</link>
-      <pubDate>Sat, 13 Jun 2020 00:06:10 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/tags/compile-db/</guid>
       <description></description>
     </item>
     

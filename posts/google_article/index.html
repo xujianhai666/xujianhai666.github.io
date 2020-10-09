@@ -42,7 +42,7 @@ ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话�
 可以参考: https://zhuanlan.zhihu.com/p/27544985 学习下">
 <meta itemprop="datePublished" content="2020-07-21T23:06:09&#43;08:00" />
 <meta itemprop="dateModified" content="2020-07-21T23:06:09&#43;08:00" />
-<meta itemprop="wordCount" content="635">
+<meta itemprop="wordCount" content="902">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -122,7 +122,7 @@ ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话�
     <main class="post">
 
         <div class="post-info">
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>5 minutes
 
             
 
@@ -196,7 +196,27 @@ ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话�
 <p>事件上, 改写了原来的indx服务, 性能提升了很大: 100x.</p>
 <p>缺陷: observer 是链接进去的, 看上去不能动态加载.</p>
 <h2 id="dremel">dremel</h2>
-<p>不需要像hive一样将 查询召唤为 MR jobs.</p>
+<p>定位在 只读嵌套类型数据的即席查询, 支持兆级别的数据量.  和 Pig、Hive 不同, 并不需要将查询语句 翻译成 MR 的任务, 在存储格式上, 使用 column-striped 存储, 并提出了 Repetition 和 Definition Levels, Repetition Level: 定义了 value 在 field path 的 哪个 field 上重复了, 注意, 新的记录是 0, 并且 required/optional 是不计算路径的, 通过repitition level可以知道下一个列是不是新的列, 这样就可以通过构建 FSM 来处理列式数据了 (个人比较郁闷的是, 应该是分散存储的呀, 怎么会需要这个FSM呢?). Definition levels: 该列的路径上有多少个可选的field被定义了, required 不参与计算. 如果 definition level 低于 repeated/optional fields 数量的, 表明这个字段是个 <code>NULL</code>, 因此就直接存储 definition level 而不需要存储一个 NULL 了, difinition level 和 repitition level 都是 bit. 通过 <code>field writers</code> 将 record 转换为 column格式, 在 column 转换为 record 格式的处理上, 采用了 FSM 的设计. 基于SQL设计了一套查询语言, 架构上采用了 <code>multi-level serving tree</code>的设计, 也常规的使用 <code>Query dispatche</code> 进行物理计划执行, 并且抽象了 slot 的概念 (一个slot对应一个线程), 其他最慢节点的重新调度.</p>
+<p>列式到存储上需要一层转换. 没有太多的经验, 直观感受比较低. repitition level 和 difinition level 在 Data sensitive 那本书中也有介绍, 另外 parquet 挺流行的. 开源版本可以参照 Drill.</p>
+<h2 id="borg">borg</h2>
+<p>borg 是google 内部集群管理工具, 整体架构上来讲和 k8s 还是存在一定差异的, 如下:</p>
+<p><img src="https://xujianhai.fun/borg.png" alt="borg" title=""></p>
+<p>在部署上, cell 表示一个管理单元, 内部由多台机器组成, 一个集群有多个cell (个人理解比如 ppe、prod、test分别是一个cell), 一个dc有多个cluster.</p>
+<p>架构上, 主要是 中心化控制节点 borg master + 机器上的agent进程 Borglet 构成. 其中, borg master 是由 main process 和 scheduler process 组成, main process 是管理接口: job 的提交和查询、资源的管理(machines/tasks/allocs&hellip;)、borglet的交互, 状态的管理是通过paxos协议实现(快照+changelog, 存储在本地磁盘), 为了能够被其他服务访问, master 也需要注册到 chubby 上. scheduler 负责将任务分配到机器上, 调度存在两个环节: feasibility checking + scoring (选择最合适的, 采用了 E-PVM)(后续优化中, scheduler也被拆分成了多个进程, 评分缓存、通过随机化减低全部机器计算的开销). Borglet 部署在每个机器上, 负责 start/stop tasks、滚动升级 等.</p>
+<p>设计使用上, 用户以job的方式提交服务, 一个job包含多个task. borg 区分了两种任务类型: pord(延迟敏感) 和 non-prod(以batch为主).</p>
+<p>术语上, alloc 是分配的资源用于job运行的, 常规的 priority、quota、admission control, 其中, 基于 chubby 提供了 BNS(borg naming service), 用于节点的服务发现, 详细的信息存储在 dremel 可查询的 Infrastore 中.</p>
+<p>有意思的是, 在 google内部, GFS 、Bigtable、MegaStore、MapReduce、FlumeJava 等都构建在 borg之上</p>
+<h2 id="dapper">Dapper</h2>
+<p>很老的论文了, 在开眼世界的替代品很多, 比如 pinpoint、cat、skywalking、zipkin 等, 这些开源项目在很多公司都有很大的使用. 目前
+还有了相关标准: jagger. 很多轮子现在都适配和支持了 jager 的客户端协议, 使用起来会更加丝滑.</p>
+<p>dapper 致力于 低负载(通过提供开关、采样)、应用层级透明(框架集成)、可扩展, 在功能上, 还支持了 annotation, 可以让业务自定义 一些信息.</p>
+<p>在整体架构上, 和之前的了解差异不大, 日志写文件, 由 dapper daemon 读取文件, 通过 dapper collectors 投递到 bigtables. 为了更好的服务给业务方, 提供了多种形式的接口获取, 除了 tracId access、bulk access、indexed access, 还支持对外的api, 从而产生更多的产品.</p>
+<p>使用dapper方面，更多的总结了相关经验: 和异常相结合(这里存在一个反馈上游落地日志, 不然采样可能采不到), 长尾延迟, 服务间相互影响, 网络使用率, 分层和共享存储.</p>
+<h2 id="pregel">pregel</h2>
+<p>to-do</p>
+<p>Infrastore?
+E-PVM？
+Omega</p>
 <h2 id="参考">参考</h2>
 <section class="footnotes" role="doc-endnotes">
 <hr>
@@ -225,7 +245,7 @@ Using Distributed Transactions and Notifications</a> <a href="#fnref:3" class="f
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/google">google</a></span><span class="tag"><a href="https://xujianhai.fun/tags/distributed">distributed</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>635 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>902 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-07-21 23:06 &#43;0800</p>
         </div>
@@ -238,6 +258,13 @@ Using Distributed Transactions and Notifications</a> <a href="#fnref:3" class="f
                 </div>
 
                 <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/select_chan/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Select_chan</span>
+                            </a>
+                        </span>
                     
 
                     

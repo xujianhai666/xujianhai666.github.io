@@ -5,8 +5,392 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Tue, 21 Jul 2020 23:06:09 +0800</lastBuildDate>
+        <lastBuildDate>Sun, 20 Sep 2020 10:00:09 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Golang_generic</title>
+            <link>https://xujianhai.fun/posts/golang_generic/</link>
+            <pubDate>Sun, 20 Sep 2020 10:00:09 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/golang_generic/</guid>
+            <description>preface 前一段时间golang的泛型再次被提及, 看了相关的proposal之后, 一直没空写, 最近终于得空, 写一波
+特点 泛型 基于 type parameter 实现的, type parameter 通常用 [] 圈起来, 如下使用:
+func F[T any] (p T) { .... } // T 就是 F 的 type parameter type M[T any] []T // type parameter list 的定义 func F[T Contraint](p T) { .... } // 具有约束的泛型 与之相对的是, 常规的参数是 non-type parameter, 两者最显著的区别就是 [].
+除了 type parameter, 频繁的词是 type argument, 是运行泛型代码的时候的入参, 会替换掉 type parameter.
+约束可以理解成 对 泛型的行为定义, 但是相比于java, 缺乏了 extend 和 super, 通常用 interface 约束泛型, 比如:</description>
+            <content type="html"><![CDATA[<h2 id="preface">preface</h2>
+<p>前一段时间golang的泛型再次被提及, 看了相关的proposal之后, 一直没空写, 最近终于得空, 写一波</p>
+<h2 id="特点">特点</h2>
+<p>泛型 基于 type parameter 实现的, type parameter 通常用 <code>[]</code> 圈起来, 如下使用:</p>
+<pre><code>func F[T any] (p T) { .... }   // T 就是 F 的 type parameter
+type M[T any] []T     // type parameter list 的定义
+func F[T Contraint](p T) { .... } // 具有约束的泛型
+</code></pre><p>与之相对的是, 常规的参数是 <code>non-type parameter</code>, 两者最显著的区别就是 <code>[]</code>.</p>
+<p>除了 type parameter, 频繁的词是 <code>type argument</code>, 是运行泛型代码的时候的入参, 会替换掉 <code>type parameter</code>.</p>
+<p>约束可以理解成 对 泛型的行为定义, 但是相比于java, 缺乏了 extend 和 super, 通常用 interface 约束泛型, 比如:</p>
+<pre><code>// Stringify calls the String method on each element of s,
+// and returns the results.
+func Stringify[T Stringer](s []T) (ret []string) {
+	for _, v := range s {
+		ret = append(ret, v.String())
+	}
+	return ret
+}
+</code></pre><p>这里用 Stringer 约束了 T 的行为, 需要注意的是, T 的参数只能使用 约束提供的方法. 但是比较有意思的是, 复杂场景下, 可以用 具备泛型的 interface 作为 参数的 约束.</p>
+<p>在类型推导上, 遵循三个步骤:</p>
+<ol>
+<li>non-type parameter 是否合法</li>
+<li>type-parameter 推演, 确定其他</li>
+<li>type-parameter 替换</li>
+<li>type-parameter 是否合法</li>
+</ol>
+<p>整体的感觉, 还是偏向 interface + 参数推导 来做的, 相比于之前 contract 的思路, 还是更加容易接受些</p>
+<h2 id="缺点">缺点</h2>
+<ol>
+<li>
+<p>举个例子，+ - &lt; &gt; = 这种算法表达式没有定义 interface, 目前社区讨论的是 借助 type list 的方式处理, 但是 只能解决基本类型，对于自定义的struct 还是无奈的, 没有比如 rust std:operaion 的各种类型, 但是一定程度上削弱了 泛型的表达能力</p>
+</li>
+<li>
+<p>鸡肋: 引入了 any 替换 interface{}, 但是 any 没有任何功能</p>
+</li>
+<li>
+<p>graph 的例子挺呕心的, 社区应该优化下. 能有个关联类型就好了, 得问问 (尝试优化下)</p>
+</li>
+</ol>
+<h2 id="对比">对比</h2>
+<h3 id="java">java</h3>
+<p><a href="https://juejin.im/post/6844904155316764685">https://juejin.im/post/6844904155316764685</a>
+得自己搞下了</p>
+<h3 id="rust">rust</h3>
+<h2 id="参考">参考:</h2>
+<ul>
+<li><a href="https://go.googlesource.com/proposal/+/refs/heads/master/design/go2draft-type-parameters.md">https://go.googlesource.com/proposal/+/refs/heads/master/design/go2draft-type-parameters.md</a></li>
+</ul>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Network_grpc</title>
+            <link>https://xujianhai.fun/posts/network_grpc/</link>
+            <pubDate>Sat, 19 Sep 2020 13:11:35 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/network_grpc/</guid>
+            <description>准备  client  package main import ( &amp;quot;context&amp;quot; &amp;quot;log&amp;quot; &amp;quot;time&amp;quot; &amp;quot;google.golang.org/grpc&amp;quot; pb &amp;quot;google.golang.org/grpc/examples/helloworld/helloworld&amp;quot; ) const ( address = &amp;quot;localhost:50051&amp;quot; defaultName = &amp;quot;world&amp;quot; ) func main() { // Set up a connection to the server. ctx, cancel := context.WithTimeout(context.Background(), time.Second*3) defer cancel() conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock()) if err != nil { log.Fatalf(&amp;quot;did not connect: %v&amp;quot;, err) } defer conn.Close() c := pb.NewGreeterClient(conn) // Contact the server and print out its response.</description>
+            <content type="html"><![CDATA[<h3 id="准备">准备</h3>
+<ol>
+<li>client</li>
+</ol>
+<pre><code>package main
+
+import (
+	&quot;context&quot;
+	&quot;log&quot;
+	&quot;time&quot;
+
+	&quot;google.golang.org/grpc&quot;
+	pb &quot;google.golang.org/grpc/examples/helloworld/helloworld&quot;
+)
+
+const (
+	address     = &quot;localhost:50051&quot;
+	defaultName = &quot;world&quot;
+)
+
+func main() {
+	// Set up a connection to the server.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf(&quot;did not connect: %v&quot;, err)
+	}
+	defer conn.Close()
+	c := pb.NewGreeterClient(conn)
+
+	// Contact the server and print out its response.
+	success(c)
+}
+
+func success(c pb.GreeterClient) {
+	name := defaultName
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := c.SayHello(ctx, &amp;pb.HelloRequest{Name: name})
+	if err != nil {
+		log.Fatalf(&quot;could not greet: %v&quot;, err)
+	}
+	log.Printf(&quot;Greeting: %s&quot;, r.GetMessage())
+}
+</code></pre><ol start="2">
+<li>server</li>
+</ol>
+<pre><code>package main
+
+import (
+	&quot;context&quot;
+	&quot;log&quot;
+	&quot;net&quot;
+
+	&quot;google.golang.org/grpc&quot;
+	pb &quot;google.golang.org/grpc/examples/helloworld/helloworld&quot;
+)
+
+const (
+	port = &quot;:50051&quot;
+)
+
+// server is used to implement helloworld.GreeterServer.
+type server struct {
+	pb.UnimplementedGreeterServer
+}
+
+// SayHello implements helloworld.GreeterServer
+func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+	log.Printf(&quot;Received: %v&quot;, in.GetName())
+	return &amp;pb.HelloReply{Message: &quot;Hello &quot; + in.GetName()}, nil
+}
+
+func main() {
+	lis, err := net.Listen(&quot;tcp&quot;, port)
+	if err != nil {
+		log.Fatalf(&quot;failed to listen: %v&quot;, err)
+	}
+	s := grpc.NewServer()
+	pb.RegisterGreeterServer(s, &amp;server{})
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf(&quot;failed to serve: %v&quot;, err)
+	}
+}
+</code></pre><h3 id="成功的响应">成功的响应</h3>
+<p>先启动server, 在启动client, 正常收发没问题</p>
+<ul>
+<li>client:</li>
+</ul>
+<pre><code>2020/09/19 13:14:19 Greeting: Hello world
+</code></pre><ul>
+<li>server</li>
+</ul>
+<pre><code>2020/09/19 13:14:19 Received: world
+</code></pre><h3 id="直连场景下-dialcontext连接-ip不存在">直连场景下, DialContext连接 ip不存在</h3>
+<p>只启动client, 不启动server</p>
+<ul>
+<li>client</li>
+</ul>
+<pre><code>2020/09/19 13:17:52 did not connect: context deadline exceeded
+</code></pre><p>很明显, 通过context 能够及时得到结果, 连接层抽象直接失败</p>
+<h3 id="直连场景下-dialcontext-成功-但是-方法调用过程ip不存在">直连场景下, DialContext 成功, 但是 方法调用过程ip不存在</h3>
+<p>修改client端 success 代码替换成调用 notFound(), 如下:</p>
+<pre><code>func notFound(c pb.GreeterClient) {
+	log.Println(&quot;begin sleep&quot;)
+	time.Sleep(time.Second * 5)  // 等待一段时间来保证server关闭
+	log.Println(&quot;after sleep&quot;)
+	name := defaultName
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second) 
+	defer cancel()
+	r, err := c.SayHello(ctx, &amp;pb.HelloRequest{Name: name})
+	if err != nil {
+		log.Fatalf(&quot;could not greet: %v&quot;, err)
+	}
+	log.Printf(&quot;Greeting: %s&quot;, r.GetMessage())
+}
+</code></pre><p>先启动server, 再启动client, 看到 <code>begin sleep</code>, 立即关闭server. 得到:</p>
+<ul>
+<li>client:</li>
+</ul>
+<pre><code>2020/09/19 13:25:48 begin sleep
+2020/09/19 13:25:53 after sleep
+2020/09/19 13:25:53 could not greet: rpc error: code = Unavailable desc = connection error: desc = &quot;transport: Error while dialing dial tcp 127.0.0.1:50051: connect: connection refused&quot;
+</code></pre><p>可以发现, client 也理解失败了</p>
+<h3 id="直连场景下-dialcontext-成功-但是-方法调用过程ip-不是-http-协议-tcp">直连场景下, DialContext 成功, 但是 方法调用过程ip 不是 http 协议: tcp</h3>
+<p>添加 tcp server:</p>
+<pre><code>package main
+
+import (
+	&quot;log&quot;
+	&quot;net&quot;
+	&quot;time&quot;
+)
+
+func main() {
+	var l net.Listener
+	var err error
+	l, err = net.Listen(&quot;tcp&quot;, &quot;:50051&quot;)
+	if err != nil {
+		log.Fatal(&quot;listen tcp failed&quot;)
+	}
+	defer l.Close()
+	log.Println(&quot;accept connection iterative&quot;)
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			log.Println(&quot;accept failed&quot;)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		go handle(conn)
+	}
+}
+
+func handle(conn net.Conn) {
+	defer conn.Close()
+	for {
+		//io.Copy(conn, conn)  
+		log.Println(&quot;handler before&quot;)
+		time.Sleep(10 * time.Second)
+		log.Println(&quot;handler after&quot;)
+		return
+	}
+}
+</code></pre><p>这里用的是tcp协议, server 可以返回响应, 也可以进行连接数据的copy.</p>
+<ul>
+<li>超时的case</li>
+</ul>
+<p>client直接超时, client 日志如下:</p>
+<pre><code>2020/09/19 21:12:16 did not connect: context deadline exceeded
+</code></pre><ul>
+<li>数据拷贝, 无效数据的场景</li>
+</ul>
+<p>client 会重试 请求 server 三次, 最终超时; server端打印</p>
+<pre><code>2020/09/19 21:15:16 accept
+2020/09/19 21:15:16 handler before
+2020/09/19 21:15:16 handler after
+2020/09/19 21:15:17 accept
+2020/09/19 21:15:17 handler before
+2020/09/19 21:15:17 handler after
+2020/09/19 21:15:18 accept
+2020/09/19 21:15:18 handler before
+2020/09/19 21:15:18 handler after
+</code></pre><h3 id="直连场景下-dialcontext-成功-但是-方法调用过程ip-是-http-协议-不是-http2">直连场景下, DialContext 成功, 但是 方法调用过程ip 是 http 协议, 不是 http2</h3>
+<p>编辑http server:</p>
+<pre><code>package main
+
+import (
+	&quot;net/http&quot;
+	&quot;time&quot;
+)
+
+func ServerHttp(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Second * 10)
+}
+
+func main() {
+	http.HandleFunc(&quot;/&quot;, ServerHttp)
+	http.ListenAndServe(&quot;:50051&quot;, nil)
+}
+</code></pre><h3 id="直连场景下-dialcontext-成功-但是-方法调用过程ip-是-http2-协议-不是-grpc">直连场景下, DialContext 成功, 但是 方法调用过程ip 是 http2 协议, 不是 grpc</h3>
+<p>添加 http2 server,</p>
+<pre><code>package main
+
+import (
+	&quot;net/http&quot;
+
+	&quot;golang.org/x/net/http2&quot;
+)
+
+func main() {
+	var srv *http.Server
+	srv.Addr = &quot;:50051&quot;
+
+	http.HandleFunc(&quot;/&quot;, func(writer http.ResponseWriter, request *http.Request) {
+		writer.Write([]byte(&quot;hello func&quot;))
+	})
+	http2.ConfigureServer(srv, &amp;http2.Server{})
+	srv.ListenAndServe()
+}
+</code></pre><p>client 依旧 deadline</p>
+<pre><code>2020/09/19 21:42:31 did not connect: context deadline exceeded
+</code></pre><h3 id="通过服务发现">通过服务发现,</h3>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Select_chan</title>
+            <link>https://xujianhai.fun/posts/select_chan/</link>
+            <pubDate>Sun, 13 Sep 2020 11:40:15 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/select_chan/</guid>
+            <description>最近小伙伴问了一个有趣的问题, 如果 for-select 监听多个chan, 其中一个是 eventCh, 一个是 closeCh, event 每隔一段时间会有通知, 但是因为 chan blocking 的特性, 每次 slelect 的时候 closeCh 都会将goroutine 添加到 chan 的 sendq, 那么 sendq 的双链 岂不是爆炸？
+直观上大家可定认为 不会发生, 会给出一些 猜测的解决方案, 但是到底会发生什么呢? 先写下如下 demo
+package main func main() { doCh := make(chan struct{}) dataCh := make(chan struct{}) select { case &amp;lt;-doCh: case &amp;lt;-dataCh: } } 为了方便反汇编, 执行编译: go build -gcflags &#39;-l&#39; -o main main.go
+执行反汇编: go tool objdump -s &amp;quot;main&amp;quot; main</description>
+            <content type="html"><![CDATA[<p>最近小伙伴问了一个有趣的问题, 如果 for-select 监听多个chan, 其中一个是 eventCh, 一个是 closeCh, event 每隔一段时间会有通知, 但是因为 chan blocking 的特性,  每次 slelect 的时候 closeCh 都会将goroutine 添加到 chan 的 sendq, 那么 sendq 的双链 岂不是爆炸？</p>
+<p>直观上大家可定认为 不会发生, 会给出一些 猜测的解决方案, 但是到底会发生什么呢? 先写下如下 demo</p>
+<pre><code>package main
+
+func main() {
+
+	doCh := make(chan struct{})
+	dataCh := make(chan struct{})
+	select {
+	case &lt;-doCh:
+	case &lt;-dataCh:
+	}
+
+}
+</code></pre><p>为了方便反汇编, 执行编译: <code>go build -gcflags '-l' -o main main.go</code></p>
+<p>执行反汇编: <code>go tool objdump -s &quot;main&quot; main</code></p>
+<pre><code>  main.go:7		0xdbc			e800000000		CALL 0xdc1				[1:5]R_CALL:runtime.selectgo
+</code></pre><p>其中, 最后可以发现 select 多个case的语句对应 <code>runtime.selectgo</code>, 找到对应的文件实现:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-runtime/select.go" data-lang="runtime/select.go"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">selectgo</span>(<span style="color:#a6e22e">cas0</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">scase</span>, <span style="color:#a6e22e">order0</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">uint16</span>, <span style="color:#a6e22e">pc0</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">uintptr</span>, <span style="color:#a6e22e">nsends</span>, <span style="color:#a6e22e">nrecvs</span> <span style="color:#66d9ef">int</span>, <span style="color:#a6e22e">block</span> <span style="color:#66d9ef">bool</span>) (<span style="color:#66d9ef">int</span>, <span style="color:#66d9ef">bool</span>) {
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">debugSelect</span> {
+		print(<span style="color:#e6db74">&#34;select: cas0=&#34;</span>, <span style="color:#a6e22e">cas0</span>, <span style="color:#e6db74">&#34;\n&#34;</span>)
+	}
+	<span style="color:#f92672">...</span>.
+	<span style="color:#75715e">// generate permuted order, 随机化 pollorder 用来select
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">norder</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">scases</span> {
+		<span style="color:#a6e22e">cas</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">scases</span>[<span style="color:#a6e22e">i</span>]
+
+		<span style="color:#75715e">// Omit cases without channels from the poll and lock orders.
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">cas</span>.<span style="color:#a6e22e">c</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">cas</span>.<span style="color:#a6e22e">elem</span> = <span style="color:#66d9ef">nil</span> <span style="color:#75715e">// allow GC
+</span><span style="color:#75715e"></span>			<span style="color:#66d9ef">continue</span>
+		}
+
+		<span style="color:#a6e22e">j</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fastrandn</span>(uint32(<span style="color:#a6e22e">norder</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>))
+		<span style="color:#a6e22e">pollorder</span>[<span style="color:#a6e22e">norder</span>] = <span style="color:#a6e22e">pollorder</span>[<span style="color:#a6e22e">j</span>]
+		<span style="color:#a6e22e">pollorder</span>[<span style="color:#a6e22e">j</span>] = uint16(<span style="color:#a6e22e">i</span>)
+		<span style="color:#a6e22e">norder</span><span style="color:#f92672">++</span>
+	}
+	<span style="color:#a6e22e">pollorder</span> = <span style="color:#a6e22e">pollorder</span>[:<span style="color:#a6e22e">norder</span>]
+	<span style="color:#a6e22e">lockorder</span> = <span style="color:#a6e22e">lockorder</span>[:<span style="color:#a6e22e">norder</span>]
+
+	<span style="color:#75715e">// sort the cases by Hchan address to get the locking order.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// simple heap sort, to guarantee n log n time and constant stack footprint.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// 按照 chan 地址 堆排序 select case, 最大堆, 数组(lockorder) 从小到大, 用来有序加锁
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">...</span>..
+
+	<span style="color:#75715e">// lock all the channels involved in the select, 按顺序加锁, 相同的channel不会重复加锁
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sellock</span>(<span style="color:#a6e22e">scases</span>, <span style="color:#a6e22e">lockorder</span>)
+
+	<span style="color:#75715e">// pass 1 - look for something already waiting  如果有channel关闭或者可以成功(发送/接受), 处理
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">...</span>..
+	<span style="color:#75715e">// pass 2 - enqueue on all chans, 实例化一个sudog, 插入到每个chan的waitq的双链, 同时自己记录, 方便后面通知抵达后从每个chan中删除
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">...</span>.
+	<span style="color:#75715e">// wait for someone to wake us up
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">gopark</span>(<span style="color:#a6e22e">selparkcommit</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">waitReasonSelect</span>, <span style="color:#a6e22e">traceEvGoBlockSelect</span>, <span style="color:#ae81ff">1</span>)
+	<span style="color:#f92672">...</span>.
+	<span style="color:#75715e">// pass 3 - dequeue from unsuccessful chans
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// otherwise they stack up on quiet channels
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// record the successful case, if any.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// We singly-linked up the SudoGs in lock order.
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">...</span>.
+}
+</code></pre></div><p>看完上面的代码, 有一个有意思的地方:</p>
+<ol>
+<li>select 的 poll 是随机化的, 所以每次select的时候, 都有每个channel都有数据, 那么就是随机的</li>
+<li>select-case 会对所有的 case 的chan 进行加锁</li>
+<li>加锁是顺序的, 按照chan地址从小到大, 是大堆排序的, nlog(n)</li>
+<li>select 重复一个 channel, 只会加锁一次, 但是 poll 次数是一样的</li>
+<li>堵塞在所有chan的时候, 会为每个chan实例化一个sudog挂载在 chan 的 sendq/recv 双链上, 同时, 也会添加到 goroutine 对象的 waiting 单链表上</li>
+<li>在有chan 通知达到的时候, 会按照goroutine对象的 waiting 单链上的 sudog指针, 从每个chan上的 sendq/recvq 上 进行卸载</li>
+</ol>
+<p>值得注意的是, select 的 case 不是按照case的顺序的; 并且根据问题, 参考6, 并不会爆掉, 因此每次select完, 就会从各个chan的 sendq/recvq 上删除</p>
+]]></content>
+        </item>
         
         <item>
             <title>Google_article</title>
@@ -78,7 +462,27 @@ ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话�
 <p>事件上, 改写了原来的indx服务, 性能提升了很大: 100x.</p>
 <p>缺陷: observer 是链接进去的, 看上去不能动态加载.</p>
 <h2 id="dremel">dremel</h2>
-<p>不需要像hive一样将 查询召唤为 MR jobs.</p>
+<p>定位在 只读嵌套类型数据的即席查询, 支持兆级别的数据量.  和 Pig、Hive 不同, 并不需要将查询语句 翻译成 MR 的任务, 在存储格式上, 使用 column-striped 存储, 并提出了 Repetition 和 Definition Levels, Repetition Level: 定义了 value 在 field path 的 哪个 field 上重复了, 注意, 新的记录是 0, 并且 required/optional 是不计算路径的, 通过repitition level可以知道下一个列是不是新的列, 这样就可以通过构建 FSM 来处理列式数据了 (个人比较郁闷的是, 应该是分散存储的呀, 怎么会需要这个FSM呢?). Definition levels: 该列的路径上有多少个可选的field被定义了, required 不参与计算. 如果 definition level 低于 repeated/optional fields 数量的, 表明这个字段是个 <code>NULL</code>, 因此就直接存储 definition level 而不需要存储一个 NULL 了, difinition level 和 repitition level 都是 bit. 通过 <code>field writers</code> 将 record 转换为 column格式, 在 column 转换为 record 格式的处理上, 采用了 FSM 的设计. 基于SQL设计了一套查询语言, 架构上采用了 <code>multi-level serving tree</code>的设计, 也常规的使用 <code>Query dispatche</code> 进行物理计划执行, 并且抽象了 slot 的概念 (一个slot对应一个线程), 其他最慢节点的重新调度.</p>
+<p>列式到存储上需要一层转换. 没有太多的经验, 直观感受比较低. repitition level 和 difinition level 在 Data sensitive 那本书中也有介绍, 另外 parquet 挺流行的. 开源版本可以参照 Drill.</p>
+<h2 id="borg">borg</h2>
+<p>borg 是google 内部集群管理工具, 整体架构上来讲和 k8s 还是存在一定差异的, 如下:</p>
+<p><img src="/borg.png" alt="borg" title=""></p>
+<p>在部署上, cell 表示一个管理单元, 内部由多台机器组成, 一个集群有多个cell (个人理解比如 ppe、prod、test分别是一个cell), 一个dc有多个cluster.</p>
+<p>架构上, 主要是 中心化控制节点 borg master + 机器上的agent进程 Borglet 构成. 其中, borg master 是由 main process 和 scheduler process 组成, main process 是管理接口: job 的提交和查询、资源的管理(machines/tasks/allocs&hellip;)、borglet的交互, 状态的管理是通过paxos协议实现(快照+changelog, 存储在本地磁盘), 为了能够被其他服务访问, master 也需要注册到 chubby 上. scheduler 负责将任务分配到机器上, 调度存在两个环节: feasibility checking + scoring (选择最合适的, 采用了 E-PVM)(后续优化中, scheduler也被拆分成了多个进程, 评分缓存、通过随机化减低全部机器计算的开销). Borglet 部署在每个机器上, 负责 start/stop tasks、滚动升级 等.</p>
+<p>设计使用上, 用户以job的方式提交服务, 一个job包含多个task. borg 区分了两种任务类型: pord(延迟敏感) 和 non-prod(以batch为主).</p>
+<p>术语上, alloc 是分配的资源用于job运行的, 常规的 priority、quota、admission control, 其中, 基于 chubby 提供了 BNS(borg naming service), 用于节点的服务发现, 详细的信息存储在 dremel 可查询的 Infrastore 中.</p>
+<p>有意思的是, 在 google内部, GFS 、Bigtable、MegaStore、MapReduce、FlumeJava 等都构建在 borg之上</p>
+<h2 id="dapper">Dapper</h2>
+<p>很老的论文了, 在开眼世界的替代品很多, 比如 pinpoint、cat、skywalking、zipkin 等, 这些开源项目在很多公司都有很大的使用. 目前
+还有了相关标准: jagger. 很多轮子现在都适配和支持了 jager 的客户端协议, 使用起来会更加丝滑.</p>
+<p>dapper 致力于 低负载(通过提供开关、采样)、应用层级透明(框架集成)、可扩展, 在功能上, 还支持了 annotation, 可以让业务自定义 一些信息.</p>
+<p>在整体架构上, 和之前的了解差异不大, 日志写文件, 由 dapper daemon 读取文件, 通过 dapper collectors 投递到 bigtables. 为了更好的服务给业务方, 提供了多种形式的接口获取, 除了 tracId access、bulk access、indexed access, 还支持对外的api, 从而产生更多的产品.</p>
+<p>使用dapper方面，更多的总结了相关经验: 和异常相结合(这里存在一个反馈上游落地日志, 不然采样可能采不到), 长尾延迟, 服务间相互影响, 网络使用率, 分层和共享存储.</p>
+<h2 id="pregel">pregel</h2>
+<p>to-do</p>
+<p>Infrastore?
+E-PVM？
+Omega</p>
 <h2 id="参考">参考</h2>
 <section class="footnotes" role="doc-endnotes">
 <hr>
@@ -227,7 +631,7 @@ request having a number greater than n.</li>
 <li>fast paxos [^6]</li>
 </ol>
 <h2 id="总述">总述</h2>
-<p>paxos/zab 都是由leader来协调多个follower, 都是基于quorum的两阶段提交, 对于每个提案, 都有一个epoch(zab)/bullet(paxis)的概念, 用来唯一标志当前的primary/leader. 在崩溃恢复层面, paxos有读阶段(提交之前leader的proposal, 是否重复了? 可以优化)和写阶段(开始新的自己的提案), zab有发现(获取上一个leader的最高zxid, 同步到leader)和同步阶段(leader将最高的zxid的历史同步到follower); 但是从论文的角度上来讲, zab没有明确说leader的选举算法, paxos是整体一致的, 那么是不是可以用 paxos 做zab的leader选举?</p>
+<p>paxos/zab 都是由leader来协调多个follower, 都是基于quorum的两阶段提交, 对于每个提案, 都有一个epoch(zab)/bullet(paxos)的概念, 用来唯一标志当前的primary/leader. 在崩溃恢复层面, paxos有读阶段(提交之前leader的proposal, 是否重复了? 可以优化)和写阶段(开始新的自己的提案), zab有发现(获取上一个leader的最高zxid, 同步到leader)和同步阶段(leader将最高的zxid的历史同步到follower); 但是从论文的角度上来讲, zab没有明确说leader的选举算法, paxos是整体一致的, 那么是不是可以用 paxos 做zab的leader选举?</p>
 <p>总的分析, <a href="https://www.alibabacloud.com/blog/a-brief-analysis-of-consensus-protocol-from-logical-clock-to-raft_594675">https://www.alibabacloud.com/blog/a-brief-analysis-of-consensus-protocol-from-logical-clock-to-raft_594675</a>
 感觉还是不错的, 得看看</p>
 <h2 id="其他可以学习的">其他可以学习的:</h2>
@@ -2562,6 +2966,7 @@ tcpdump port yy and src host x.x.x.x // 监听源host并且进入 port 的流量
 -s 0 // 显示完整的数据包, 设置0, 就是默认的 262144, 建议设置短些, 这样感兴趣的可以早点暴露
 ! xxx // 取反标志, 比如 port ! 22 
 'xxx' or 'xxx' 支持多个条件过滤
+-x 显示具体内容
 </code></pre>]]></content>
         </item>
         
@@ -7652,13 +8057,98 @@ review代码如下:</p>
             <pubDate>Thu, 11 Apr 2019 16:01:17 +0800</pubDate>
             
             <guid>https://xujianhai.fun/posts/rust_learn/</guid>
-            <description>rust学习资料: rust每日新闻: https://github.com/RustStudy/rust_daily_news rust社区: https://rust.cc/ rust中文: https://rustlang-cn.org/ rust新闻: https://www.yuque.com/chaosbot/rustnews rust文档: https://doc.rust-lang.org/stable/book</description>
-            <content type="html"><![CDATA[<p>rust学习资料:
+            <description>入门学习:
+ 学习写一个多线程的 echo server: https://hermanradtke.com/2015/07/22/creating-a-multi-echo-server-using-rust-and-mio.html  其他的框架学习:
+ mio : https://fugangqiang.github.io/posts/rust/rust%E4%B9%8Bmio.html futures tokio  rust学习资料: rust每日新闻: https://github.com/RustStudy/rust_daily_news rust社区: https://rust.cc/ rust中文: https://rustlang-cn.org/ rust新闻: https://www.yuque.com/chaosbot/rustnews rust文档: https://doc.rust-lang.org/stable/book rust官方设计: https://github.com/rust-lang/rfcs
+feature https://wiki.jikexueyuan.com/project/rust-primer/intoborrow/borrow.html 内部等价性 怎么理解 ？ ToOwned 不理解
+Borrow 的前后类型之间要求必须有内部等价性。不具有这个等价性的两个类型之间，不能实现 Borrow。 AsRef 更通用，更普遍，覆盖类型更多，是 Borrow 的超集。 slab 是怎么使用的呢? token？ 啥时候放进去的? 返回值 ?
+这种情况会返回什么? let event = self.events.get(i).ok_or_else(|| { io::Error::new(ErrorKind::Other, &amp;ldquo;Failed to get event&amp;rdquo;) })?;
+很多返回结果并没有处理
+特殊的打印格式: {:?} 变量可以重新绑定; 可以多变量绑定 特殊的数据类型: isize usize; &amp;amp;str string; 元类型和指针类型 这个还是很全的: https://wiki.</description>
+            <content type="html"><![CDATA[<p>入门学习:</p>
+<ul>
+<li>学习写一个多线程的 echo server: <a href="https://hermanradtke.com/2015/07/22/creating-a-multi-echo-server-using-rust-and-mio.html">https://hermanradtke.com/2015/07/22/creating-a-multi-echo-server-using-rust-and-mio.html</a></li>
+</ul>
+<p>其他的框架学习:</p>
+<ul>
+<li>mio : <a href="https://fugangqiang.github.io/posts/rust/rust%E4%B9%8Bmio.html">https://fugangqiang.github.io/posts/rust/rust%E4%B9%8Bmio.html</a></li>
+<li>futures</li>
+<li>tokio</li>
+</ul>
+<p>rust学习资料:
 rust每日新闻: <a href="https://github.com/RustStudy/rust_daily_news">https://github.com/RustStudy/rust_daily_news</a>
 rust社区: <a href="https://rust.cc/">https://rust.cc/</a>
 rust中文: <a href="https://rustlang-cn.org/">https://rustlang-cn.org/</a>
 rust新闻: <a href="https://www.yuque.com/chaosbot/rustnews">https://www.yuque.com/chaosbot/rustnews</a>
-rust文档: <a href="https://doc.rust-lang.org/stable/book">https://doc.rust-lang.org/stable/book</a></p>
+rust文档: <a href="https://doc.rust-lang.org/stable/book">https://doc.rust-lang.org/stable/book</a>
+rust官方设计: <a href="https://github.com/rust-lang/rfcs">https://github.com/rust-lang/rfcs</a></p>
+<h2 id="feature">feature</h2>
+<p><a href="https://wiki.jikexueyuan.com/project/rust-primer/intoborrow/borrow.html">https://wiki.jikexueyuan.com/project/rust-primer/intoborrow/borrow.html</a>
+内部等价性 怎么理解 ？
+ToOwned 不理解</p>
+<pre><code>Borrow 的前后类型之间要求必须有内部等价性。不具有这个等价性的两个类型之间，不能实现 Borrow。
+
+AsRef 更通用，更普遍，覆盖类型更多，是 Borrow 的超集。
+</code></pre><p>slab 是怎么使用的呢?
+token？ 啥时候放进去的?
+返回值 ?</p>
+<p>这种情况会返回什么?
+let event = self.events.get(i).ok_or_else(|| {
+io::Error::new(ErrorKind::Other, &ldquo;Failed to get event&rdquo;)
+})?;</p>
+<p>很多返回结果并没有处理</p>
+<p>特殊的打印格式:
+{:?}
+变量可以重新绑定; 可以多变量绑定
+特殊的数据类型: isize usize; &amp;str string; 元类型和指针类型
+这个还是很全的: <a href="https://wiki.jikexueyuan.com/project/rust-primer/quickstart/primitive-type.html">https://wiki.jikexueyuan.com/project/rust-primer/quickstart/primitive-type.html</a>
+vec!
+不多于32个元素的数组和不多于12个元素的元组在值传递时是自动复制的
+只能使用as关键字显式转换
+type 类型定义, go也支持
+str = &amp;&lsquo;static str； &amp;str 本质上是 数组 &amp;[u8]；String 是 vec:Vec<!-- raw HTML omitted --></p>
+<p>hup event ？
+match self.connection(token).writable() { 竟然会error</p>
+<p>conns: Slab<!-- raw HTML omitted -->,</p>
+<p>看下这些实现
+Drop提供了当一个值退出作用域后执行代码的功能，它只有一个drop(&amp;mut self)方法。
+Borrow用于创建一个数据结构时把拥有和借用的值看作等同。
+AsRef用于在泛型中把一个值转换为引用。
+Deref&lt;Target=T&gt;用于把&amp;U类型的值自动转换为&amp;T类型。
+Iterator用于在集合 (collection) 和惰性值生成器 (lazy value generator) 上实现迭代器。
+Sized用于标记运行时长度固定的类型，而不定长的切片和特性必须放在指针后面使其运行时长度已知， 比如&amp;[T]和Box<!-- raw HTML omitted -->。</p>
+<p>VecDeque</p>
+<p>不太理解
+let mut recv_buf : Vec<!-- raw HTML omitted --> = Vec::with_capacity(msg_len);
+unsafe { recv_buf.set_len(msg_len); }</p>
+<p>抄写一遍</p>
+<p>先 mio, 在 tokio</p>
+<p>unwrap</p>
+<p>move || ?</p>
+<p>let graph = SimpleGraph;
+let object = Box::new(graph) as Box&lt;Graph&lt;N=Node, E=Edge&raquo;;</p>
+<p>while let 是？
+<a href="https://wiki.jikexueyuan.com/project/rust-primer/quickstart/control-flow.html">https://wiki.jikexueyuan.com/project/rust-primer/quickstart/control-flow.html</a></p>
+<p>泛型？
+impl Trait and generics work with any trait ? trait 和 Trait 差异很大</p>
+<p>struct对于 引用的处理
+<a href="https://wiki.jikexueyuan.com/project/rust-primer/type/compound-types.html">https://wiki.jikexueyuan.com/project/rust-primer/type/compound-types.html</a>
+结构体里的引用字段必须要有显式的生命周期
+你调用了一下别人，然后你就不属于你了</p>
+<p>生命周期&amp;所有权</p>
+<h2 id="问题">问题</h2>
+<p>rust 的泛型 是怎么实现的 ?</p>
+<p>对于多态函数，存在两种派分 (dispatch) 机制：静态派分和动态派分。 前者类似于C++的模板，Rust会生成适用于指定类型的特殊函数，然后在被调用的位置进行替换， 好处是允许函数被内联调用，运行比较快，但是会导致代码膨胀 (code bloat)； 后者类似于Java或Go的interface，Rust通过引入特性对象 (trait object) 来实现， 在运行期查找虚表 (vtable) 来选择执行的方法。特性对象&amp;Foo具有和特性Foo相同的名称， 通过转换 (casting) 或者强制多态化 (coercing) 一个指向具体类型的指针来创建</p>
+<p>dyn trait 的差异
+<a href="https://zhuanlan.zhihu.com/p/109990547">https://zhuanlan.zhihu.com/p/109990547</a>
+it also supports dynamic dispatch through a mechanism called ‘trait objects’.
+Rust 编译器会通过单态化(Monomorphization) 将泛型函数展开
+想起了any的实现, 本质上也是编译后代码生成 多种实现
+Rust 的 trait object 使用了与 c++ 类似的 vtable 实现, trait object 含有1个指向实际类型的 data 指针, 和一个指向实际类型实现 trait 函数的 vtable, 以此实现动态分发. 更加详细的介绍
+<a href="https://alschwalm.com/blog/static/2017/03/07/exploring-dynamic-dispatch-in-rust/">https://alschwalm.com/blog/static/2017/03/07/exploring-dynamic-dispatch-in-rust/</a>
+<code>fn some_fn(param1: i32, param2: i32) -&gt; &amp;'static View {</code> 用拥有所有权的 Box 智能指针避免烦人的生命周期说明
+<a href="https://github.com/rust-lang/rfcs/blob/master/text/2113-dyn-trait-syntax.md">https://github.com/rust-lang/rfcs/blob/master/text/2113-dyn-trait-syntax.md</a>  协议改造
+<a href="https://doc.rust-lang.org/book/trait-objects.html#representation">https://doc.rust-lang.org/book/trait-objects.html#representation</a></p>
 ]]></content>
         </item>
         

@@ -6,10 +6,44 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 21 Jul 2020 23:06:09 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 20 Sep 2020 10:00:09 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Golang_generic</title>
+      <link>https://xujianhai.fun/posts/golang_generic/</link>
+      <pubDate>Sun, 20 Sep 2020 10:00:09 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/golang_generic/</guid>
+      <description>preface 前一段时间golang的泛型再次被提及, 看了相关的proposal之后, 一直没空写, 最近终于得空, 写一波
+特点 泛型 基于 type parameter 实现的, type parameter 通常用 [] 圈起来, 如下使用:
+func F[T any] (p T) { .... } // T 就是 F 的 type parameter type M[T any] []T // type parameter list 的定义 func F[T Contraint](p T) { .... } // 具有约束的泛型 与之相对的是, 常规的参数是 non-type parameter, 两者最显著的区别就是 [].
+除了 type parameter, 频繁的词是 type argument, 是运行泛型代码的时候的入参, 会替换掉 type parameter.
+约束可以理解成 对 泛型的行为定义, 但是相比于java, 缺乏了 extend 和 super, 通常用 interface 约束泛型, 比如:</description>
+    </item>
+    
+    <item>
+      <title>Network_grpc</title>
+      <link>https://xujianhai.fun/posts/network_grpc/</link>
+      <pubDate>Sat, 19 Sep 2020 13:11:35 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/network_grpc/</guid>
+      <description>准备  client  package main import ( &amp;quot;context&amp;quot; &amp;quot;log&amp;quot; &amp;quot;time&amp;quot; &amp;quot;google.golang.org/grpc&amp;quot; pb &amp;quot;google.golang.org/grpc/examples/helloworld/helloworld&amp;quot; ) const ( address = &amp;quot;localhost:50051&amp;quot; defaultName = &amp;quot;world&amp;quot; ) func main() { // Set up a connection to the server. ctx, cancel := context.WithTimeout(context.Background(), time.Second*3) defer cancel() conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock()) if err != nil { log.Fatalf(&amp;quot;did not connect: %v&amp;quot;, err) } defer conn.Close() c := pb.NewGreeterClient(conn) // Contact the server and print out its response.</description>
+    </item>
+    
+    <item>
+      <title>Select_chan</title>
+      <link>https://xujianhai.fun/posts/select_chan/</link>
+      <pubDate>Sun, 13 Sep 2020 11:40:15 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/select_chan/</guid>
+      <description>最近小伙伴问了一个有趣的问题, 如果 for-select 监听多个chan, 其中一个是 eventCh, 一个是 closeCh, event 每隔一段时间会有通知, 但是因为 chan blocking 的特性, 每次 slelect 的时候 closeCh 都会将goroutine 添加到 chan 的 sendq, 那么 sendq 的双链 岂不是爆炸？
+直观上大家可定认为 不会发生, 会给出一些 猜测的解决方案, 但是到底会发生什么呢? 先写下如下 demo
+package main func main() { doCh := make(chan struct{}) dataCh := make(chan struct{}) select { case &amp;lt;-doCh: case &amp;lt;-dataCh: } } 为了方便反汇编, 执行编译: go build -gcflags &#39;-l&#39; -o main main.go
+执行反汇编: go tool objdump -s &amp;quot;main&amp;quot; main</description>
+    </item>
     
     <item>
       <title>Google_article</title>
@@ -108,50 +142,6 @@ make -j 4
 make install -j 4
 bin/mysqld &amp;ndash;initialize-insecure &amp;ndash;user=root &amp;ndash;datadir=/Users/jianhaixu/secrect/opensource/mysql-server/debug/data
 bin/mysqld &amp;ndash;defaults-file=/Users/jianhaixu/secrect/opensource/mysql-server/debug/etc/my.cnf</description>
-    </item>
-    
-    <item>
-      <title>Python_tool</title>
-      <link>https://xujianhai.fun/posts/python_tool/</link>
-      <pubDate>Mon, 08 Jun 2020 13:11:08 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/python_tool/</guid>
-      <description>火焰图 pyframe https://github.com/uber/pyflame https://pyflame.readthedocs.io/en/latest/
-不侵入代码, 支持诊断多线程. 支持 火焰图、线程应用、stack trace. 但是不支持web导出, 需要自己做
-vprof https://github.com/nvdv/vprof
-支持cpu火焰图、内存火焰图，代码执行时间、web导出, 看上去很丰富
-profile_online https://github.com/rfyiamcool/profiler_online
-比较简单, 只支持火焰图, 支持web导出
-py-spy (目前用这个) https://github.com/benfred/py-spy
-打印堆栈、火焰图、top</description>
-    </item>
-    
-    <item>
-      <title>Mit_6</title>
-      <link>https://xujianhai.fun/posts/mit_6.824/</link>
-      <pubDate>Sat, 06 Jun 2020 10:23:10 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/mit_6.824/</guid>
-      <description>序 记录学习 mit 6.824 课程的经历
-MapReduce 1 目标: 将任务拆解成map 和 reduce 两个阶段, 进行 大规模的数据处理, 比如 页面爬取、词频统计
-模型 如上图, map/reduce 架构会将用户输入切成若干份数据输入(map的个数), 由map进行处理, 按照论文的说法, map读取文件是本地读取操作, map计算后得到的结果, 会按照 hash到若干份(reduce个数)本地文件存储, 并将存储位置上报给 master, master启动reduce worker, reduce worker会远程获取 每个map机器上的文件, 本地计算后输出到 gfs(分布式文件存储)上. 为了更好的性能和效果, 在map输出后以及reduce输入前, 会有一个combiner任务, 对map的结果进行预处理, 减少网络传输, 但是和reduce不同, combiner 的输出结果是存储在磁盘上的.
-分布式场景下, 容易出现一些坏的机器导致map/reduce 执行慢, 对此, map/reduce 架构会重新执行任务. 对于执行完宕机的场景, map会触发重新执行(结果存放在本地), reduce 不需要重新执行(结果存放在gfs)
-map/reduce的场景中, 需要处理 热点倾斜的问题, 因为会出现大量数据集中在一台reduce机器上, 对于这种问题, 需要自定义良好的 partition 函数, 将数据尽可能的平均打散
-hadoop 架构
-将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.</description>
-    </item>
-    
-    <item>
-      <title>Kafka_group_coordinator</title>
-      <link>https://xujianhai.fun/posts/kafka_group_coordinator/</link>
-      <pubDate>Sat, 30 May 2020 21:27:58 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/kafka_group_coordinator/</guid>
-      <description>preface 因为工作内容涉及 kafka, 今天梳理下 kafka group coordinator
-coordinator group coordinator 是计算出来的, 是hash groupId计算出来取模元数据的partition个数, 代码如 Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount, 然后取这个partition的leader broker 就是这个group的coordinator. 具体在findCoordinator的实现中.
-coordinator 的主要任务是: 1. consumer rebalance 2. offset 管理
-coordinator rebalance 模块比较简单, 之前客户端开发的时候总结过一波. 如下:
-客户端找到一个Node -&amp;gt; find coordinator protocol -&amp;gt; onJoinPrepare(子类) -&amp;gt; join group protocol -&amp;gt; sync group protocol(onJoinLeader 包含了任务分配的结果/follower 空的assignment) -&amp;gt; enable heartbeat -&amp;gt;onJoinComplete(子类处理分配结果). 心跳线程处理 coordinator的网络连接. leader 是 coordinator 选举的. 在group coordinator的kafka server端, 主要处理 join group protocol 和 sync group protocol.</description>
     </item>
     
   </channel>

@@ -3,6 +3,56 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xujianhai.fun/tags/generic/</loc>
+    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/golang/</loc>
+    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/golang_generic/</loc>
+    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/</loc>
+    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/</loc>
+    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/grpc/</loc>
+    <lastmod>2020-09-19T13:11:35+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/network/</loc>
+    <lastmod>2020-09-19T13:11:35+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/network_grpc/</loc>
+    <lastmod>2020-09-19T13:11:35+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/select_chan/</loc>
+    <lastmod>2020-09-13T11:40:15+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xujianhai.fun/tags/distributed/</loc>
     <lastmod>2020-07-21T23:06:09+08:00</lastmod>
   </url>
@@ -14,21 +64,6 @@
   
   <url>
     <loc>https://xujianhai.fun/posts/google_article/</loc>
-    <lastmod>2020-07-21T23:06:09+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-07-21T23:06:09+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-07-21T23:06:09+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
     <lastmod>2020-07-21T23:06:09+08:00</lastmod>
   </url>
   
@@ -184,11 +219,6 @@
   
   <url>
     <loc>https://xujianhai.fun/posts/docker_net/</loc>
-    <lastmod>2020-05-21T21:38:15+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/network/</loc>
     <lastmod>2020-05-21T21:38:15+08:00</lastmod>
   </url>
   
@@ -470,11 +500,6 @@
   <url>
     <loc>https://xujianhai.fun/posts/python-deadlock/</loc>
     <lastmod>2019-09-08T11:20:15+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/grpc/</loc>
-    <lastmod>2019-07-12T12:40:33+08:00</lastmod>
   </url>
   
   <url>

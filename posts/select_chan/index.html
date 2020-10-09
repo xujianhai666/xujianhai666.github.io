@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="最近小伙伴问了一个有趣的问题, 如果 for-select 监听多个chan, 其中一个是 eventCh, 一个是 closeCh, event 每隔一段时间会有通知, 但是因为 chan blocking 的特性, 每次 slelect 的时候 closeCh 都会将goroutine 添加到 chan 的 sendq, 那么 sendq 的双链 岂不是爆炸？
+直观上大家可定认为 不会发生, 会给出一些 猜测的解决方案, 但是到底会发生什么呢? 先写下如下 demo
+package main func main() { doCh := make(chan struct{}) dataCh := make(chan struct{}) select { case &amp;lt;-doCh: case &amp;lt;-dataCh: } } 为了方便反汇编, 执行编译: go build -gcflags &#39;-l&#39; -o main main.go
+执行反汇编: go tool objdump -s &amp;quot;main&amp;quot; main" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, golang" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/select_chan/" />
+
+
+    <title>
+        
+            Select_chan :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Select_chan">
+<meta itemprop="description" content="最近小伙伴问了一个有趣的问题, 如果 for-select 监听多个chan, 其中一个是 eventCh, 一个是 closeCh, event 每隔一段时间会有通知, 但是因为 chan blocking 的特性, 每次 slelect 的时候 closeCh 都会将goroutine 添加到 chan 的 sendq, 那么 sendq 的双链 岂不是爆炸？
+直观上大家可定认为 不会发生, 会给出一些 猜测的解决方案, 但是到底会发生什么呢? 先写下如下 demo
+package main func main() { doCh := make(chan struct{}) dataCh := make(chan struct{}) select { case &lt;-doCh: case &lt;-dataCh: } } 为了方便反汇编, 执行编译: go build -gcflags &#39;-l&#39; -o main main.go
+执行反汇编: go tool objdump -s &quot;main&quot; main">
+<meta itemprop="datePublished" content="2020-09-13T11:40:15&#43;08:00" />
+<meta itemprop="dateModified" content="2020-09-13T11:40:15&#43;08:00" />
+<meta itemprop="wordCount" content="352">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="golang," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Select_chan"/>
+<meta name="twitter:description" content="最近小伙伴问了一个有趣的问题, 如果 for-select 监听多个chan, 其中一个是 eventCh, 一个是 closeCh, event 每隔一段时间会有通知, 但是因为 chan blocking 的特性, 每次 slelect 的时候 closeCh 都会将goroutine 添加到 chan 的 sendq, 那么 sendq 的双链 岂不是爆炸？
+直观上大家可定认为 不会发生, 会给出一些 猜测的解决方案, 但是到底会发生什么呢? 先写下如下 demo
+package main func main() { doCh := make(chan struct{}) dataCh := make(chan struct{}) select { case &lt;-doCh: case &lt;-dataCh: } } 为了方便反汇编, 执行编译: go build -gcflags &#39;-l&#39; -o main main.go
+执行反汇编: go tool objdump -s &quot;main&quot; main"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-09-13 11:40:15 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/select_chan/">Select_chan</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>最近小伙伴问了一个有趣的问题, 如果 for-select 监听多个chan, 其中一个是 eventCh, 一个是 closeCh, event 每隔一段时间会有通知, 但是因为 chan blocking 的特性,  每次 slelect 的时候 closeCh 都会将goroutine 添加到 chan 的 sendq, 那么 sendq 的双链 岂不是爆炸？</p>
+<p>直观上大家可定认为 不会发生, 会给出一些 猜测的解决方案, 但是到底会发生什么呢? 先写下如下 demo</p>
+<pre><code>package main
+
+func main() {
+
+	doCh := make(chan struct{})
+	dataCh := make(chan struct{})
+	select {
+	case &lt;-doCh:
+	case &lt;-dataCh:
+	}
+
+}
+</code></pre><p>为了方便反汇编, 执行编译: <code>go build -gcflags '-l' -o main main.go</code></p>
+<p>执行反汇编: <code>go tool objdump -s &quot;main&quot; main</code></p>
+<pre><code>  main.go:7		0xdbc			e800000000		CALL 0xdc1				[1:5]R_CALL:runtime.selectgo
+</code></pre><p>其中, 最后可以发现 select 多个case的语句对应 <code>runtime.selectgo</code>, 找到对应的文件实现:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-runtime/select.go" data-lang="runtime/select.go"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">selectgo</span>(<span style="color:#a6e22e">cas0</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">scase</span>, <span style="color:#a6e22e">order0</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">uint16</span>, <span style="color:#a6e22e">pc0</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">uintptr</span>, <span style="color:#a6e22e">nsends</span>, <span style="color:#a6e22e">nrecvs</span> <span style="color:#66d9ef">int</span>, <span style="color:#a6e22e">block</span> <span style="color:#66d9ef">bool</span>) (<span style="color:#66d9ef">int</span>, <span style="color:#66d9ef">bool</span>) {
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">debugSelect</span> {
+		print(<span style="color:#e6db74">&#34;select: cas0=&#34;</span>, <span style="color:#a6e22e">cas0</span>, <span style="color:#e6db74">&#34;\n&#34;</span>)
+	}
+	<span style="color:#f92672">...</span>.
+	<span style="color:#75715e">// generate permuted order, 随机化 pollorder 用来select
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">norder</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">scases</span> {
+		<span style="color:#a6e22e">cas</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">scases</span>[<span style="color:#a6e22e">i</span>]
+
+		<span style="color:#75715e">// Omit cases without channels from the poll and lock orders.
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">cas</span>.<span style="color:#a6e22e">c</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">cas</span>.<span style="color:#a6e22e">elem</span> = <span style="color:#66d9ef">nil</span> <span style="color:#75715e">// allow GC
+</span><span style="color:#75715e"></span>			<span style="color:#66d9ef">continue</span>
+		}
+
+		<span style="color:#a6e22e">j</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fastrandn</span>(uint32(<span style="color:#a6e22e">norder</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>))
+		<span style="color:#a6e22e">pollorder</span>[<span style="color:#a6e22e">norder</span>] = <span style="color:#a6e22e">pollorder</span>[<span style="color:#a6e22e">j</span>]
+		<span style="color:#a6e22e">pollorder</span>[<span style="color:#a6e22e">j</span>] = uint16(<span style="color:#a6e22e">i</span>)
+		<span style="color:#a6e22e">norder</span><span style="color:#f92672">++</span>
+	}
+	<span style="color:#a6e22e">pollorder</span> = <span style="color:#a6e22e">pollorder</span>[:<span style="color:#a6e22e">norder</span>]
+	<span style="color:#a6e22e">lockorder</span> = <span style="color:#a6e22e">lockorder</span>[:<span style="color:#a6e22e">norder</span>]
+
+	<span style="color:#75715e">// sort the cases by Hchan address to get the locking order.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// simple heap sort, to guarantee n log n time and constant stack footprint.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// 按照 chan 地址 堆排序 select case, 最大堆, 数组(lockorder) 从小到大, 用来有序加锁
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">...</span>..
+
+	<span style="color:#75715e">// lock all the channels involved in the select, 按顺序加锁, 相同的channel不会重复加锁
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sellock</span>(<span style="color:#a6e22e">scases</span>, <span style="color:#a6e22e">lockorder</span>)
+
+	<span style="color:#75715e">// pass 1 - look for something already waiting  如果有channel关闭或者可以成功(发送/接受), 处理
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">...</span>..
+	<span style="color:#75715e">// pass 2 - enqueue on all chans, 实例化一个sudog, 插入到每个chan的waitq的双链, 同时自己记录, 方便后面通知抵达后从每个chan中删除
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">...</span>.
+	<span style="color:#75715e">// wait for someone to wake us up
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">gopark</span>(<span style="color:#a6e22e">selparkcommit</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">waitReasonSelect</span>, <span style="color:#a6e22e">traceEvGoBlockSelect</span>, <span style="color:#ae81ff">1</span>)
+	<span style="color:#f92672">...</span>.
+	<span style="color:#75715e">// pass 3 - dequeue from unsuccessful chans
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// otherwise they stack up on quiet channels
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// record the successful case, if any.
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// We singly-linked up the SudoGs in lock order.
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">...</span>.
+}
+</code></pre></div><p>看完上面的代码, 有一个有意思的地方:</p>
+<ol>
+<li>select 的 poll 是随机化的, 所以每次select的时候, 都有每个channel都有数据, 那么就是随机的</li>
+<li>select-case 会对所有的 case 的chan 进行加锁</li>
+<li>加锁是顺序的, 按照chan地址从小到大, 是大堆排序的, nlog(n)</li>
+<li>select 重复一个 channel, 只会加锁一次, 但是 poll 次数是一样的</li>
+<li>堵塞在所有chan的时候, 会为每个chan实例化一个sudog挂载在 chan 的 sendq/recv 双链上, 同时, 也会添加到 goroutine 对象的 waiting 单链表上</li>
+<li>在有chan 通知达到的时候, 会按照goroutine对象的 waiting 单链上的 sudog指针, 从每个chan上的 sendq/recvq 上 进行卸载</li>
+</ol>
+<p>值得注意的是, select 的 case 不是按照case的顺序的; 并且根据问题, 参考6, 并不会爆掉, 因此每次select完, 就会从各个chan的 sendq/recvq 上删除</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/golang">golang</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>352 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-09-13 11:40 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/network_grpc/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Network_grpc</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/google_article/">
+                                <span class="button__text">Google_article</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>generic on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/generic/</link>
+    <description>Recent content in generic on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 20 Sep 2020 10:00:09 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/generic/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Golang_generic</title>
+      <link>https://xujianhai.fun/posts/golang_generic/</link>
+      <pubDate>Sun, 20 Sep 2020 10:00:09 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/golang_generic/</guid>
+      <description>preface 前一段时间golang的泛型再次被提及, 看了相关的proposal之后, 一直没空写, 最近终于得空, 写一波
+特点 泛型 基于 type parameter 实现的, type parameter 通常用 [] 圈起来, 如下使用:
+func F[T any] (p T) { .... } // T 就是 F 的 type parameter type M[T any] []T // type parameter list 的定义 func F[T Contraint](p T) { .... } // 具有约束的泛型 与之相对的是, 常规的参数是 non-type parameter, 两者最显著的区别就是 [].
+除了 type parameter, 频繁的词是 type argument, 是运行泛型代码的时候的入参, 会替换掉 type parameter.
+约束可以理解成 对 泛型的行为定义, 但是相比于java, 缺乏了 extend 和 super, 通常用 interface 约束泛型, 比如:</description>
+    </item>
+    
+  </channel>
+</rss>

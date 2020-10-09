@@ -252,7 +252,7 @@ request having a number greater than n.</li>
 <li>fast paxos [^6]</li>
 </ol>
 <h2 id="总述">总述</h2>
-<p>paxos/zab 都是由leader来协调多个follower, 都是基于quorum的两阶段提交, 对于每个提案, 都有一个epoch(zab)/bullet(paxis)的概念, 用来唯一标志当前的primary/leader. 在崩溃恢复层面, paxos有读阶段(提交之前leader的proposal, 是否重复了? 可以优化)和写阶段(开始新的自己的提案), zab有发现(获取上一个leader的最高zxid, 同步到leader)和同步阶段(leader将最高的zxid的历史同步到follower); 但是从论文的角度上来讲, zab没有明确说leader的选举算法, paxos是整体一致的, 那么是不是可以用 paxos 做zab的leader选举?</p>
+<p>paxos/zab 都是由leader来协调多个follower, 都是基于quorum的两阶段提交, 对于每个提案, 都有一个epoch(zab)/bullet(paxos)的概念, 用来唯一标志当前的primary/leader. 在崩溃恢复层面, paxos有读阶段(提交之前leader的proposal, 是否重复了? 可以优化)和写阶段(开始新的自己的提案), zab有发现(获取上一个leader的最高zxid, 同步到leader)和同步阶段(leader将最高的zxid的历史同步到follower); 但是从论文的角度上来讲, zab没有明确说leader的选举算法, paxos是整体一致的, 那么是不是可以用 paxos 做zab的leader选举?</p>
 <p>总的分析, <a href="https://www.alibabacloud.com/blog/a-brief-analysis-of-consensus-protocol-from-logical-clock-to-raft_594675">https://www.alibabacloud.com/blog/a-brief-analysis-of-consensus-protocol-from-logical-clock-to-raft_594675</a>
 感觉还是不错的, 得看看</p>
 <h2 id="其他可以学习的">其他可以学习的:</h2>

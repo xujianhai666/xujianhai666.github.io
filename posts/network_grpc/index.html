@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="准备  client  package main import ( &amp;quot;context&amp;quot; &amp;quot;log&amp;quot; &amp;quot;time&amp;quot; &amp;quot;google.golang.org/grpc&amp;quot; pb &amp;quot;google.golang.org/grpc/examples/helloworld/helloworld&amp;quot; ) const ( address = &amp;quot;localhost:50051&amp;quot; defaultName = &amp;quot;world&amp;quot; ) func main() { // Set up a connection to the server. ctx, cancel := context.WithTimeout(context.Background(), time.Second*3) defer cancel() conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock()) if err != nil { log.Fatalf(&amp;quot;did not connect: %v&amp;quot;, err) } defer conn.Close() c := pb.NewGreeterClient(conn) // Contact the server and print out its response." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, grpc, network" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/network_grpc/" />
+
+
+    <title>
+        
+            Network_grpc :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Network_grpc">
+<meta itemprop="description" content="准备  client  package main import ( &quot;context&quot; &quot;log&quot; &quot;time&quot; &quot;google.golang.org/grpc&quot; pb &quot;google.golang.org/grpc/examples/helloworld/helloworld&quot; ) const ( address = &quot;localhost:50051&quot; defaultName = &quot;world&quot; ) func main() { // Set up a connection to the server. ctx, cancel := context.WithTimeout(context.Background(), time.Second*3) defer cancel() conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock()) if err != nil { log.Fatalf(&quot;did not connect: %v&quot;, err) } defer conn.Close() c := pb.NewGreeterClient(conn) // Contact the server and print out its response.">
+<meta itemprop="datePublished" content="2020-09-19T13:11:35&#43;08:00" />
+<meta itemprop="dateModified" content="2020-09-19T13:11:35&#43;08:00" />
+<meta itemprop="wordCount" content="575">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="grpc,network," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Network_grpc"/>
+<meta name="twitter:description" content="准备  client  package main import ( &quot;context&quot; &quot;log&quot; &quot;time&quot; &quot;google.golang.org/grpc&quot; pb &quot;google.golang.org/grpc/examples/helloworld/helloworld&quot; ) const ( address = &quot;localhost:50051&quot; defaultName = &quot;world&quot; ) func main() { // Set up a connection to the server. ctx, cancel := context.WithTimeout(context.Background(), time.Second*3) defer cancel() conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock()) if err != nil { log.Fatalf(&quot;did not connect: %v&quot;, err) } defer conn.Close() c := pb.NewGreeterClient(conn) // Contact the server and print out its response."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-09-19 13:11:35 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/network_grpc/">Network_grpc</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h3 id="准备">准备</h3>
+<ol>
+<li>client</li>
+</ol>
+<pre><code>package main
+
+import (
+	&quot;context&quot;
+	&quot;log&quot;
+	&quot;time&quot;
+
+	&quot;google.golang.org/grpc&quot;
+	pb &quot;google.golang.org/grpc/examples/helloworld/helloworld&quot;
+)
+
+const (
+	address     = &quot;localhost:50051&quot;
+	defaultName = &quot;world&quot;
+)
+
+func main() {
+	// Set up a connection to the server.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf(&quot;did not connect: %v&quot;, err)
+	}
+	defer conn.Close()
+	c := pb.NewGreeterClient(conn)
+
+	// Contact the server and print out its response.
+	success(c)
+}
+
+func success(c pb.GreeterClient) {
+	name := defaultName
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := c.SayHello(ctx, &amp;pb.HelloRequest{Name: name})
+	if err != nil {
+		log.Fatalf(&quot;could not greet: %v&quot;, err)
+	}
+	log.Printf(&quot;Greeting: %s&quot;, r.GetMessage())
+}
+</code></pre><ol start="2">
+<li>server</li>
+</ol>
+<pre><code>package main
+
+import (
+	&quot;context&quot;
+	&quot;log&quot;
+	&quot;net&quot;
+
+	&quot;google.golang.org/grpc&quot;
+	pb &quot;google.golang.org/grpc/examples/helloworld/helloworld&quot;
+)
+
+const (
+	port = &quot;:50051&quot;
+)
+
+// server is used to implement helloworld.GreeterServer.
+type server struct {
+	pb.UnimplementedGreeterServer
+}
+
+// SayHello implements helloworld.GreeterServer
+func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+	log.Printf(&quot;Received: %v&quot;, in.GetName())
+	return &amp;pb.HelloReply{Message: &quot;Hello &quot; + in.GetName()}, nil
+}
+
+func main() {
+	lis, err := net.Listen(&quot;tcp&quot;, port)
+	if err != nil {
+		log.Fatalf(&quot;failed to listen: %v&quot;, err)
+	}
+	s := grpc.NewServer()
+	pb.RegisterGreeterServer(s, &amp;server{})
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf(&quot;failed to serve: %v&quot;, err)
+	}
+}
+</code></pre><h3 id="成功的响应">成功的响应</h3>
+<p>先启动server, 在启动client, 正常收发没问题</p>
+<ul>
+<li>client:</li>
+</ul>
+<pre><code>2020/09/19 13:14:19 Greeting: Hello world
+</code></pre><ul>
+<li>server</li>
+</ul>
+<pre><code>2020/09/19 13:14:19 Received: world
+</code></pre><h3 id="直连场景下-dialcontext连接-ip不存在">直连场景下, DialContext连接 ip不存在</h3>
+<p>只启动client, 不启动server</p>
+<ul>
+<li>client</li>
+</ul>
+<pre><code>2020/09/19 13:17:52 did not connect: context deadline exceeded
+</code></pre><p>很明显, 通过context 能够及时得到结果, 连接层抽象直接失败</p>
+<h3 id="直连场景下-dialcontext-成功-但是-方法调用过程ip不存在">直连场景下, DialContext 成功, 但是 方法调用过程ip不存在</h3>
+<p>修改client端 success 代码替换成调用 notFound(), 如下:</p>
+<pre><code>func notFound(c pb.GreeterClient) {
+	log.Println(&quot;begin sleep&quot;)
+	time.Sleep(time.Second * 5)  // 等待一段时间来保证server关闭
+	log.Println(&quot;after sleep&quot;)
+	name := defaultName
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second) 
+	defer cancel()
+	r, err := c.SayHello(ctx, &amp;pb.HelloRequest{Name: name})
+	if err != nil {
+		log.Fatalf(&quot;could not greet: %v&quot;, err)
+	}
+	log.Printf(&quot;Greeting: %s&quot;, r.GetMessage())
+}
+</code></pre><p>先启动server, 再启动client, 看到 <code>begin sleep</code>, 立即关闭server. 得到:</p>
+<ul>
+<li>client:</li>
+</ul>
+<pre><code>2020/09/19 13:25:48 begin sleep
+2020/09/19 13:25:53 after sleep
+2020/09/19 13:25:53 could not greet: rpc error: code = Unavailable desc = connection error: desc = &quot;transport: Error while dialing dial tcp 127.0.0.1:50051: connect: connection refused&quot;
+</code></pre><p>可以发现, client 也理解失败了</p>
+<h3 id="直连场景下-dialcontext-成功-但是-方法调用过程ip-不是-http-协议-tcp">直连场景下, DialContext 成功, 但是 方法调用过程ip 不是 http 协议: tcp</h3>
+<p>添加 tcp server:</p>
+<pre><code>package main
+
+import (
+	&quot;log&quot;
+	&quot;net&quot;
+	&quot;time&quot;
+)
+
+func main() {
+	var l net.Listener
+	var err error
+	l, err = net.Listen(&quot;tcp&quot;, &quot;:50051&quot;)
+	if err != nil {
+		log.Fatal(&quot;listen tcp failed&quot;)
+	}
+	defer l.Close()
+	log.Println(&quot;accept connection iterative&quot;)
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			log.Println(&quot;accept failed&quot;)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		go handle(conn)
+	}
+}
+
+func handle(conn net.Conn) {
+	defer conn.Close()
+	for {
+		//io.Copy(conn, conn)  
+		log.Println(&quot;handler before&quot;)
+		time.Sleep(10 * time.Second)
+		log.Println(&quot;handler after&quot;)
+		return
+	}
+}
+</code></pre><p>这里用的是tcp协议, server 可以返回响应, 也可以进行连接数据的copy.</p>
+<ul>
+<li>超时的case</li>
+</ul>
+<p>client直接超时, client 日志如下:</p>
+<pre><code>2020/09/19 21:12:16 did not connect: context deadline exceeded
+</code></pre><ul>
+<li>数据拷贝, 无效数据的场景</li>
+</ul>
+<p>client 会重试 请求 server 三次, 最终超时; server端打印</p>
+<pre><code>2020/09/19 21:15:16 accept
+2020/09/19 21:15:16 handler before
+2020/09/19 21:15:16 handler after
+2020/09/19 21:15:17 accept
+2020/09/19 21:15:17 handler before
+2020/09/19 21:15:17 handler after
+2020/09/19 21:15:18 accept
+2020/09/19 21:15:18 handler before
+2020/09/19 21:15:18 handler after
+</code></pre><h3 id="直连场景下-dialcontext-成功-但是-方法调用过程ip-是-http-协议-不是-http2">直连场景下, DialContext 成功, 但是 方法调用过程ip 是 http 协议, 不是 http2</h3>
+<p>编辑http server:</p>
+<pre><code>package main
+
+import (
+	&quot;net/http&quot;
+	&quot;time&quot;
+)
+
+func ServerHttp(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Second * 10)
+}
+
+func main() {
+	http.HandleFunc(&quot;/&quot;, ServerHttp)
+	http.ListenAndServe(&quot;:50051&quot;, nil)
+}
+</code></pre><h3 id="直连场景下-dialcontext-成功-但是-方法调用过程ip-是-http2-协议-不是-grpc">直连场景下, DialContext 成功, 但是 方法调用过程ip 是 http2 协议, 不是 grpc</h3>
+<p>添加 http2 server,</p>
+<pre><code>package main
+
+import (
+	&quot;net/http&quot;
+
+	&quot;golang.org/x/net/http2&quot;
+)
+
+func main() {
+	var srv *http.Server
+	srv.Addr = &quot;:50051&quot;
+
+	http.HandleFunc(&quot;/&quot;, func(writer http.ResponseWriter, request *http.Request) {
+		writer.Write([]byte(&quot;hello func&quot;))
+	})
+	http2.ConfigureServer(srv, &amp;http2.Server{})
+	srv.ListenAndServe()
+}
+</code></pre><p>client 依旧 deadline</p>
+<pre><code>2020/09/19 21:42:31 did not connect: context deadline exceeded
+</code></pre><h3 id="通过服务发现">通过服务发现,</h3>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/grpc">grpc</a></span><span class="tag"><a href="https://xujianhai.fun/tags/network">network</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>575 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-09-19 13:11 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/golang_generic/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Golang_generic</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/select_chan/">
+                                <span class="button__text">Select_chan</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
