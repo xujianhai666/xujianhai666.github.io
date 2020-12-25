@@ -24,7 +24,9 @@ vprof https://github.com/nvdv/vprof
 profile_online https://github.com/rfyiamcool/profiler_online
 比较简单, 只支持火焰图, 支持web导出
 py-spy (目前用这个) https://github.com/benfred/py-spy
-打印堆栈、火焰图、top</description>
+打印堆栈、火焰图、top
+主要是: py-spy dump --pid 12345
+python -m pip install &amp;ndash;upgrade pip</description>
     </item>
     
   </channel>

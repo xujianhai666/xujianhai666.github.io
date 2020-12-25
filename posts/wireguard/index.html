@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="几种设计 ipsec: 基于 Linux transform (“xfrm”) layer, 在内核中通过structure参数判断, user space 中有个后台进程负责更新stucture(基于 key交换的结果, 通常是 IKEv2), 这就复杂了很多, 并且因为分层的抽象, 防火墙规则 配置也很复杂 wireguard: 使用了虚拟的interface(比如wg0), 使用简单, 状态管理透明 基于 openssh 的思维, 支持 base64 编码 加密: Trevor Perrin’s Noise, 没有用 tls 在 3层工作: ip. 支持 ipv6 &amp;lt;-&amp;gt; ipv4 openvpn: tls &#43; user space tun/tap (类似wireguard), 性能低, user/kernel space 多次copy, 需要 long-lived daemon, 但是因为基于tls, 会导致 很多问题
+wireguard 设计 常规交互:
+ 1-RTT key exchange handshake 加密数据传输   使用 12-byte TAI64N [7] timestamp, 通过每次使用更大的timestamp 避免了 回放攻击 支持 预共享 加密key, 避免 量子计算的攻击 在高负载下, 支持 cookie reply, 延迟握手时间, 第一次握手返回cookie, 到期后基于cookie 进行握手  timer &amp;amp; Stateless UX  传输的消息数量有限制, 超过后会重新分发对称key, 创建新的session Rekey-After-Time 时间后会重新创建新的session, 分发新的对称key handshake initiation 重传, 第一条用户消息会触发 handshake initiation." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, wireguard" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/wireguard/" />
+
+
+    <title>
+        
+            Wireguard :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Wireguard">
+<meta itemprop="description" content="几种设计 ipsec: 基于 Linux transform (“xfrm”) layer, 在内核中通过structure参数判断, user space 中有个后台进程负责更新stucture(基于 key交换的结果, 通常是 IKEv2), 这就复杂了很多, 并且因为分层的抽象, 防火墙规则 配置也很复杂 wireguard: 使用了虚拟的interface(比如wg0), 使用简单, 状态管理透明 基于 openssh 的思维, 支持 base64 编码 加密: Trevor Perrin’s Noise, 没有用 tls 在 3层工作: ip. 支持 ipv6 &lt;-&gt; ipv4 openvpn: tls &#43; user space tun/tap (类似wireguard), 性能低, user/kernel space 多次copy, 需要 long-lived daemon, 但是因为基于tls, 会导致 很多问题
+wireguard 设计 常规交互:
+ 1-RTT key exchange handshake 加密数据传输   使用 12-byte TAI64N [7] timestamp, 通过每次使用更大的timestamp 避免了 回放攻击 支持 预共享 加密key, 避免 量子计算的攻击 在高负载下, 支持 cookie reply, 延迟握手时间, 第一次握手返回cookie, 到期后基于cookie 进行握手  timer &amp; Stateless UX  传输的消息数量有限制, 超过后会重新分发对称key, 创建新的session Rekey-After-Time 时间后会重新创建新的session, 分发新的对称key handshake initiation 重传, 第一条用户消息会触发 handshake initiation.">
+<meta itemprop="datePublished" content="2020-10-13T09:46:36&#43;08:00" />
+<meta itemprop="dateModified" content="2020-10-13T09:46:36&#43;08:00" />
+<meta itemprop="wordCount" content="347">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="wireguard," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Wireguard"/>
+<meta name="twitter:description" content="几种设计 ipsec: 基于 Linux transform (“xfrm”) layer, 在内核中通过structure参数判断, user space 中有个后台进程负责更新stucture(基于 key交换的结果, 通常是 IKEv2), 这就复杂了很多, 并且因为分层的抽象, 防火墙规则 配置也很复杂 wireguard: 使用了虚拟的interface(比如wg0), 使用简单, 状态管理透明 基于 openssh 的思维, 支持 base64 编码 加密: Trevor Perrin’s Noise, 没有用 tls 在 3层工作: ip. 支持 ipv6 &lt;-&gt; ipv4 openvpn: tls &#43; user space tun/tap (类似wireguard), 性能低, user/kernel space 多次copy, 需要 long-lived daemon, 但是因为基于tls, 会导致 很多问题
+wireguard 设计 常规交互:
+ 1-RTT key exchange handshake 加密数据传输   使用 12-byte TAI64N [7] timestamp, 通过每次使用更大的timestamp 避免了 回放攻击 支持 预共享 加密key, 避免 量子计算的攻击 在高负载下, 支持 cookie reply, 延迟握手时间, 第一次握手返回cookie, 到期后基于cookie 进行握手  timer &amp; Stateless UX  传输的消息数量有限制, 超过后会重新分发对称key, 创建新的session Rekey-After-Time 时间后会重新创建新的session, 分发新的对称key handshake initiation 重传, 第一条用户消息会触发 handshake initiation."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-10-13 09:46:36 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/wireguard/">Wireguard</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h3 id="几种设计">几种设计</h3>
+<p>ipsec:
+基于 Linux transform (“xfrm”) layer, 在内核中通过structure参数判断, user space 中有个后台进程负责更新stucture(基于 key交换的结果, 通常是 IKEv2), 这就复杂了很多, 并且因为分层的抽象, 防火墙规则 配置也很复杂
+wireguard:
+使用了虚拟的interface(比如wg0), 使用简单, 状态管理透明
+基于 openssh 的思维, 支持 base64 编码
+加密: Trevor Perrin’s Noise, 没有用 tls
+在 3层工作: ip. 支持  ipv6 &lt;-&gt; ipv4
+openvpn:
+tls + user space tun/tap (类似wireguard), 性能低, user/kernel space 多次copy, 需要 long-lived daemon, 但是因为基于tls, 会导致 很多问题</p>
+<h3 id="wireguard-设计">wireguard 设计</h3>
+<p>常规交互:</p>
+<ol>
+<li>1-RTT key exchange handshake</li>
+<li>加密数据传输</li>
+</ol>
+<ul>
+<li>使用 12-byte TAI64N [7] timestamp,  通过每次使用更大的timestamp 避免了 回放攻击</li>
+<li>支持 预共享 加密key, 避免 量子计算的攻击</li>
+<li>在高负载下, 支持 cookie reply, 延迟握手时间, 第一次握手返回cookie, 到期后基于cookie 进行握手</li>
+</ul>
+<h3 id="timer--stateless-ux">timer &amp; Stateless UX</h3>
+<ol>
+<li>传输的消息数量有限制, 超过后会重新分发对称key, 创建新的session</li>
+<li>Rekey-After-Time 时间后会重新创建新的session, 分发新的对称key</li>
+<li>handshake initiation 重传, 第一条用户消息会触发 handshake initiation. 但是存在 Rekey-Timeout 或者 消息达到限制, 需要重新构建 handshake initiation</li>
+<li>通过心跳保活</li>
+<li>在高负载下的 使用 cookie 替换 handshake initiation/response, 并且cookie 是延迟一段时间后( Rekey-Timeout ) 再进行 handshake initiation</li>
+</ol>
+<h3 id="linux-kernel">linux kernel</h3>
+<p>目标: 简单快速, 少于 4k 行; 速度快, 能够匹敌 IPSec; 对于incoming packets 更轻量的资源分配; kernel 亲和; 生产可用</p>
+<ol>
+<li>
+<p>Queuing System: 针对大packet(super packet, 超过MTU)会拆包发送, 并且是立刻全部发送 以增加缓存命中率 (指令、分支预测维度); 对于handshake场景, 会将packet所在队列的所有元素 整个作为大包(super packet, 只有发消息的时候, 才会建立会话, 发送 handshake initiation); 整个packet的加密、解密都是 就地(inplace) 完成, 以及通过 sendfile 的 user space 数据和文件, 基于 zero-copy/零拷贝 的 super packet queuing system.  除此之外, 可以选择打开 <code>generic segmentation offload</code>、<code>hardware checksum offloading</code>、scatter gather I/O, 主要是为了说 将 super packet 直接提交给 wireguard处理, 因为拆包后 缓存命中率会显著降低</p>
+</li>
+<li>
+<p>Softirq &amp; Parallelism: xfrm 不需要在 softirq 进行 密码操作, wifi 的 无线 WPA 加密 用的 mac802111 也会在 softirq 做加密, 内核的 padata 支持并行的 加密解密 提升 CPU 利用率, 比较有意思的是, padata 支持有序步骤的 并行操作. 值得注意的是， handshake initiation/response、cookie reply 都是在分散的、并行的 低优worker thread 上执行, 避免洪水攻击(ECDH非常慢)</p>
+</li>
+<li>
+<p>RTNL-based Virtual Interface &amp; Containerization: 通过 RTNL 和 link 交互, RTNL 支持了 跨 network interface 的 virtual interface</p>
+</li>
+<li>
+<p>linux 支持了两种路由表实现:  LC-trie(IPV4) 和 radix trie(IPv6), 内部都用了 FIB 路由层. wireguard 通过 radix trie 实现了 加密路由表, 通过 RCU 实现无所查询. hash 函数使用 <code>extremely fast SipHash2-4 [1] MAC</code>. 直接使用 加密API 而不是依赖系统的, 可以降低 heap/stack 依赖, 在 各种intel/ARM/MIPS 上使用 <code>ChaCha20Poly1305</code> 加密, 最快实现取决于硬件. 基于 Netfilter hashlimit 实现限流</p>
+</li>
+<li>
+<p>另一种方式是 隔离wireguard interface 和 routing table, 区分出两种 namespace, 避免了全部的查询, 以及 明文攻击</p>
+</li>
+<li>
+<p>为了更加通用, 后续会在用户态 基于 tun 实现, 语言主要是 rust go haskell, 目前rust 推荐 cloudflare 的实现: <a href="https://github.com/cloudflare/boringtun">https://github.com/cloudflare/boringtun</a></p>
+</li>
+</ol>
+<h3 id="性能">性能</h3>
+<p>wireguard 性能最好.</p>
+<p>ipsec中, 目前 拥有 AES-NI 加速的 AES-GCM 套件 是比 ChaCha20Poly1305 快的, 但是后面会有 基础设施 加速 ChaCha20Poly1305, 以及 在没有 AES 基础场景下, ChaCha20Poly1305 还是首选</p>
+<h3 id="补充">补充</h3>
+<ul>
+<li>
+<p>siphash: 高性能、安全, 针对短消息进行了高速优化,</p>
+</li>
+<li>
+<p>TAI 64: 基于 铯原子 的 国际实时标准</p>
+</li>
+</ul>
+<h3 id="参考">参考</h3>
+<ul>
+<li><a href="https://131002.net/siphash/">https://131002.net/siphash/</a></li>
+</ul>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/wireguard">wireguard</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>347 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-10-13 09:46 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/kernel_block/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Kernel_block</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/golang_generic/">
+                                <span class="button__text">Golang_generic</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2020</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

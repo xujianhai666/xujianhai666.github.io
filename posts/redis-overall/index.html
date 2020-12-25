@@ -6,7 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="author" content="Zero xu ">
 <meta name="description" content="第一次学习redis和深入redis源代码的时候, 已经是大学的光景, 当时memcached还很盛行, 新浪在csdn blog上分享关于redis实操免费的视频(当时应该果断到官网学习呀&amp;hellip;), 后来redis设计与实现一书发版, 也跟进了学习. 算下来, 从接触到现在生产使用, 已经5年光景. 这里附上自己的一些体会.
- 常见的数据结构 主从复制 主从切换  参考书籍 &amp;ldquo;Redis设计与实现&amp;rdquo;" />
+ 常见的数据结构 主从复制 主从切换  参考书籍 &amp;ldquo;Redis设计与实现&amp;rdquo;
+redis 5.0 特性: 动态server.hz
+ https://luoming1224.github.io/2018/11/27/[redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0]redis%205.0%E6%96%B0%E7%89%B9%E6%80%A7-%E5%8A%A8%E6%80%81hz%E5%8F%8A%E7%9B%B8%E5%85%B3%E4%BC%98%E5%8C%96/ https://www.cnblogs.com/CtripDBA/p/9776466.html?utm_source=tuicool&amp;amp;utm_medium=referral  " />
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
@@ -33,10 +35,12 @@
 
 <meta itemprop="name" content="Redis Overall">
 <meta itemprop="description" content="第一次学习redis和深入redis源代码的时候, 已经是大学的光景, 当时memcached还很盛行, 新浪在csdn blog上分享关于redis实操免费的视频(当时应该果断到官网学习呀&hellip;), 后来redis设计与实现一书发版, 也跟进了学习. 算下来, 从接触到现在生产使用, 已经5年光景. 这里附上自己的一些体会.
- 常见的数据结构 主从复制 主从切换  参考书籍 &ldquo;Redis设计与实现&rdquo;">
+ 常见的数据结构 主从复制 主从切换  参考书籍 &ldquo;Redis设计与实现&rdquo;
+redis 5.0 特性: 动态server.hz
+ https://luoming1224.github.io/2018/11/27/[redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0]redis%205.0%E6%96%B0%E7%89%B9%E6%80%A7-%E5%8A%A8%E6%80%81hz%E5%8F%8A%E7%9B%B8%E5%85%B3%E4%BC%98%E5%8C%96/ https://www.cnblogs.com/CtripDBA/p/9776466.html?utm_source=tuicool&amp;utm_medium=referral  ">
 <meta itemprop="datePublished" content="2019-03-25T09:58:36&#43;08:00" />
 <meta itemprop="dateModified" content="2019-03-25T09:58:36&#43;08:00" />
-<meta itemprop="wordCount" content="16">
+<meta itemprop="wordCount" content="22">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -46,7 +50,9 @@
 
 <meta name="twitter:title" content="Redis Overall"/>
 <meta name="twitter:description" content="第一次学习redis和深入redis源代码的时候, 已经是大学的光景, 当时memcached还很盛行, 新浪在csdn blog上分享关于redis实操免费的视频(当时应该果断到官网学习呀&hellip;), 后来redis设计与实现一书发版, 也跟进了学习. 算下来, 从接触到现在生产使用, 已经5年光景. 这里附上自己的一些体会.
- 常见的数据结构 主从复制 主从切换  参考书籍 &ldquo;Redis设计与实现&rdquo;"/>
+ 常见的数据结构 主从复制 主从切换  参考书籍 &ldquo;Redis设计与实现&rdquo;
+redis 5.0 特性: 动态server.hz
+ https://luoming1224.github.io/2018/11/27/[redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0]redis%205.0%E6%96%B0%E7%89%B9%E6%80%A7-%E5%8A%A8%E6%80%81hz%E5%8F%8A%E7%9B%B8%E5%85%B3%E4%BC%98%E5%8C%96/ https://www.cnblogs.com/CtripDBA/p/9776466.html?utm_source=tuicool&amp;utm_medium=referral  "/>
 
 
 
@@ -135,6 +141,12 @@
 <li>主从切换</li>
 </ol>
 <p>参考书籍 &ldquo;Redis设计与实现&rdquo;</p>
+<p>redis 5.0 特性:
+动态server.hz</p>
+<ul>
+<li><a href="https://luoming1224.github.io/2018/11/27/%5Bredis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%5Dredis%205.0%E6%96%B0%E7%89%B9%E6%80%A7-%E5%8A%A8%E6%80%81hz%E5%8F%8A%E7%9B%B8%E5%85%B3%E4%BC%98%E5%8C%96/">https://luoming1224.github.io/2018/11/27/[redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0]redis%205.0%E6%96%B0%E7%89%B9%E6%80%A7-%E5%8A%A8%E6%80%81hz%E5%8F%8A%E7%9B%B8%E5%85%B3%E4%BC%98%E5%8C%96/</a></li>
+<li><a href="https://www.cnblogs.com/CtripDBA/p/9776466.html?utm_source=tuicool&amp;utm_medium=referral">https://www.cnblogs.com/CtripDBA/p/9776466.html?utm_source=tuicool&amp;utm_medium=referral</a></li>
+</ul>
 
             </div>
         </article>
@@ -143,7 +155,7 @@
 
         <div class="post-info">
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>16 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>22 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-03-25 09:58 &#43;0800</p>
         </div>

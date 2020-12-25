@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>linux on zero.xu blog</title>
-    <link>https://xujianhai.fun/tags/linux/</link>
-    <description>Recent content in linux on zero.xu blog</description>
+    <title>block on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/block/</link>
+    <description>Recent content in block on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Tue, 08 Dec 2020 17:08:42 +0800</lastBuildDate>
     
-	<atom:link href="https://xujianhai.fun/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://xujianhai.fun/tags/block/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -22,20 +22,6 @@ block I/O 请求是以 I/O 向量的形式进行提交和处理的
 主要的数据结构 基本概念 部分基本概念在 深入理解linux内核 中有讲解.
 sector: 硬件控制器的基本单元(传输数据的基本单元), 通常是512 block: vfs、fs 的基本数据单元(磁盘存储单元的最小视角), 扇区大小的整数倍, 比如2k、4k 段: 一个段就是一个内存页或者页的一部分. 管来管理磁盘上物理相邻的数据块 bio: 一次io操作. (block io的缩写, 包含多个段, 因为后续请求可能merge进来) 磁盘高速缓存: 用于磁盘数据的页 块缓冲区: 还没有接触到 物理段:	通用块层 将 ram页框连续并且磁盘上的数据块也是相邻的 进行合并 产生的内存区 硬件段: IO-MMU 处理的 物理地址-&amp;gt;硬件地址的映射进行的合并产生的内存区
 基本数据结构: linux/include/linux/blk_types.h /* * main unit of I/O for the block layer and lower layers (ie drivers and * stacking drivers) */ struct bio { // 一个 bio 有多个链表组成, 所以经常 bio_for_each_segment struct bio	*bi_next;	/* request queue link */ // 一个请求中会合并相邻的bio, 所以是链表 bio_end_io_t	*bi_end_io; struct bio_vec	*bi_io_vec;	/* the actual vec list */ // 存放数据的页列表 struct bio_set	*bi_pool; .</description>
-    </item>
-    
-    <item>
-      <title>Linux_iouring</title>
-      <link>https://xujianhai.fun/posts/linux_iouring/</link>
-      <pubDate>Tue, 26 May 2020 22:32:44 +0800</pubDate>
-      
-      <guid>https://xujianhai.fun/posts/linux_iouring/</guid>
-      <description>Preface 最近内部经常讨论 io_uring, 这块不是很了解, 特别记录下
-回顾io linux io 模型中主要区分四种类型区分: 同步io 非同步io 和 阻塞io 非阻塞io, 通过不同的组合, 有不同的模型. 如下:
- 同步io + 阻塞io: 用户进程会被阻塞在 recvfrom. 同步io + 非阻塞io: recvfrom 会返回 错误表示数据还没有到来, 不会阻塞. O_NONBLOCK 参数 同步io + 阻塞io: io多路复用: select/poll/epoll, 虽然读写不会阻塞在recvfrom, 但是会阻塞在select调用. 信号驱动: 接收到信号之后需要自己操作 异步io: 内核操作完通知. 操作系统提供了 libaio  有人还将 异步io + epoll 进行了实现: http://m.blog.chinaunix.net/uid-16979052-id-3840266.html
-io_uring   定位: 更高 IOPS 的 async syscall api. (io层的异步api, 主打高性能)
-  特点&amp;amp;主要概念
- 基于ringbuffer 的设计, 提交队列和完成队列只存储索引, SQEs(submission queue entries) 存储请求, 这样提交的请求可以内存不连续 用户态和系统态 通过 mmap 共享 提交队列 和 完成队列, 减少地址映射开销 在poll模式下, IO提交和收割 可以由 kernel 完成, 不需要系统调用, 系统会启动一个 SQ Poll 的内核线程不断poll (没有请求会睡眠), 处理 sq 和 cq 非poll模式下, io_uring_enter 会阻塞, 完成 SQ Poll 线程的任务 提供了polling和非polling两种模式, 和底层实现有关, 非polling性能比 libaio 提升不了多少, polling 模式和 SPDK 非常接近.</description>
     </item>
     
   </channel>

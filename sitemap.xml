@@ -3,6 +3,46 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xujianhai.fun/tags/block/</loc>
+    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/kernel_block/</loc>
+    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/linux/</loc>
+    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/</loc>
+    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/</loc>
+    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/wireguard/</loc>
+    <lastmod>2020-10-13T09:46:36+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/wireguard/</loc>
+    <lastmod>2020-10-13T09:46:36+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xujianhai.fun/tags/generic/</loc>
     <lastmod>2020-09-20T10:00:09+08:00</lastmod>
   </url>
@@ -14,21 +54,6 @@
   
   <url>
     <loc>https://xujianhai.fun/posts/golang_generic/</loc>
-    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-09-20T10:00:09+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
     <lastmod>2020-09-20T10:00:09+08:00</lastmod>
   </url>
   
@@ -170,11 +195,6 @@
   <url>
     <loc>https://xujianhai.fun/posts/kafka_group_coordinator/</loc>
     <lastmod>2020-05-30T21:27:58+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/linux/</loc>
-    <lastmod>2020-05-26T22:32:44+08:00</lastmod>
   </url>
   
   <url>

@@ -40,7 +40,7 @@ type ClientConn struct { conns map[*addrConn]struct{} } 一个有意思的问题
 type ClientConn struct { conns map[*addrConn]struct{} } 一个有意思的问题, 为什么分别在 clientConn 和 addrConn都做了一层balancer的封装?">
 <meta itemprop="datePublished" content="2019-07-12T12:40:33&#43;08:00" />
 <meta itemprop="dateModified" content="2019-07-12T12:40:33&#43;08:00" />
-<meta itemprop="wordCount" content="324">
+<meta itemprop="wordCount" content="385">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -195,7 +195,11 @@ baseBalancer在处理 <code>UpdateClientConnState</code> 的时候, 因为是地
 <pre><code>addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -&gt; ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher实例化启动) -&gt; Balancer#UpdateSubConnState (不同实现不一样) 
 </code></pre><p>因此, 连接状态变更的最终处理是在 Balancer, 在baseBalacer中, 会触发picker重新构建, 这样做是为了确保 picker维护的状态是最新的, 避免 random/roundrobin 返回无用的地址</p>
 <pre><code>baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build
-</code></pre>
+</code></pre><h2 id="优化">优化</h2>
+<h2 id="connection-优化">connection 优化</h2>
+<p>项目中一开始使用的负载均衡策略, 会导致 每个地址都会创建一个连接, 导致 sdk 视角下连接数非常多 (集群规模上去之后才发现), 为了降低不必要的oncall, 我们采用了 优化的pick_first, 但是 pick_first 容易存在问题, 因为 pick_first 总是返回第一个, 但是 第一个可能是 服务发现缓存的 bug 导致返回的是 一个不可用的ip, 在不正确设置 超时时间的情况下, ip:port 的连接可用性问题 会导致一直连接失败, 导致连接建连卡主, 因此需要使用 优化的 pick_first, 因此在 服务发现的实现中, 尽量随机 random 下.</p>
+<p>但是 pick_first 也不是万能的, 因为感知到连接失败需要 15s, 不同公司的 linux 配置不一样, 在15s内 如果因为 认证、授权 以及 负载自我保护措施下, 会导致连接一直重连过去, 反而引起更高的cpu 负载, 所以 stream 应用场景下 尽可能使用 randon pick.</p>
+
             </div>
         </article>
 
@@ -206,7 +210,7 @@ baseBalancer在处理 <code>UpdateClientConnState</code> 的时候, 因为是地
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/grpc">grpc</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>324 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>385 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2019-07-12 12:40 &#43;0800</p>
         </div>

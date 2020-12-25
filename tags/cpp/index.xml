@@ -18,14 +18,12 @@
       
       <guid>https://xujianhai.fun/posts/cpp_basic/</guid>
       <description>背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
-基础 fork  1）在父进程中，fork返回新创建子进程的进程ID； 2）在子进程中，fork返回0； 注意printf 这种缓冲区复制的情况
-基本数据类型 long long 和 long 和 int的区别
-取决于 编译器实现, 编译器根据系统类型的不同做法不同 (16/32/64位系统). long long 肯定是 8字节
- https://blog.csdn.net/w773913/article/details/72810117  类的多态 https://blog.csdn.net/afei__/article/details/82142775
-官方定义: 程序运行时，父类指针可以根据具体指向的子类对象，来执行不同的函数 假设Parent 和 child 两个类. Parent 定义了 虚函数和实现, 子类进行了重新的实现. 这个时候会根据具体的实例化指向具体的实现.
-- 对存在虚函数的类，编译器会在类中自动生成一个一维的虚函数表: 存储类成员函数指针 - 虚函数表由编译器自动生成和维护 - 被virtual 修饰的成员函数会被编译器放入虚函数表中 - 存在虚函数时，编译器会为对象自动生成一个指向虚函数表的虚指针（通常称之为 vptr 指针） - 虚表是和类对应的，虚表指针是和对象对应的 注意: 父类的构造方法中调用虚函数，不会发生多态。这个和 vptr 的分步初始化有关
-为什么呢? 这个和创建子类对象的编译器执行顺序有关
-- 对象在创建时，由编译器对 vptr 进行初始化 - 子类的构造会先调用父类的构造函数，这个时候 vptr 会先指向父类的虚函数表 - 子类构造的时候，vptr 会再指向子类的虚函数表 - 对象的创建完成后，vptr 最终的指向才确定 纯虚函数是虚函数再加上 = 0, 抽象类是指包括至少一个纯虚函数的类</description>
+book 术语 libc是Linux下原来的标准C库, 后来逐渐被glibc取代; glibc是Linux系统中最底层的API，几乎其它任何的运行库都要依赖glibc, glibc最主要的功能就是对系统调用的封装, 以及上层的接口 (malloc 等) glib也是个c程序库，不过比较轻量级，glib将C语言中的数据类型统一封装成自己的数据类型，提供了C语言常用的数据结构的定义以及处理函数 libc++是针对clang编译器特别重写的C++标准库，那libstdc++是gcc
+concept ? 这个貌似很后面才有的 20？很像rust 了 模板元编程 参考: https://cloud.tencent.com/developer/article/1347878 策略 标签 特性
+另外看书
+memory order gcc 里面 consumer 语意和 acquire 是一样的, 从 cpp11 stckoverflow知道, 不建议使用 consume
+https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync 这个例子很丰富, seq_cst 的效果和串行编程类似, relaxed 只是保证看到的只能是 更新的value, 没有线程同步语意, 纯粹是 atomic. Acquire/Release 只提供 有依赖关系的变量的 happen-before。 acquire-release 竟然只要求了 两个线程之间的同步 &amp;hellip;. 同步机制中, 本质上flush语意
+奇怪了, __atomic_compare_exchange_n 中 success fail 是在哪一步起作用的？为什么 fail 的 memory order 要弱于 success?</description>
     </item>
     
   </channel>

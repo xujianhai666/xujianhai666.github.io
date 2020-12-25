@@ -5,8 +5,710 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Sun, 20 Sep 2020 10:00:09 +0800</lastBuildDate>
+        <lastBuildDate>Tue, 08 Dec 2020 17:08:42 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Kernel_block</title>
+            <link>https://xujianhai.fun/posts/kernel_block/</link>
+            <pubDate>Tue, 08 Dec 2020 17:08:42 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/kernel_block/</guid>
+            <description>大部分在linux源码有所介绍, 这里针对代码层的实现大概讲解下 (可以用 https://code.woboq.org/linux/linux/include/linux/blk-mq.h.html 看, 但是最后还是下载到本地看代码了)
+block I/O 请求是以 I/O 向量的形式进行提交和处理的
+主要的数据结构 基本概念 部分基本概念在 深入理解linux内核 中有讲解.
+sector: 硬件控制器的基本单元(传输数据的基本单元), 通常是512 block: vfs、fs 的基本数据单元(磁盘存储单元的最小视角), 扇区大小的整数倍, 比如2k、4k 段: 一个段就是一个内存页或者页的一部分. 管来管理磁盘上物理相邻的数据块 bio: 一次io操作. (block io的缩写, 包含多个段, 因为后续请求可能merge进来) 磁盘高速缓存: 用于磁盘数据的页 块缓冲区: 还没有接触到 物理段:	通用块层 将 ram页框连续并且磁盘上的数据块也是相邻的 进行合并 产生的内存区 硬件段: IO-MMU 处理的 物理地址-&amp;gt;硬件地址的映射进行的合并产生的内存区
+基本数据结构: linux/include/linux/blk_types.h /* * main unit of I/O for the block layer and lower layers (ie drivers and * stacking drivers) */ struct bio { // 一个 bio 有多个链表组成, 所以经常 bio_for_each_segment struct bio	*bi_next;	/* request queue link */ // 一个请求中会合并相邻的bio, 所以是链表 bio_end_io_t	*bi_end_io; struct bio_vec	*bi_io_vec;	/* the actual vec list */ // 存放数据的页列表 struct bio_set	*bi_pool; .</description>
+            <content type="html"><![CDATA[<p>大部分在linux源码有所介绍, 这里针对代码层的实现大概讲解下 (可以用 <a href="https://code.woboq.org/linux/linux/include/linux/blk-mq.h.html">https://code.woboq.org/linux/linux/include/linux/blk-mq.h.html</a> 看, 但是最后还是下载到本地看代码了)</p>
+<p>block I/O 请求是以 I/O 向量的形式进行提交和处理的</p>
+<h2 id="主要的数据结构">主要的数据结构</h2>
+<h3 id="基本概念">基本概念</h3>
+<p>部分基本概念在 深入理解linux内核 中有讲解.</p>
+<p>sector: 硬件控制器的基本单元(传输数据的基本单元), 通常是512
+block: vfs、fs 的基本数据单元(磁盘存储单元的最小视角), 扇区大小的整数倍, 比如2k、4k
+段: 一个段就是一个内存页或者页的一部分. 管来管理磁盘上物理相邻的数据块
+bio: 一次io操作. (block io的缩写, 包含多个段, 因为后续请求可能merge进来)
+磁盘高速缓存: 用于磁盘数据的页
+块缓冲区: 还没有接触到
+物理段:	通用块层 将 ram页框连续并且磁盘上的数据块也是相邻的 进行合并 产生的内存区
+硬件段: IO-MMU 处理的 物理地址-&gt;硬件地址的映射进行的合并产生的内存区</p>
+<h3 id="基本数据结构">基本数据结构:</h3>
+<pre><code>linux/include/linux/blk_types.h
+/*
+ * main unit of I/O for the block layer and lower layers (ie drivers and
+ * stacking drivers)
+ */
+struct bio {   // 一个 bio 有多个链表组成, 所以经常 bio_for_each_segment
+	struct bio		*bi_next;	/* request queue link */ // 一个请求中会合并相邻的bio, 所以是链表
+	bio_end_io_t		*bi_end_io;
+	struct bio_vec		*bi_io_vec;	/* the actual vec list */ // 存放数据的页列表
+	struct bio_set		*bi_pool; 
+	....
+};
+
+// linux/inlucde/linux/bvec.h
+struct bio_vec {
+	struct page	*bv_page;
+	unsigned int	bv_len;
+	unsigned int	bv_offset;
+};
+
+// linux/include/linux/blkdev.h
+struct request {  
+	// 一个request初始化的时候只有一个bio, 但是IO调度的时候 会将多个bio合并, 或者bio关联新的段
+	// blk 的请求描述符, device 处理的基本单位
+	// 不懂: 有一个 nr_requests, 又有一个 queue_depth
+	struct request_queue *q;
+	struct blk_mq_ctx *mq_ctx;
+	struct blk_mq_hw_ctx *mq_hctx;
+
+	int tag;
+	int internal_tag;
+	struct bio *bio;
+	struct list_head queuelist; // 这个的用处 ? 
+	.... // 省略部分字段
+};
+
+struct request_queue {  // 需要找下部分字段的意义
+	struct elevator_queue	*elevator;
+	const struct blk_mq_ops	*mq_ops;  // device自定义的处理函数
+
+	/* sw queues */
+	struct blk_mq_ctx __percpu	*queue_ctx;
+
+	unsigned int		queue_depth;
+
+	/* hw dispatch queues */
+	struct blk_mq_hw_ctx	**queue_hw_ctx; // 每个device可以有多个 blk_mq_hw_ctx, 绑定相应的 queue 回调等函数, nbd 只有一个
+	unsigned int		nr_hw_queues;
+	
+	unsigned long		nr_requests;	/* Max # of requests */
+
+	struct list_head	requeue_list;  // 深入理解linux内核 有描述, 但是对不上, 这里应该是 重新投递的队列, 参考 `blk_mq_requeue_work`
+	struct blk_mq_tag_set	*tag_set;
+	struct list_head	tag_set_list;
+	...
+}
+
+enum hctx_type {  // hctx类型, 用于 request_queue-&gt;blk_mq_tag_set
+	HCTX_TYPE_DEFAULT,
+	HCTX_TYPE_READ,
+	HCTX_TYPE_POLL,
+
+	HCTX_MAX_TYPES,
+};
+
+// bk-mq-tag.c
+struct blk_mq_tag_set {   // ctx-&gt;hctx 映射, 同时进行限流
+	struct blk_mq_queue_map	map[HCTX_MAX_TYPES]; // 映射表
+	unsigned int		nr_maps;        // nbd 1 
+	const struct blk_mq_ops	*ops;
+	unsigned int		nr_hw_queues;   // nbd 1
+	unsigned int		queue_depth;    // nbd 128? 用处? 
+	unsigned int		reserved_tags;  // nbd 0 
+	unsigned int		cmd_size;
+	int			numa_node;
+	unsigned int		timeout;
+	unsigned int		flags;  // nbd BLK_MQ_F_SHOULD_MERGE | BLK_MQ_F_BLOCKING;
+	void			*driver_data;
+
+	struct blk_mq_tags	**tags; // 硬件队列个数/nr_hw_queues的 *blk_mq_tags, 
+
+	struct mutex		tag_list_lock;
+	struct list_head	tag_list;
+};
+
+// blk-mq.h
+// Map software queues to hardware queues, 目前映射方式是 round-robin, 因为 software queue 是每个 cpu 映射的, 因此直接 cpu round-robin 就行了
+struct blk_mq_queue_map {
+	unsigned int *mq_map;   // cpu/soft queue -&gt; hw_queue
+	unsigned int nr_queues;  // nbd 为1, set-&gt;nr_hw_queues
+	unsigned int queue_offset; // 第一个cpu映射的地址, round-robin 是从这个地址开始的. 相当于随机起始地址. 因为 set 的 tags 取的是 第一个硬件对应的cpu的node. 相当于随机化了
+};
+
+
+// blk-mq-tags.h
+// Tag address space map.
+struct blk_mq_tags { 
+	unsigned int nr_tags;      // set-&gt;queue_depth
+	unsigned int nr_reserved_tags; // set-&gt;reserved_tags
+
+	atomic_t active_queues;
+
+	struct sbitmap_queue bitmap_tags;  // round-robin 分配 nr_tags, sbitmap_queue_init_node.调用 sbitmap_queue_init_node, 不懂了 参数 bt, depth=128, -1, round_robin, GFP_KERNEL, node 
+	struct sbitmap_queue breserved_tags;
+
+	struct request **rqs;            // nr_tags 数量, 没太看懂
+	struct request **static_rqs;	 // nr_tags 数量, 分配在页上
+	struct list_head page_list;      // 存放request的地方
+};
+
+
+// blk-mq.h
+// struct blk_mq_hw_ctx - State for a hardware queue facing the hardware block device
+struct blk_mq_hw_ctx { 
+	struct {
+		/** @lock: Protects the dispatch list. */
+		spinlock_t		lock;
+		/**
+		 * @dispatch: Used for requests that are ready to be
+		 * dispatched to the hardware but for some reason (e.g. lack of
+		 * resources) could not be sent to the hardware. As soon as the
+		 * driver can send new requests, requests at this list will
+		 * be sent first for a fairer dispatch.
+		 */
+		struct list_head	dispatch;  // 有 bypass 的调度场景
+		....
+	} ____cacheline_aligned_in_smp;
+	/**
+	 * @ctx_map: Bitmap for each software queue. If bit is on, there is a
+	 * pending request in that software queue.
+	 */
+	struct sbitmap		ctx_map;    
+	/** @nr_ctx: Number of software queues. */
+	unsigned short		nr_ctx;
+	/** @ctxs: Array of software queues. */
+	struct blk_mq_ctx	**ctxs;     // 没有IO Scheduler的场景, 会遍历每一个ctx进行dispatch
+	/**
+	 * @tags: Tags owned by the block driver. A tag at this set is only
+	 * assigned when a request is dispatched from a hardware queue.
+	 */
+	struct blk_mq_tags	*tags; // set-&gt;tags[hctx_idx]
+	/**
+	 * @sched_tags: Tags owned by I/O scheduler. If there is an I/O
+	 * scheduler associated with a request queue, a tag is assigned when
+	 * that request is allocated. Else, this member is not used.
+	 */
+	struct blk_mq_tags	*sched_tags; // 
+	...
+}
+
+struct blk_mq_ctxs {
+	struct kobject kobj;
+	struct blk_mq_ctx __percpu	*queue_ctx;
+};
+
+// blk-mq.h
+/**
+ * struct blk_mq_ctx - State for a software queue facing the submitting CPUs
+ */
+struct blk_mq_ctx {
+	struct {
+		spinlock_t		lock;
+		struct list_head	rq_lists[HCTX_MAX_TYPES];   // 没有调度器, 则存储request
+	} ____cacheline_aligned_in_smp;
+
+	unsigned int		cpu;
+	unsigned short		index_hw[HCTX_MAX_TYPES];
+	struct blk_mq_hw_ctx 	*hctxs[HCTX_MAX_TYPES];
+
+	struct blk_mq_ctxs      *ctxs;
+} ____cacheline_aligned_in_smp;
+</code></pre><p>ps: 深入理解linux内核 对 plug 的描述已经过时了, 没发现blk_plug_device 和 blk_unplug_device. 另外, device层(比如nbd.c)调用的 blk_mq_init_queue 是很多函数启动和自定义的地方.</p>
+<p>注意, request_queue 提到了 sw queues(<code>struct blk_mq_ctx __percpu	*queue_ctx</code>) 和 hw dispatch queue(<code>struct blk_mq_hw_ctx	**queue_hw_ctx</code>), 其中, hw dispatch queue 维护了 request 资源(分配/限流)、回调入队任务(分发到device)、超时任务 等.</p>
+<p>软件队列(soft_queue) blk_mq_ctx 是每个cpu的, 可以利用 blk_mq_ctx 提升并发度, 单个cpu内的操作尽可能闭环, 比如: <code>__blk_mq_complete_request</code>/<code>__blk_mq_insert_req_list</code>, 除此之外, 没有调度器的场景下, 会将请求插入到 blk_mq_ctx-&gt;rq_lists. 比如调用路径:</p>
+<pre><code>blk_mq_sched_insert_requests -&gt; blk_mq_insert_requests -&gt; ... -&gt; `__blk_mq_run_hw_queue`-&gt;blk_mq_sched_dispatch_requests(既支持从 调度器进行flush, 也支持从 soft queue flush) -&gt; blk_mq_flush_busy_ctxs
+
+blk_mq_sched_insert_request 可能 `__blk_mq_insert_request` 插入到 soft queue
+</code></pre><h2 id="主流程">主流程</h2>
+<p>当需要发起块设备读写请求时，kernel 首先根据需求构造 bio 结构（毕竟是 I/O 请求单位哦），其中包含了读写的地址、长度、设备、回调函数等信息，然后 kernel 通过 submit_bio 函数将请求转发给块设备</p>
+<p>入口函数位于 blk-core.c: submit_bio -&gt; generic_make_request -&gt; make_request -&gt; 调用提前注册好的 blk_mq_make_request(blk-mq.c).</p>
+<p>先梳理一下流程:</p>
+<p>第一步: 1. 将 bio 转换为 request
+第二步: 投递到 plug 进行蓄洪, 主要是排序, 短时间内的操作都是一个设备的, 通过上层接口使用(个数 &gt; 16, 或者当前请求大小超过 128k)
+第三步: 投递到 elevator scheduler, 有多种实现, 比如 kyber, 将不同类型的请求聚合批次
+第四步: 延迟任务 从 elevator scheudler 中获取请求 并分发给 device 的 requeue接口, 下游 device处理完成后, 会调用 blk 的处理函数</p>
+<p>当然也存在快速路径, 加快分发, 比如 token 不够了的场景, 就会同步第四步提前flush 来释放token.</p>
+<h3 id="io转换">io转换</h3>
+<p>bio 实例化为 request(因为request是提前实例化好的, 所以应该是抢占一个):
+blk_mq_get_request
+data-&gt;ctx = blk_mq_get_ctx(q); // 获取当前cpu的 soft queue/blk_mq_ctx
+data-&gt;hctx = blk_mq_map_queue(&hellip;) // 获取相应类型的 hw queue/blk_mq_hw_ctx
+tag = blk_mq_get_tag(data); // 获取响应的tags, 有调度器走 hctx-&gt;sched_tags, 否则 hctx-&gt;tags; 没有可用的tag则 就立即触发同步的 blk_mq_run_hw_queue, 释放一些. io_schedule 不懂.
+blk_mq_rq_ctx_init // 从 static_tag 获取 request(tag是递增的), data信息 大量赋值给 rq,</p>
+<p>可以发现, reqeust 是从 hctx 分配的.</p>
+<h3 id="plug-从-blk_mq_make_request-看blk-mqc">plug [从 blk_mq_make_request 看/blk-mq.c]</h3>
+<p>上层负责实例化 plug, 比如 ext4调用的, blk_start_plug/blk_finish_plug 是一对控制组, 一个负责实例化, 一个负责销毁, 也就是说: 那么每个控制就有一个 mq_list. 实例化后的plug 存放在 task_struct内部, 常用变量名: current.</p>
+<p>主要使用的两个函数: blk_add_rq_to_plug 和 blk_flush_plug_list(ps: 实现从 blk-mq.c -&gt; blk-core.c -&gt; blk-mq.c &hellip; 跳来跳去有些乱)</p>
+<p>这个流程:</p>
+<pre><code>添加到 plug-&gt;mq_list -&gt; 排序后, 将 相同 mq_ctx 和  mq_hctx 放在一起调用(不相同的分开来调用) -&gt; blk_mq_sched_insert_requests(就是上面的调度层)
+</code></pre><p>plug中的排序是 mq_ctx -&gt; mq_hctx -&gt; blk_rq_pos. 奇怪, 为什么要比较 mq_ctx? 需要理一理</p>
+<h4 id="io-scheduler-从-blk_mq_make_request-看blk-mqc">IO-scheduler [从 blk_mq_make_request 看/blk-mq.c]</h4>
+<p>在实现内部, 是支持不走 scheduler 和 走scheduler 两种模型的.</p>
+<ol>
+<li>无scheduler, 通过调用 <code>blk_mq_sched_dispatch_requests</code>, 将 request 插入到 hctx-&gt;dispatch, 最终被硬件队列 flush</li>
+<li>有scheduler, 内部实现有很多(mq的IO调度器: mq-deadline/bfq/kyber. code: mq-deadline.c/bfq-iosched.c/kyber-iosched.c),</li>
+</ol>
+<h4 id="kyber">kyber</h4>
+<p>以 kyber 为例子:</p>
+<pre><code>	blk_mq_make_request[blk-mq.c] -&gt; blk_mq_sched_insert_request[blk-mq-sched.c] -&gt; insert_requests[注册sheduler的函数] kyber添加到 hctx-&gt;sched_data(常用变量名khd, 实际类型kyber_hctx_data)-&gt;kcqs[x](kyber_ctx_queue)-&gt;rq_list -&gt; .....异步的hw dispatch work -&gt; [注册scheduler的dispatch函数] 将 kyber domain的 kyber_hctx_data-&gt;kcqs[x](kyber_ctx_queue)-&gt;rq_list 迁移到 hctx-&gt;sched_data(kyber_hctx_data)-&gt;rqs[x], 再根据调用一个个返回 -&gt; device#queue_rq
+</code></pre><p>需要注意的是, 插入是存放在 hctx-&gt;sched_data-&gt;kcqs[x]-&gt;rq_list, 但是 device分发的时候, 存在一次迁移操作, 是获取  hctx-&gt;sched_data-&gt;rqs 的请求. 这样及时释放 kcqs 的空间, 加快了处理?</p>
+<p>ps: kcqs(hctx-&gt;sched_data-&gt;kcqs) 这个为什么和 分发队列 hctx-&gt;sched_data-&gt;rqs 分开来设计呢 ? 是因为更快?</p>
+<h4 id="mq-deadline">mq-deadline</h4>
+<p>deadline-iosched.rst</p>
+<p>看样子, 请求会先聚合成batch, 按照 batch的deadline 进行排队, 是 低延迟和吞吐量 之间的取舍, 参看参数 <code>fifo_batch</code>(默认是16). 因为整体上偏向read, 为了避免 write stravation, 支持了 <code>writes_starved</code> 参数(默认是2), 当read多少次, 就会进行写</p>
+<h4 id="bfq">bfq</h4>
+<p>注释很全,</p>
+<h3 id="各种队列总结">各种队列总结</h3>
+<p>这里面涉及到多个内部的队列, 因为本质上都是 list 链表操作, 性能还是能够保证的. 比如: plug 内部有 mq_list(投递到mq_list, flush的时候排个序再进入第四步), kyber 针对不同类型的实例化相应的 kyber_hctx_data-&gt;kcqs[type]-&gt;rq_list, scheduler 被回调要flush的时候, 又会将 kyber_hctx_data-&gt;kcqs[type]-&gt;rq_list 迁移到 kyer_hctx_data-&gt;rqs, 然后由 rqs 不断返回request 给 device dispatch</p>
+<p>除了流程中的队列的概念, 还有 soft_queue 和 hardware_queue 的概念, &hellip;&hellip;</p>
+<p>存在特殊的 hctx-&gt;dispatch, 这个在 无scheduler的场景下, 调用 blk_mq_request_bypass_insert 就是直接插入到 hctx-&gt;dispatch, 而且是异步flush的. 看注释的情况下, IO request 会被插入到 scheduler queue/sw queue/dispatch queue.</p>
+<p>补充重新投递: nbd 底层在发送socket失败的时候, 就会重新投递:  <code>nbd_requeue_cmd-&gt;blk_mq_requeue_request-&gt;blk_mq_sched_requeue_request(kyber scheduler 就是归还token)+blk_mq_add_to_requeue_list(添加到queue-&gt;reque_list)</code>, 最终被 queue-&gt;requeuw_work/blk_mq_requeue_work 调度 (根据情况是直接bypass还是insert scheduler)</p>
+<p>有意识的一点, requeue 和 timeout 是queue级别的(blk_mq_init_allocated_queue), 但是 blk_mq_run_work_fn 是 hctx 级别的(blk_mq_alloc_hctx)</p>
+<h2 id="device-自定义">device 自定义</h2>
+<p>不同的device需要定义不同的处理函数, 完整的定义在 blk_mq_ops[blk-mq.h]. 这里以 nbd为例子, 看几个重要的函数.</p>
+<h3 id="init_request">init_request</h3>
+<p>比较特殊, request 是提前注册好的, 所以这个 回调函数 并不是 每个bio进来后 进行实例化.</p>
+<p>调用路径: 有多条, 从 nbd的角度来看, 主要是: <code>err = blk_mq_alloc_tag_set(&amp;nbd-&gt;tag_set);</code> 和 <code>q = blk_mq_init_queue(&amp;nbd-&gt;tag_set);</code>, 奇怪了为什么要两次呢?</p>
+<pre><code>device实现调用 -&gt; blk_mq_alloc_tag_set -&gt; blk_mq_alloc_rq_maps -&gt; __blk_mq_alloc_rq_maps -&gt; __blk_mq_alloc_rq_map -&gt; blk_mq_alloc_rqs -&gt; blk_mq_init_request // 负责回调 
+
+
+device实现调用 -&gt; blk_mq_init_queue-&gt;blk_mq_init_queue_data-&gt;blk_mq_init_allocated_queue-&gt;blk_mq_realloc_hw_ctxs-&gt;blk_mq_alloc_and_init_hctx-&gt;blk_mq_init_hctx -&gt; blk_mq_init_request // 负责回调 init_request
+</code></pre><p>其实在 elevator scheduler的实现中, 也会调用</p>
+<pre><code>elevator_switch_mq/(blk_mq_init_allocated_queue-&gt;elevator_init_mq) -&gt; blk_mq_init_sched -&gt; blk_mq_sched_alloc_tags -&gt; blk_mq_alloc_rqs
+</code></pre><p>看 blk_mq_alloc_rqs 的实现, 每个request是分配在 page 上的, 一个page有多个request
+// 注意是 tags-&gt;static_rqs[i] 也是引用了 每个request. tags的实现越来越奇怪了.</p>
+<h3 id="queue-入队回调">queue 入队回调</h3>
+<p>这个触发的场景也非常多, 通常以 queue实例化过程中 启动的延迟任务为准:</p>
+<pre><code class="language-blk_mq_sched_insert_request" data-lang="blk_mq_sched_insert_request">device调用 -&gt; blk_mq_init_queue -&gt; blk_mq_init_queue_data -&gt; blk_mq_realloc_hw_ctxs -&gt; blk_mq_alloc_and_init_hctx -&gt; blk_mq_alloc_hctx -&gt; blk_mq_run_work_fn(初始化了延迟任务) -&gt; `__blk_mq_run_hw_queue` -&gt; blk_mq_sched_dispatch_requests -&gt; blk_mq_dispatch_rq_list // 会调用 q-&gt;mq_ops-&gt;queue_rq(hctx, &amp;bd); 
+</code></pre><p>主要看下<code>blk_mq_alloc_hctx</code>实现, 每个 hctx 一个任务 入队任务, 用来分发 hctx 的内容. 除此之外, <code>blk_mq_alloc_hctx</code> 还会为每个 hctx 配置一个wait触发器: blk_mq_dispatch_wake, 会调用 blk_mq_run_hw_queue.</p>
+<p>但是也是支持直接调用的, 比如初始化request的时候, 如果tag不够了, 就会触发 blk_mq_run_hw_queue(层层调用到blk_mq_dispatch_rq_list) (参看 blk_mq_get_tag[blk-mq-tag.c]), 提前dispatch 释放一些资源.</p>
+<p>从入队的 request 的来源来看, 分别来自于 IO scheduler(blk_mq_do_dispatch_sched)、soft queue(blk_mq_do_dispatch_ctx[hctx-&gt;dispatch_busy, 一个个投递]/blk_mq_flush_busy_ctxs[攒成rq_list发送]).</p>
+<h3 id="io-complete">IO complete</h3>
+<p>这个比较有意识了, io 完成的行为是 device 触发的, 比如 nbd 在 异步recv_work 收到了响应 或者 超时的时候, 会通过 blk_mq_complete_request 触发, 但是最终又回调了注册 device complete 函数 (因为执行device的cpu 和 执行 completion的cpu 可能不是一个)</p>
+<p><code>blk_mq_complete_request-&gt;__blk_complete_request</code>/blk_done_softirq(blk-softirq.c)/<code>__blk_mq_complete_request</code>/<code>__blk_mq_complete_request_remote</code><a href="blk-mq.c">非本cpu的complete处理</a> // 会调用 q-&gt;mq_ops-&gt;complete(rq);</p>
+<p>除此之外, mq_ops-&gt;complete 可能是 软中断触发的, 参考函数 <code>blk_done_softirq</code>(blk-softirq.c) 和 <code>__blk_complete_request</code>(blk-softirq.c) 以及初始化 <code>blk_softirq_init</code>, 是 <code>__blk_mq_complete_request</code> 在 单队列控制器的场景下触发</p>
+<h3 id="timeout">timeout</h3>
+<p>blk_mq_init_allocated_queue 会启动任务 blk_mq_timeout_work -&gt; blk_mq_check_expired -&gt; blk_mq_rq_timed_out  // 会回调超时 mq_ops-&gt;timeout, 如果自定义函数不是 DONE, 则继续添加到 timer. 比如重试语义不一致.</p>
+<p>超时的启动是在 device层的, 比如 nbd-&gt;nbd_handle_cmd(blk_mq_start_request)</p>
+<h2 id="问题排查工具">问题排查工具</h2>
+<p>blktrace , ftrace
+iotop, iostat</p>
+<h2 id="问题">问题</h2>
+<ol>
+<li>soft_queue 和 hardware_queue 有什么作用?</li>
+</ol>
+<p>hw_queue 维护了 request 资源和流控、io scheduler 以及 绑定的 timeout worker、queue worker. 一个硬件可以多个 hw_queue(rr 的方式将 hw_queue 分担到 cpu).</p>
+<p>很多概念扫盲: <a href="https://my.oschina.net/u/2475751/blog/1615220">https://my.oschina.net/u/2475751/blog/1615220</a></p>
+<p>hctx 在	<code>hctx-&gt;queue-&gt;nr_hw_queues == 1</code> 是 <code>WORK_CPU_UNBOUND</code>的</p>
+<p>软件队列(soft_queue) blk_mq_ctx 是每个cpu的, 可以利用 blk_mq_ctx 提升并发度, 单个cpu内的操作尽可能闭环, 比如: <code>__blk_mq_complete_request</code>/<code>__blk_mq_insert_req_list</code>, 除此之外, 没有调度器的场景下, 会将请求插入到 blk_mq_ctx-&gt;rq_lists.</p>
+<p>因此队列应该分两种, soft_queue -&gt; hw_queue, 和 io_scheduler_queue -&gt; hw_queue. 这里没有算 plug queue.</p>
+<ol start="2">
+<li>
+<p>hctx-&gt;dispatch 用处</p>
+</li>
+<li>
+<p>blk_mq_tags、blk_mq_tag_set 怎么理解</p>
+</li>
+</ol>
+<p>目前看下来仅仅是 维护request资源. 将不同 hw_type 和 hw_queue 分开来</p>
+<h2 id="特殊的设计">特殊的设计</h2>
+<h3 id="sbitmap">sbitmap</h3>
+<h2 id="参考">参考</h2>
+<ul>
+<li>buget faire scheduler: <a href="https://lwn.net/Articles/601799/">https://lwn.net/Articles/601799/</a> <a href="https://lwn.net/Articles/709202/">https://lwn.net/Articles/709202/</a></li>
+<li>kyber scheduler: <a href="https://lwn.net/Articles/720675/">https://lwn.net/Articles/720675/</a></li>
+<li>biodoc.rst</li>
+<li><a href="http://www.liuhaihua.cn/archives/686055.html">Multi-queue 架构分析</a></li>
+<li>Linux Block IO: Introducing Multi-queue SSD Access on Multi-core Systems</li>
+<li>linux mq pr: <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=320ae51feed5c2f13664aa05a76bec198967e04d">https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=320ae51feed5c2f13664aa05a76bec198967e04d</a></li>
+<li>别人的 block 学习: <a href="https://zohead.com/archives/linux-kernel-learning-block-layer/">https://zohead.com/archives/linux-kernel-learning-block-layer/</a></li>
+<li>别人的 block 学习: <a href="http://kernel.pursuitofcloud.org/710227">http://kernel.pursuitofcloud.org/710227</a></li>
+<li>别人整理的各个文件的作用: <a href="https://blog.csdn.net/ljy1988123/article/details/48978591">https://blog.csdn.net/ljy1988123/article/details/48978591</a></li>
+<li>Linux Block IO: Introducing Multi-queue SSD Access on Multi-core Systems</li>
+<li>High Performance Storage with blk-mq and scsi-mq</li>
+</ul>
+<p>///============================tldr</p>
+<h2 id="细节">细节:</h2>
+<h4 id="io-scheduler-queue">IO scheduler queue</h4>
+<p>submit_bio(block-core.c)-&gt; generic_make_request(为什么遍历? 得细看) -&gt; [之前设置的]blk_mq_make_request(将bio转换为request提交给device)
+<code>blk_queue_bounce</code>: ?  q-&gt;limits.bounce_pfn 这个设计是为啥 ?
+<code>__blk_queue_split</code>: 将大的 bio 进行切分
+<code>blk_mq_sched_bio_merge</code> // ?
+<code>rq_qos_throttle</code></p>
+<p>这里讨论 blk_mq_make_request 的几种调度策略:</p>
+<ol>
+<li>bypass scheduler: 上面讨论了, 不赘述. 直接回调 device 的 queue_rq</li>
+<li>plug (HDD的时候使用, read场景可能触发, 触发条件再理理), flush 触发机制: 个数 &gt; 16, 或者当前请求大小超过 128k.
+blk_flush_plug_list-&gt;blk_mq_sched_insert_requests // 满了要flush的机制, 排序后会分 mq_hctx、mq_ctx 投递到 sched
+blk_mq_sched_insert_requests 调度细节:
+1. e-&gt;type-&gt;ops.insert_requests(hctx, list, false); //<br>
+2.1 blk_mq_try_issue_list_directly // 回调 q-&gt;mq_ops-&gt;queue_rq
+2.2 blk_mq_insert_requests  // 细节看看, 没看到 hwctx. ctx 和 hwctx 怎么关联?
+blk_mq_run_hw_queue<br>
+blk_add_rq_to_plug // 进行 plug 的机制, 添加到头部
+// 上层调用 blk_start_plug[block-core.c], 将plug 放到 task_struct, device 无感知, 上层比如ext4调用的. current 机制就是 当前的 task_struct.
+不明白的地方? plug multiple_queues 设计? 这里有个问题, 是多 soft mq 吗? (多队列或者&gt;2, 会排序)</li>
+</ol>
+<pre><code>struct blk_plug {
+	struct list_head mq_list; /* blk-mq requests */
+	struct list_head cb_list; /* md requires an unplug callback */
+	unsigned short rq_count;
+	bool multiple_queues; // mq_list 的 request 是否都是一个 queue的, 这个标记的用处是? 
+};
+</code></pre><ol start="3">
+<li>scheduler:</li>
+</ol>
+<pre><code>/*
+ * each queue has an elevator_queue associated with it
+ */
+struct elevator_queue
+{
+	struct elevator_type *type;
+	void *elevator_data;
+	struct kobject kobj;
+	struct mutex sysfs_lock;
+	unsigned int registered:1;
+	DECLARE_HASHTABLE(hash, ELV_HASH_BITS);
+};
+/*
+ * identifies an elevator type, such as AS or deadline
+ */
+struct elevator_type
+{
+	/* managed by elevator core */
+	struct kmem_cache *icq_cache;
+
+	/* fields provided by elevator implementation */
+	struct elevator_mq_ops ops;  // 各种函数的集合
+ 
+	size_t icq_size;	/* see iocontext.h */
+	size_t icq_align;	/* ditto */
+	struct elv_fs_entry *elevator_attrs;
+	const char *elevator_name;
+	const char *elevator_alias;
+	const unsigned int elevator_features;
+	struct module *elevator_owner;
+#ifdef CONFIG_BLK_DEBUG_FS
+	const struct blk_mq_debugfs_attr *queue_debugfs_attrs;
+	const struct blk_mq_debugfs_attr *hctx_debugfs_attrs;
+#endif
+
+	/* managed by elevator core */
+	char icq_cache_name[ELV_NAME_MAX + 6];	/* elvname + &quot;_io_cq&quot; */
+	struct list_head list;
+};
+</code></pre><p>首先确定只有 evelator 算法. 具体实现: bfq-iosched.c/kyber-iosched.c/mq-deadline.c</p>
+<p>这里主要看下: kyber-iosched.c</p>
+<pre><code>// 设计思路: 根据请求类型分成多个 domain, 分别有不同的 depth、latency、batch_szie.
+通过 kyber_sched 注册自己的处理行为
+
+kyber_init_sched
+kyber_init_hctx
+kyber_bio_merge
+kyber_prepare_request  // flush 请求会触发
+kyber_insert_requests
+kyber_dispatch_request
+....
+</code></pre><p>// 实现里面有个计算百分比的公式可以学习下
+kyber_insert_requests:<br>
+就是放到指定的列表: rq_list中
+kyber_init_sched: // 分配数据结构
+kyber_init_hctx:
+kyber_bio_merge // ?
+blk_mq_make_request -&gt; blk_mq_sched_bio_merge -&gt; <code>__blk_mq_sched_bio_merge</code>// 调用 scheduler 的merge: 将新提交的bio进行merge到已有的queue的rq中, 具体实现参考 blk-merge.c, 有很多细节, 读写类型相同的、同一个设备的 &hellip; 并且前后sector相连的 才可以合并, bio 会放到 request 中.</p>
+<p>但是什么时候提交呢?
+kyber_domain_wake -&gt; blk_mq_run_hw_queue, 还是异步的 (最终实现就是/但是延迟服务会调用[不是kyber_domain_wake的主要作用] blk_mq_sched_dispatch_requests(blk-mq-sched.c), 会将之前的 hctx-&gt;dispatch 分发掉, 以及 如果scheduler 有分发, blk_mq_do_dispatch_sched, 没有schedule, 则 blk_mq_do_dispatch_ctx/blk_mq_flush_busy_ctxs)
+blk_mq_do_dispatch_sched(blk-mq-sched.c): // 遍历flush 到 device
+e-&gt;type-&gt;ops.dispatch_request -&gt; kyber_dispatch_request -&gt; kyber_dispatch_cur_domain // 获取指定domain的 request 队列, 每个循环内获取的是一个domain的request队列
+blk_mq_dispatch_rq_list  // 进行分发</p>
+<p>kyber_domain_wake 是在 kyber_init_hctx 针对每个 domain 进行初始化的,  token唤醒后？进行触发
+wait</p>
+<pre><code>static int kyber_init_hctx(struct blk_mq_hw_ctx *hctx, unsigned int hctx_idx){
+	...
+	init_waitqueue_func_entry(&amp;khd-&gt;domain_wait[i].wait,
+					  kyber_domain_wake);
+	...
+}
+static int kyber_domain_wake(...) {
+	sbitmap_del_wait_queue(wait);
+}
+</code></pre><p>kyber_finish_request ？</p>
+<p>token的概念:
+kyber_get_domain_token:
+nr = <code>__sbitmap_queue_get(domain_tokens);</code>  // -&gt; sbitmap_get(sbitmap.c)
+<code>sbitmap_add_wait_queue(domain_tokens, ws, wait);</code>
+<code>sbitmap_del_wait_queue(wait);</code></p>
+<pre><code>struct kyber_queue_data {
+	struct request_queue *q;
+	struct sbitmap_queue domain_tokens[KYBER_NUM_DOMAINS];
+	... // domain_wait
+}
+</code></pre><p>todo:
+学习下 sbitmap.c(等待空闲bits的bitmap) wait.h(队列模型)
+整体的在 kyber 中的唤醒流程:
+<code>kyber_finish_request-&gt;rq_clear_domain_token(kyber-iosched.c)-&gt;sbitmap_queue_clear/sbitmap_queue_wake_all/sbitmap_queue_update_wake_batch-&gt;sbitmap_queue_wake_up(sbitmap.c)-&gt;__sbq_wake_up-&gt;wake_up_nr(wait.h)-&gt;__wake_up(wait.c)-&gt;__wake_up_common_lock</code></p>
+<p>那么 kyber_finished_request 什么时候调用呢? 看注册关系, 主要是 finished_request/requeue_request</p>
+<pre><code>blk_mq_check_expired/__blk_mq_end_request-&gt;blk_mq_free_request(blk-mq.c)-&gt;finish_request
+
+blk_mq_dispatch_rq_list/blk_mq_try_issue_directly/blk_mq_try_issue_list_directly -&gt; blk_mq_end_request -&gt; __blk_mq_end_request
+
+blk_mq_init_allocated_queue 启动worker调度 -&gt; blk_mq_timeout_work -&gt; blk_mq_check_expired
+</code></pre><pre><code>具体的mq调用-&gt;blk_mq_requeue_request(blk-mq.c)-&gt;blk_mq_sched_requeue_request(blk-mq-sched.h)-&gt;requeue_request
+</code></pre><p>奇怪了, request -&gt; plug -&gt; scheduler -&gt; dispatch hw to device
+但是 kyber 的 scheduler 调度依赖 wait, 但是触发 wait 就需要 dispatch hw 或者 timeout, 感觉死循环了?
+因为 dispatch hw 是异步的, 所以还好. 但是 request 完成之后, 为什么还需要又 kyber_domain_wake</p>
+<p>// request-&gt;queuelist 用来做什么呢?</p>
+<p>每个 hw queue 都有一个elevator_queue.</p>
+<p>hctx-&gt;queue-&gt;elevator</p>
+<p>blk_mq_make_request -&gt; blk_mq_sched_insert_request</p>
+<p>blk_mq_make_request 支持直接投递到 hw_queue, 不进行IO调度</p>
+<p>// mq.h blk_mq_plug的注释
+plug的设计: 延迟将bio插入到 evelator 来提升 BIO merging 的机会; 怎么实现的呢? (有些翻译称呼为 蓄洪, 比如: <a href="https://blog.csdn.net/g382112762/article/details/53221272),">https://blog.csdn.net/g382112762/article/details/53221272),</a> 读场景会触发
+submit_io -&gt; generic_make_request -&gt; make_request -&gt; bio_queue_io -&gt; list_add_tail ?
+blk_start_plug ?</p>
+<p>elevator: blk_mq_init_queue 的时候并不会实例化 evelator, add_disk 的时候才会调用 (比如 nbd)</p>
+<p>nomerge:</p>
+<h3 id="tag">tag</h3>
+<p>从实现上看, 就是对 request 资源的管理, 从上面可以知道, request 是预分配好的(blk_mq_tags-&gt;static_rqs 已经在page上分配了), 每个 硬件队列 hctx 有一个 blk_mq_tags, 通过 blk_mq_tags-&gt;bitmap-tags 进行资源控制, 每一个资源就是一个 tag, 本质上就是 blk_mq_tags-&gt;static_rqs 的一个索引.</p>
+<h3 id="sbitmap-1">sbitmap</h3>
+<p>这个看提交记录应该是2016年才提交的代码部分. 常规的bitmap 在 bitmap.h(include/linux/bitmap/h) 以及 bitmao.c(lib/bitmap), 架构相关的函数实现在 <code>include/asm-&lt;arch&gt;/bitops.h</code>, sbitmap 的实现 考虑到了 伪共享的问题, 相比于 bitmap的常规定义:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-include/linux/types.h" data-lang="include/linux/types.h"><span style="color:#75715e">#</span><span style="color:#75715e">define DECLARE_BITMAP(name,bits) \</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">	unsigned long name[BITS_TO_LONGS(bits)]</span><span style="color:#75715e">
+</span></code></pre></div><p>sbitmap 的设计成了 sbitmap 和 sbitmap_word 两个数据结构, sbitmap不直接维护long, 而是依靠 sbitmao_word, 其中, sbitmap_word 中要操作的 long 型字段(word/cleared) 以及自己 都标记成了 <code>____cacheline_aligned_in_smp</code>(64位系统上64对齐), 实现L1缓存分离.</p>
+<p>和bitmap类似, sbitmap 用 sbitmap_word 替换了 bitmap 中的 long, 因此, 操作bit 需要先定位到 sbitmap_word, 在定位到 sbitmap_word 中的long的bit. 比较有意识的是, sbitmap_word 的bit clear不是立即生效的, 而是存储在 sbitmap_word-&gt;cleared 字段上, 并且和 sitmap_word-&gt;word 字段分离, 这样, 多个cpu在 获取、重置 同一个 word 的bit 可以避免伪共享, 但是随之而来的成本就是, 如果 sbitmap_word 中的bit被用光了, 就需要一次置换操作, 这个时候需要加锁: sbitmap_word-&gt;swap_lock.</p>
+<p>除此之外, 还在sbitmap的基础上扩展了 sbitmap_queue 的实现, 增加了 wait 的语意.  放在 sbitmap_queue-&gt;sbq_wait_state.</p>
+<p>相比于常规的锁实现, sbitmap 将资源的数量 分散到了 多个L1 不共享的 bitmap_word, 降低了 ping-pong 的性能损耗; 当资源耗尽, 那么都是常规的 wait, 这个场景下性能应该是一致的 (sbitmap_queue 应该存在遍历的开销?).</p>
+<ul>
+<li>主要的数据结构
+sbitmap_queue-&gt;ws: 是一个 sbq_wait_state 数组</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sbitmap.h" data-lang="sbitmap.h"><span style="color:#66d9ef">struct</span> sbitmap_word {
+	<span style="color:#75715e">/**
+</span><span style="color:#75715e">	 * @depth: Number of bits being used in @word/@cleared
+</span><span style="color:#75715e">	 */</span>
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> depth;     <span style="color:#75715e">// 可以使用的bit
+</span><span style="color:#75715e"></span>
+	<span style="color:#75715e">/**
+</span><span style="color:#75715e">	 * @word: word holding free bits
+</span><span style="color:#75715e">	 */</span>
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> word ____cacheline_aligned_in_smp; <span style="color:#75715e">// 64bit 
+</span><span style="color:#75715e"></span>
+	<span style="color:#75715e">/**
+</span><span style="color:#75715e">	 * @cleared: word holding cleared bits
+</span><span style="color:#75715e">	 */</span>
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> cleared ____cacheline_aligned_in_smp; <span style="color:#75715e">// 释放的时候放到 cleared 
+</span><span style="color:#75715e"></span>
+	<span style="color:#75715e">/**
+</span><span style="color:#75715e">	 * @swap_lock: Held while swapping word &lt;-&gt; cleared
+</span><span style="color:#75715e">	 */</span>
+	spinlock_t swap_lock; <span style="color:#75715e">// 当 word 满的时候, 需要加锁 swap_lock, 用来 clear 交换到 word, 并置为0. 可以通过 sb-&gt;map[i].word &amp; ~sb-&gt;map[i].cleared 判断是否bit使用了
+</span><span style="color:#75715e"></span>} ____cacheline_aligned_in_smp;
+
+<span style="color:#75715e">/**
+</span><span style="color:#75715e"> * struct sbitmap - Scalable bitmap.
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * A &amp;struct sbitmap is spread over multiple cachelines to avoid ping-pong. This
+</span><span style="color:#75715e"> * trades off higher memory usage for better scalability.
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">struct</span> sbitmap {
+	<span style="color:#75715e">/**
+</span><span style="color:#75715e">	 * @depth: Number of bits used in the whole bitmap.
+</span><span style="color:#75715e">	 */</span>
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> depth;  <span style="color:#75715e">// 总计可以使用的bit, word的depth 加起来就是 这个值
+</span><span style="color:#75715e"></span>
+	<span style="color:#75715e">/**
+</span><span style="color:#75715e">	 * @shift: log2(number of bits used per word)
+</span><span style="color:#75715e">	 */</span>
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> shift; <span style="color:#75715e">// 可以对 bits 进行shift 实现查找 map 的index, 也可以查找 word内的bit
+</span><span style="color:#75715e"></span>
+	<span style="color:#75715e">/**
+</span><span style="color:#75715e">	 * @map_nr: Number of words (cachelines) being used for the bitmap.
+</span><span style="color:#75715e">	 */</span>
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> map_nr; <span style="color:#75715e">// word 数量
+</span><span style="color:#75715e"></span>
+	<span style="color:#75715e">/**
+</span><span style="color:#75715e">	 * @map: Allocated bitmap.
+</span><span style="color:#75715e">	 */</span>
+	<span style="color:#66d9ef">struct</span> sbitmap_word <span style="color:#f92672">*</span>map; <span style="color:#75715e">// sbitmap_word 数组
+</span><span style="color:#75715e"></span>};
+
+<span style="color:#75715e">/**
+</span><span style="color:#75715e"> * struct sbitmap_queue - Scalable bitmap with the added ability to wait on free
+</span><span style="color:#75715e"> * bits.
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * A &amp;struct sbitmap_queue uses multiple wait queues and rolling wakeups to
+</span><span style="color:#75715e"> * avoid contention on the wait queue spinlock. This ensures that we don&#39;t hit a
+</span><span style="color:#75715e"> * scalability wall when we run out of free bits and have to start putting tasks
+</span><span style="color:#75715e"> * to sleep.
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">struct</span> sbitmap_queue {
+	<span style="color:#66d9ef">struct</span> sbitmap sb;
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> __percpu <span style="color:#f92672">*</span>alloc_hint;  <span style="color:#75715e">// 是 cpu 级别的,  [0, queueu-&gt;depth), 记录上次成功分配的空闲bit
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> wake_batch; <span style="color:#75715e">// 唤醒waiter之前必须被释放的bit数量 (初始化是queue大小)
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">struct</span> sbq_wait_state <span style="color:#f92672">*</span>ws; <span style="color:#75715e">// 等待队列的数组, 看 sbitmap_queue_init_node 实现应该就8个. 每次排队都会自增
+</span><span style="color:#75715e"></span>	atomic_t wake_index;  	 <span style="color:#75715e">// 下一个要被唤醒ws的索引
+</span><span style="color:#75715e"></span>	atomic_t ws_active;		 <span style="color:#75715e">// 当前活跃的等待队列数量
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">bool</span> round_robin;        <span style="color:#75715e">// 按照 rount-robin 方式分配
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> min_shallow_depth;  <span style="color:#75715e">// ?
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#66d9ef">struct</span> sbq_wait_state {
+	atomic_t wait_cnt;  <span style="color:#75715e">// 唤醒前需要保证空闲的数量, 不懂作用了. value是 wake_batch
+</span><span style="color:#75715e"></span>	wait_queue_head_t wait; <span style="color:#75715e">// 等待的元素
+</span><span style="color:#75715e"></span>} ____cacheline_aligned_in_smp;
+
+<span style="color:#66d9ef">struct</span> sbq_wait {
+	<span style="color:#66d9ef">struct</span> sbitmap_queue <span style="color:#f92672">*</span>sbq;	<span style="color:#75715e">/* if set, sbq_wait is accounted */</span>
+	<span style="color:#66d9ef">struct</span> wait_queue_entry wait;
+};
+
+<span style="color:#75715e">#</span><span style="color:#75715e">define BIT_MASK(nr)		(UL(1) &lt;&lt; ((nr) % BITS_PER_LONG))</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define BIT_WORD(nr)		((nr) </span><span style="color:#75715e">/</span><span style="color:#75715e"> BITS_PER_LONG)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define BITS_PER_LONG 64  </span><span style="color:#75715e">// 64位系统
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define SBQ_WAIT_QUEUES 8</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define SBQ_WAKE_BATCH 8</span><span style="color:#75715e">
+</span></code></pre></div><ul>
+<li>主要的函数功能记录:</li>
+</ul>
+<pre><code>sbitmap_queue_init_node
+	sbitmap_init_node: 
+		一个word若干bit(bit数量少, 算下来是少于 256, 那么会保证至少 4个word. 算法如下: 找到 4U &lt;&lt; shift) &lt;= depth 的shift的最大值, 相当于减少 shift 的值), word数量 (depth / bits 的上界), word-&gt;depth 一般为 min(depth, bits_per_word);
+	假设 128, 那么 shift 为5, words 数量为4, 每个 word-&gt;depth=32, 也就是说 每个word的可用bit是 32. wake_batch=8, 
+	因为兼容了 非 2的指数的场景, 所以代码有些复杂. 
+
+sbitmap_deferred_clear_bit: 延迟清除, 放到 bitmap
+sbitmap_queue_clear: -&gt;sbitmap_deferred_clear_bit(设置清空标志), 并唤醒: sbitmap_queue_wake_up
+(blk场景里, `__blk_mq_free_request`-&gt;blk_mq_put_tag, rq_clear_domain_token, )
+
+sbq_wake_ptr: 获取 sbitmap_queue-&gt;ws(sbq_wait_state数组) 中有等待的sbq_wait_state, 并自增等待索引
+sbitmap_free: 
+sbitmap_get:  // 遍历 word, 获取word下一个非零bit 并set. 返回的是总的 number
+sbitmap_queue_init_node
+`__sbitmap_queue_get`:  // 调用 sbitmap_get, 看情况会更新 alloc_hint
+
+sbitmap_queue_wake_all: 循环唤醒 sbitmap_queue-&gt;ws(数组)/sbq_wait_state -&gt; wake_up(&amp;ws-&gt;wait);
+
+sbitmap_queue_wake_up: sbq_wake_ptr, ws-&gt;wait_cnt 减1, 如果跌0, 则唤醒一个batch -&gt; wake_up_nr(&amp;ws-&gt;wait, wake_batch);
+
+sbitmap_prepare_to_wait: 将 sbq_wait-&gt;wait_queue_entry 挂载到 sbitmap_queue-&gt;sbq_wait_state 后面, 会
+							设置线程状态
+sbitmap_finish_wait: 从 sbitmap_queue-&gt;sbq_wait_state 删除 sbq_wait-&gt;wait_queue_entry, 并恢复线程状态
+sbitmap_add_wait_queue: 和prepare类似, 除了不设置状态 
+sbitmap_del_wait_queue: 和finish类似, 除了不设置状态
+</code></pre><ul>
+<li>commits
+看上去代码大部分是2016年完成的, 所以网上基本没资料, 主要的一些提交记录:</li>
+</ul>
+<pre><code>	f4a644db86669 (Omar Sandoval     2016-09-17 01:28:24
+	88459642cba45 (Omar Sandoval 	 2016-09-17 08:38:44
+	c05e667337881 (Omar Sandoval     2017-04-14 00:59:58
+	7930d0a00ff5d (Ming Lei          2017-10-14 17:22:27
+	4ace53f1ed40a (Omar Sandoval     2018-02-27 16:56:43
+	14b470b56840d (Arnd Bergmann 	 2018-07-06 22:19:07
+	5d2ee7122c73b (Jens Axboe        2018-11-29 17:36:41
+	ea86ea2cdced2 (Jens Axboe    	 2018-11-30 13:18:06
+</code></pre><ul>
+<li>问答:</li>
+</ul>
+<p>为什么要设计一个这个: sbq_wait? 用来给外层routine 维护一个wait_entry 实现复用, 以及检测是否存在等待的情况, 比如 kyber-iosched.c</p>
+<ul>
+<li>usage</li>
+</ul>
+<p>看上去每个硬件队列一个 wait_index, 那么 sbitmap_queue 有多个 hw ?</p>
+<p>kyber-iosched.c 中使用 sbitmap_queue 进行资源的管理, 避免下游磁盘处理太慢, 实现对上游request的depth限流</p>
+<p>kyber_finish_request
+rq_clear_domain_token
+rq_get_domain_token: 获取request记录的bit nr.
+sbitmap_queue_clear(): 标记bit nr cleared, 并将nr记录到 cpu的 alloc_hint. 尝试唤醒(当存在等待的时候, 设计了批量唤醒的机制, 没有释放 batch 数量的bit, 则什么也不做, 只是减少计数)</p>
+<p>kyber_dispatch_cur_domain
+kyber_get_domain_token
+<code>__sbitmap_queue_get</code> // 遍历word, 获取一个空闲的bit
+sbitmap_add_wait_queue(domain_tokens, ws, wait); // 添加到等待队列
+rq_set_domain_token: 将bit nr 设置到 rq-&gt;elv.priv[0]</p>
+<h3 id="参考书籍">参考书籍</h3>
+<p>深入理解 linux 内核
+内核利用通用块层(general block layer)启动IO操作来传递所请求的数据, 因为每次IO操作在磁盘上的块不一定连续, 所以需要启动多次IO操作</p>
+<h2 id="问题-1">问题</h2>
+<p>dispatch_wait 的触发逻辑不懂
+softirq 复习下
+struct kobject * mq_kobj;  付下下
+sbitmap 是 slab 分配的map, 奇怪了, 为什么要node 呢?<br>
+bounce 的设计点 ?</p>
+<h2 id="补充学习">补充学习</h2>
+<p>front merge &amp; backend merge:
+<a href="https://zhuanlan.zhihu.com/p/40742877">https://zhuanlan.zhihu.com/p/40742877</a></p>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Wireguard</title>
+            <link>https://xujianhai.fun/posts/wireguard/</link>
+            <pubDate>Tue, 13 Oct 2020 09:46:36 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/wireguard/</guid>
+            <description>几种设计 ipsec: 基于 Linux transform (“xfrm”) layer, 在内核中通过structure参数判断, user space 中有个后台进程负责更新stucture(基于 key交换的结果, 通常是 IKEv2), 这就复杂了很多, 并且因为分层的抽象, 防火墙规则 配置也很复杂 wireguard: 使用了虚拟的interface(比如wg0), 使用简单, 状态管理透明 基于 openssh 的思维, 支持 base64 编码 加密: Trevor Perrin’s Noise, 没有用 tls 在 3层工作: ip. 支持 ipv6 &amp;lt;-&amp;gt; ipv4 openvpn: tls + user space tun/tap (类似wireguard), 性能低, user/kernel space 多次copy, 需要 long-lived daemon, 但是因为基于tls, 会导致 很多问题
+wireguard 设计 常规交互:
+ 1-RTT key exchange handshake 加密数据传输   使用 12-byte TAI64N [7] timestamp, 通过每次使用更大的timestamp 避免了 回放攻击 支持 预共享 加密key, 避免 量子计算的攻击 在高负载下, 支持 cookie reply, 延迟握手时间, 第一次握手返回cookie, 到期后基于cookie 进行握手  timer &amp;amp; Stateless UX  传输的消息数量有限制, 超过后会重新分发对称key, 创建新的session Rekey-After-Time 时间后会重新创建新的session, 分发新的对称key handshake initiation 重传, 第一条用户消息会触发 handshake initiation.</description>
+            <content type="html"><![CDATA[<h3 id="几种设计">几种设计</h3>
+<p>ipsec:
+基于 Linux transform (“xfrm”) layer, 在内核中通过structure参数判断, user space 中有个后台进程负责更新stucture(基于 key交换的结果, 通常是 IKEv2), 这就复杂了很多, 并且因为分层的抽象, 防火墙规则 配置也很复杂
+wireguard:
+使用了虚拟的interface(比如wg0), 使用简单, 状态管理透明
+基于 openssh 的思维, 支持 base64 编码
+加密: Trevor Perrin’s Noise, 没有用 tls
+在 3层工作: ip. 支持  ipv6 &lt;-&gt; ipv4
+openvpn:
+tls + user space tun/tap (类似wireguard), 性能低, user/kernel space 多次copy, 需要 long-lived daemon, 但是因为基于tls, 会导致 很多问题</p>
+<h3 id="wireguard-设计">wireguard 设计</h3>
+<p>常规交互:</p>
+<ol>
+<li>1-RTT key exchange handshake</li>
+<li>加密数据传输</li>
+</ol>
+<ul>
+<li>使用 12-byte TAI64N [7] timestamp,  通过每次使用更大的timestamp 避免了 回放攻击</li>
+<li>支持 预共享 加密key, 避免 量子计算的攻击</li>
+<li>在高负载下, 支持 cookie reply, 延迟握手时间, 第一次握手返回cookie, 到期后基于cookie 进行握手</li>
+</ul>
+<h3 id="timer--stateless-ux">timer &amp; Stateless UX</h3>
+<ol>
+<li>传输的消息数量有限制, 超过后会重新分发对称key, 创建新的session</li>
+<li>Rekey-After-Time 时间后会重新创建新的session, 分发新的对称key</li>
+<li>handshake initiation 重传, 第一条用户消息会触发 handshake initiation. 但是存在 Rekey-Timeout 或者 消息达到限制, 需要重新构建 handshake initiation</li>
+<li>通过心跳保活</li>
+<li>在高负载下的 使用 cookie 替换 handshake initiation/response, 并且cookie 是延迟一段时间后( Rekey-Timeout ) 再进行 handshake initiation</li>
+</ol>
+<h3 id="linux-kernel">linux kernel</h3>
+<p>目标: 简单快速, 少于 4k 行; 速度快, 能够匹敌 IPSec; 对于incoming packets 更轻量的资源分配; kernel 亲和; 生产可用</p>
+<ol>
+<li>
+<p>Queuing System: 针对大packet(super packet, 超过MTU)会拆包发送, 并且是立刻全部发送 以增加缓存命中率 (指令、分支预测维度); 对于handshake场景, 会将packet所在队列的所有元素 整个作为大包(super packet, 只有发消息的时候, 才会建立会话, 发送 handshake initiation); 整个packet的加密、解密都是 就地(inplace) 完成, 以及通过 sendfile 的 user space 数据和文件, 基于 zero-copy/零拷贝 的 super packet queuing system.  除此之外, 可以选择打开 <code>generic segmentation offload</code>、<code>hardware checksum offloading</code>、scatter gather I/O, 主要是为了说 将 super packet 直接提交给 wireguard处理, 因为拆包后 缓存命中率会显著降低</p>
+</li>
+<li>
+<p>Softirq &amp; Parallelism: xfrm 不需要在 softirq 进行 密码操作, wifi 的 无线 WPA 加密 用的 mac802111 也会在 softirq 做加密, 内核的 padata 支持并行的 加密解密 提升 CPU 利用率, 比较有意思的是, padata 支持有序步骤的 并行操作. 值得注意的是， handshake initiation/response、cookie reply 都是在分散的、并行的 低优worker thread 上执行, 避免洪水攻击(ECDH非常慢)</p>
+</li>
+<li>
+<p>RTNL-based Virtual Interface &amp; Containerization: 通过 RTNL 和 link 交互, RTNL 支持了 跨 network interface 的 virtual interface</p>
+</li>
+<li>
+<p>linux 支持了两种路由表实现:  LC-trie(IPV4) 和 radix trie(IPv6), 内部都用了 FIB 路由层. wireguard 通过 radix trie 实现了 加密路由表, 通过 RCU 实现无所查询. hash 函数使用 <code>extremely fast SipHash2-4 [1] MAC</code>. 直接使用 加密API 而不是依赖系统的, 可以降低 heap/stack 依赖, 在 各种intel/ARM/MIPS 上使用 <code>ChaCha20Poly1305</code> 加密, 最快实现取决于硬件. 基于 Netfilter hashlimit 实现限流</p>
+</li>
+<li>
+<p>另一种方式是 隔离wireguard interface 和 routing table, 区分出两种 namespace, 避免了全部的查询, 以及 明文攻击</p>
+</li>
+<li>
+<p>为了更加通用, 后续会在用户态 基于 tun 实现, 语言主要是 rust go haskell, 目前rust 推荐 cloudflare 的实现: <a href="https://github.com/cloudflare/boringtun">https://github.com/cloudflare/boringtun</a></p>
+</li>
+</ol>
+<h3 id="性能">性能</h3>
+<p>wireguard 性能最好.</p>
+<p>ipsec中, 目前 拥有 AES-NI 加速的 AES-GCM 套件 是比 ChaCha20Poly1305 快的, 但是后面会有 基础设施 加速 ChaCha20Poly1305, 以及 在没有 AES 基础场景下, ChaCha20Poly1305 还是首选</p>
+<h3 id="补充">补充</h3>
+<ul>
+<li>
+<p>siphash: 高性能、安全, 针对短消息进行了高速优化,</p>
+</li>
+<li>
+<p>TAI 64: 基于 铯原子 的 国际实时标准</p>
+</li>
+</ul>
+<h3 id="参考">参考</h3>
+<ul>
+<li><a href="https://131002.net/siphash/">https://131002.net/siphash/</a></li>
+</ul>
+]]></content>
+        </item>
         
         <item>
             <title>Golang_generic</title>
@@ -1359,7 +2061,9 @@ vprof https://github.com/nvdv/vprof
 profile_online https://github.com/rfyiamcool/profiler_online
 比较简单, 只支持火焰图, 支持web导出
 py-spy (目前用这个) https://github.com/benfred/py-spy
-打印堆栈、火焰图、top</description>
+打印堆栈、火焰图、top
+主要是: py-spy dump --pid 12345
+python -m pip install &amp;ndash;upgrade pip</description>
             <content type="html"><![CDATA[<h2 id="火焰图">火焰图</h2>
 <h3 id="pyframe">pyframe</h3>
 <p><a href="https://github.com/uber/pyflame">https://github.com/uber/pyflame</a>
@@ -1374,6 +2078,8 @@ py-spy (目前用这个) https://github.com/benfred/py-spy
 <h2 id="py-spy-目前用这个">py-spy (目前用这个)</h2>
 <p><a href="https://github.com/benfred/py-spy">https://github.com/benfred/py-spy</a></p>
 <p>打印堆栈、火焰图、top</p>
+<p>主要是: <code>py-spy dump --pid 12345</code></p>
+<p>python -m pip install &ndash;upgrade pip</p>
 ]]></content>
         </item>
         
@@ -3538,17 +4244,143 @@ typedef struct zset {
             
             <guid>https://xujianhai.fun/posts/cpp_basic/</guid>
             <description>背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
-基础 fork  1）在父进程中，fork返回新创建子进程的进程ID； 2）在子进程中，fork返回0； 注意printf 这种缓冲区复制的情况
-基本数据类型 long long 和 long 和 int的区别
-取决于 编译器实现, 编译器根据系统类型的不同做法不同 (16/32/64位系统). long long 肯定是 8字节
- https://blog.csdn.net/w773913/article/details/72810117  类的多态 https://blog.csdn.net/afei__/article/details/82142775
-官方定义: 程序运行时，父类指针可以根据具体指向的子类对象，来执行不同的函数 假设Parent 和 child 两个类. Parent 定义了 虚函数和实现, 子类进行了重新的实现. 这个时候会根据具体的实例化指向具体的实现.
-- 对存在虚函数的类，编译器会在类中自动生成一个一维的虚函数表: 存储类成员函数指针 - 虚函数表由编译器自动生成和维护 - 被virtual 修饰的成员函数会被编译器放入虚函数表中 - 存在虚函数时，编译器会为对象自动生成一个指向虚函数表的虚指针（通常称之为 vptr 指针） - 虚表是和类对应的，虚表指针是和对象对应的 注意: 父类的构造方法中调用虚函数，不会发生多态。这个和 vptr 的分步初始化有关
-为什么呢? 这个和创建子类对象的编译器执行顺序有关
-- 对象在创建时，由编译器对 vptr 进行初始化 - 子类的构造会先调用父类的构造函数，这个时候 vptr 会先指向父类的虚函数表 - 子类构造的时候，vptr 会再指向子类的虚函数表 - 对象的创建完成后，vptr 最终的指向才确定 纯虚函数是虚函数再加上 = 0, 抽象类是指包括至少一个纯虚函数的类</description>
+book 术语 libc是Linux下原来的标准C库, 后来逐渐被glibc取代; glibc是Linux系统中最底层的API，几乎其它任何的运行库都要依赖glibc, glibc最主要的功能就是对系统调用的封装, 以及上层的接口 (malloc 等) glib也是个c程序库，不过比较轻量级，glib将C语言中的数据类型统一封装成自己的数据类型，提供了C语言常用的数据结构的定义以及处理函数 libc++是针对clang编译器特别重写的C++标准库，那libstdc++是gcc
+concept ? 这个貌似很后面才有的 20？很像rust 了 模板元编程 参考: https://cloud.tencent.com/developer/article/1347878 策略 标签 特性
+另外看书
+memory order gcc 里面 consumer 语意和 acquire 是一样的, 从 cpp11 stckoverflow知道, 不建议使用 consume
+https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync 这个例子很丰富, seq_cst 的效果和串行编程类似, relaxed 只是保证看到的只能是 更新的value, 没有线程同步语意, 纯粹是 atomic. Acquire/Release 只提供 有依赖关系的变量的 happen-before。 acquire-release 竟然只要求了 两个线程之间的同步 &amp;hellip;. 同步机制中, 本质上flush语意
+奇怪了, __atomic_compare_exchange_n 中 success fail 是在哪一步起作用的？为什么 fail 的 memory order 要弱于 success?</description>
             <content type="html"><![CDATA[<h2 id="背景">背景</h2>
 <p>最近准备写 cpp 的一些项目, 学习下不太了解的领域.</p>
-<h2 id="基础">基础</h2>
+<h2 id="book">book</h2>
+<h2 id="术语">术语</h2>
+<p>libc是Linux下原来的标准C库, 后来逐渐被glibc取代;
+glibc是Linux系统中最底层的API，几乎其它任何的运行库都要依赖glibc, glibc最主要的功能就是对系统调用的封装, 以及上层的接口 (malloc 等)
+glib也是个c程序库，不过比较轻量级，glib将C语言中的数据类型统一封装成自己的数据类型，提供了C语言常用的数据结构的定义以及处理函数
+libc++是针对clang编译器特别重写的C++标准库，那libstdc++是gcc</p>
+<h3 id="concept--这个貌似很后面才有的-20很像rust-了">concept ? 这个貌似很后面才有的 20？很像rust 了</h3>
+<h3 id="模板元编程">模板元编程</h3>
+<p>参考: <a href="https://cloud.tencent.com/developer/article/1347878">https://cloud.tencent.com/developer/article/1347878</a>
+策略 标签 特性</p>
+<p>另外看书</p>
+<h3 id="memory-order">memory order</h3>
+<p>gcc 里面 consumer 语意和 acquire 是一样的, 从 cpp11 stckoverflow知道, 不建议使用 consume</p>
+<p><a href="https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html">https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html</a>
+<a href="https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync">https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync</a>  这个例子很丰富, seq_cst 的效果和串行编程类似, relaxed 只是保证看到的只能是 更新的value, 没有线程同步语意, 纯粹是 atomic. Acquire/Release 只提供 有依赖关系的变量的 happen-before。 acquire-release 竟然只要求了 两个线程之间的同步 &hellip;. 同步机制中, 本质上flush语意</p>
+<p>奇怪了, <code>__atomic_compare_exchange_n</code> 中 success fail 是在哪一步起作用的？为什么 fail 的 memory order 要弱于 success?</p>
+<h3 id="虚函数表和指针">虚函数表和指针</h3>
+<p><a href="https://zhuanlan.zhihu.com/p/98776075">https://zhuanlan.zhihu.com/p/98776075</a></p>
+<h3 id="cast">cast</h3>
+<p>dynamic_cast: <a href="https://www.bbsmax.com/A/obzbypybdE/">https://www.bbsmax.com/A/obzbypybdE/</a> 主要概你是 RTTI(其存储着类运行的相关信息， 比如类的名字，以及类的基类), 转换的时候会进行检查, 当有虚函数表的时候, 才会有RTTI, 还有 RTTICompleteObjectLocator
+dynamic_cast的时间和空间代价是相对较高的，在设计时应避免使用。</p>
+<p>static_cast 向下转换不会进行检, 编译时确定
+static_cast效率比dynamic_cast高，请尽可能用。大部分情况下static_cast编译时就可以确定指针移动多少偏移量，但是对于虚继承要用到虚指针确定一个到虚基类的偏移量，稍微麻烦一些</p>
+<h3 id="crpt-奇异递归末班模式">CRPT 奇异递归末班模式</h3>
+<p><a href="https://zhuanlan.zhihu.com/p/137879448">https://zhuanlan.zhihu.com/p/137879448</a>
+貌似 modern cpp 有, 可以参照
+还是得多实践下</p>
+<h3 id="functor">functor</h3>
+<p><a href="https://www.bogotobogo.com/cplusplus/functors.php">https://www.bogotobogo.com/cplusplus/functors.php</a> 无非是 重载了 () 实现 template, 另外, 也支持 struct
+其中, c98 支持 bind1st bind2nd, 限制太大, 还是使用 std::bind,</p>
+<pre><code>#include &lt;iostream&gt;
+#include &lt;functional&gt;   //std::bind
+using namespace std;
+
+void func(int x, int y)
+{
+    cout &lt;&lt; x &lt;&lt; &quot; &quot; &lt;&lt; y &lt;&lt; endl;
+}
+
+int main()
+{
+    bind(func, 1, 2)();                     //输出：1 2
+    bind(func, std::placeholders::_1, 2)(1);//输出：1 2
+
+    using namespace std::placeholders;    // adds visibility of _1, _2, _3,...
+    bind(func, 2, _1)(1);       //输出：2 1
+    bind(func, 2, _2)(1, 2);    //输出：2 2
+    bind(func, _1, _2)(1, 2);   //输出：1 2
+    bind(func,_2, _1)(1, 2);    //输出：2 1
+
+    //err, 调用时没有第二个参数
+    //bind(func, 2, _2)(1);
+
+    return 0;
+}
+</code></pre><h2 id="基础">基础</h2>
+<p>教程:
+<a href="https://changkun.de/modern-cpp/zh-cn/01-intro/index.html#1-1-%E8%A2%AB%E5%BC%83%E7%94%A8%E7%9A%84%E7%89%B9%E6%80%A7">https://changkun.de/modern-cpp/zh-cn/01-intro/index.html#1-1-%E8%A2%AB%E5%BC%83%E7%94%A8%E7%9A%84%E7%89%B9%E6%80%A7</a></p>
+<p>怎么理解 lock_guard 没有 mutex 的所有权 ?
+看看这个: <a href="https://www.cnblogs.com/haippy/p/3279565.html">https://www.cnblogs.com/haippy/p/3279565.html</a> 还没细看
+顺序一致性 和 全局一致性的差异没有很好的讲明白, 看些 ppt 和 video 增强下 <a href="https://changkun.de/modern-cpp/zh-cn/07-thread/index.html#7-4-%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F">https://changkun.de/modern-cpp/zh-cn/07-thread/index.html#7-4-%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F</a> 看样子 memory_order_seq_cst 并没有啥作用
+<a href="https://www.cnblogs.com/navono007/p/5746048.html">https://www.cnblogs.com/navono007/p/5746048.html</a></p>
+<p>ISO C++ Concurrency Study Group</p>
+<p>锁: 针对 memory_order 不错的解释</p>
+<p>std-memory-order-relaxed 重新学习</p>
+<p><a href="https://www.cnblogs.com/qingergege/p/7607089.html">https://www.cnblogs.com/qingergege/p/7607089.html</a> 浅层copy导致的 两次释放同一块区域 拷贝构造函数中，对于指针，我们一定要采用深层复制，而移动构造函数中，对于指针，我们采用浅层复制</p>
+<p>ringbuffer 实现, 和 disruptor 对比
+<a href="https://gist.github.com/xueliu/f7959c3608fad2bc942a9a4e48accea0">https://gist.github.com/xueliu/f7959c3608fad2bc942a9a4e48accea0</a> 有点高大上. typedef
+陈硕的设计: <a href="http://www.cppblog.com/Solstice/archive/2015/08/29/144378.html">http://www.cppblog.com/Solstice/archive/2015/08/29/144378.html</a>
+disruptor: <a href="https://github.com/Abc-Arbitrage/Disruptor-cpp">https://github.com/Abc-Arbitrage/Disruptor-cpp</a></p>
+<h2 id="奇淫技巧">奇淫技巧</h2>
+<p>vector:
+<code>_LIBCPP_INLINE_VISIBILITY</code>:  ？
+<code>_LIBCPP_NORETURN</code>: ?
+<code>_LIBCPP_EXTERN_TEMPLATE</code>: ?
+小技巧:</p>
+<pre><code>copy( rq.begin(), rq.end(),
+      ostream_iterator&lt;int&gt;( cout, &quot;\n&quot; ) );
+</code></pre><p>如何支持分配器 allocator 的设计?</p>
+<p>ringbuffer 的 &amp;T 用T 初始化，&amp;T 作为参数, 那么复制进去会不会 调用copy ？</p>
+<p>迭代器设计: <a href="https://users.cs.northwestern.edu/~riesbeck/programming/c++/stl-iterator-define.html">https://users.cs.northwestern.edu/~riesbeck/programming/c++/stl-iterator-define.html</a></p>
+<p>C++ <code>_GUARDED_BY</code>和<code>EXCLUDES</code>属性字:</p>
+<pre><code>http://clang.llvm.org/docs/ThreadSafetyAnalysis.html
+</code></pre><h3 id="移动语意">移动语意</h3>
+<p><a href="https://gaodq.github.io/2017/04/16/rvalue-reference-in-c++11/">https://gaodq.github.io/2017/04/16/rvalue-reference-in-c++11/</a></p>
+<h3 id="mutex">mutex</h3>
+<p>abseil 的 mutex 支持 锁检查、读写锁 等. 具体的在对比下 (TODO)</p>
+<h3 id="thread_local">thread_local</h3>
+<p>默认的thread local: <a href="https://spockwangs.github.io/blog/2017/12/01/thread-local-storage/">https://spockwangs.github.io/blog/2017/12/01/thread-local-storage/</a> (讲了很多, <a href="https://docs.oracle.com/cd/E19253-01/819-7050/chapter8-1/index.html">https://docs.oracle.com/cd/E19253-01/819-7050/chapter8-1/index.html</a>) ;
+默认的 pthread_t pthread_key_t pthread_key_create pthread_getspecific pthread_setspecific, 这个是 posix 的 thread local 设计, 本质上 pthread_key_t 有最大的数组限制 (编译要加-pthread); c++ 11 提供了 thread_local 关键字, elf 的实现 基于 tls 段实现的.</p>
+<p>GNUC下通过__thread关键字声明，MSVC下通过__declspec(thread)关键字声明</p>
+<p>注意: pthread_key 要保证只被创建了一次, 不然会覆盖</p>
+<p><code>__thread is faster than pthread_getspecific</code>
+<code>__thread是GCC内置的线程局部存储设施</code></p>
+<p>folly 中的设计: 使用 ThreadEntry 维护每个线程的 thread local 列表(elememts 对象), 每个thread local 通过 element wrapper 进行封装(支持自定义的deleter), 所有线程的 threadEntry 维护在 static meta(单例) 当中
+参考: <a href="https://toutiao.io/posts/5e08c1/preview">https://toutiao.io/posts/5e08c1/preview</a></p>
+<p>StaticMeta, ThreadEntry</p>
+<h3 id="thread-pool">thread pool</h3>
+<p>abseil 内部有个线程池实现, 基于vector, 不过内部测试用的</p>
+<p>folly 支持的比较完善, IOThreadPoolExecutor/CPUThreadPoolExecutor/ThreadPoolExecutor</p>
+<p>Executor, DefaultKeepAliveExecutor, IOExecutor, ThreadPoolExecutor, IOThreadPoolExecutor, GlobalExecutor</p>
+<p>facebook wangle: <a href="https://gaodq.github.io/2017/08/07/facebook-wangle/">https://gaodq.github.io/2017/08/07/facebook-wangle/</a>  <a href="https://engineering.fb.com/2016/04/20/networking-traffic/wangle-an-asynchronous-c-networking-and-rpc-library/">https://engineering.fb.com/2016/04/20/networking-traffic/wangle-an-asynchronous-c-networking-and-rpc-library/</a></p>
+<p>io async库: <a href="https://github.com/facebook/folly/tree/master/folly/io/async">https://github.com/facebook/folly/tree/master/folly/io/async</a></p>
+<p>CPUThreadPoolExecutor 依赖 LifoSemImpl, MPMCQueue</p>
+<p>c10k: <a href="http://www.kegel.com/c10k.html">http://www.kegel.com/c10k.html</a>
+fast unix server: <a href="https://nick-black.com/dankwiki/index.php/Fast_UNIX_Servers">https://nick-black.com/dankwiki/index.php/Fast_UNIX_Servers</a></p>
+<h3 id="io">io</h3>
+<p>libevent: <a href="https://libevent.org/">https://libevent.org/</a>
+基于libevent封装的io库: <a href="https://github.com/facebook/folly/tree/master/folly/io/async">https://github.com/facebook/folly/tree/master/folly/io/async</a></p>
+<h3 id="排查工具">排查工具</h3>
+<p>perf sched</p>
+<h3 id="容器">容器</h3>
+<p>c++11 支持了新的 emplace 方法, 避免了常规的 insert 导致的临时变量的开销(变参模板, 完美转发, 看上去是直接在 容器的内存上构造参数)
+<a href="https://www.cnblogs.com/narjaja/p/10039509.html">https://www.cnblogs.com/narjaja/p/10039509.html</a>
+<a href="http://www.cplusplus.com/reference/map/map/emplace/">http://www.cplusplus.com/reference/map/map/emplace/</a></p>
+<h3 id="技巧">技巧</h3>
+<ul>
+<li>模板元编程 <a href="https://google.github.io/styleguide/cppguide.html#Template_metaprogramming">https://google.github.io/styleguide/cppguide.html#Template_metaprogramming</a></li>
+<li>style guide <a href="https://google.github.io/styleguide/cppguide.html">https://google.github.io/styleguide/cppguide.html</a></li>
+<li>diamond dependency problem: d -&gt; c, b -&gt; a, 编译器会报错</li>
+<li>Hyrum&rsquo;s Law <a href="https://www.hyrumslaw.com/">https://www.hyrumslaw.com/</a></li>
+</ul>
+<h3 id="proposal">proposal</h3>
+<p>std::expected</p>
+<h3 id="编译器优化">编译器优化</h3>
+<p>+= 做了什么 ?</p>
+<h3 id="abseil">abseil</h3>
+<p>更快的随机数
+多种编译器: clang llvm/ gnu gcc compiler/visual studio mscv</p>
 <h3 id="fork">fork</h3>
 <pre><code>    1）在父进程中，fork返回新创建子进程的进程ID；
     2）在子进程中，fork返回0；
@@ -3630,6 +4462,13 @@ typedef struct zset {
 <pre><code> V&amp; operator=(V&amp;&amp; other) {}
 </code></pre><p><a href="https://zh.cppreference.com/w/cpp/language/move_assignment">https://zh.cppreference.com/w/cpp/language/move_assignment</a>
 <a href="https://zh.cppreference.com/w/cpp/named_req/MoveAssignable">https://zh.cppreference.com/w/cpp/named_req/MoveAssignable</a></p>
+<p><em>noexcept</em></p>
+<p>申明没有异常, 有效的阻止异常的传播与扩散, 编译器会选择 terminate. 有利于编译器对程序做更多的优化: C++中的异常处理是在运行时而不是编译时检测的, 为了实现运行时检测，编译器创建额外的代码. 支持 有条件的noexcecpt: noexcept(noexcept(x.swap(y))). 建议使用的场景:</p>
+<pre><code>移动构造函数（move constructor）
+移动分配函数（move assignment）
+析构函数（destructor）(在新版本的编译器中，析构函数是默认加上关键字noexcept的)
+叶子函数（Leaf Function）。叶子函数是指在函数内部不分配栈空间，也不调用其它函数，也不存储非易失性寄存器，也不处理异常 ?
+</code></pre><p><em>叶子函数</em></p>
 <p><em>仿函数</em></p>
 <p>函数指针 使函数作为参数 传递给处理逻辑, 解耦了 可插拔逻辑, 但是函数指针并不能维护 一些本地信息: 比如局部变量, 这个时候可以使用 Functor/仿函数,</p>
 <p><a href="https://cloud.tencent.com/developer/article/1347883">https://cloud.tencent.com/developer/article/1347883</a></p>
@@ -5742,7 +6581,11 @@ baseBalancer在处理 <code>UpdateClientConnState</code> 的时候, 因为是地
 <pre><code>addrConn#updateConnectivityState(连接状态变更) -&gt; ClientConn#handleSubConnStateChange -&gt; ccBalancerWrapper#handleSubConnStateChange -&gt; scBuffer异步通知 -&gt; ccBalancerWrapper#watcher实例化启动) -&gt; Balancer#UpdateSubConnState (不同实现不一样) 
 </code></pre><p>因此, 连接状态变更的最终处理是在 Balancer, 在baseBalacer中, 会触发picker重新构建, 这样做是为了确保 picker维护的状态是最新的, 避免 random/roundrobin 返回无用的地址</p>
 <pre><code>baseBalancer#regeneratePicker -&gt; rrPickerBuilder#Build
-</code></pre>]]></content>
+</code></pre><h2 id="优化">优化</h2>
+<h2 id="connection-优化">connection 优化</h2>
+<p>项目中一开始使用的负载均衡策略, 会导致 每个地址都会创建一个连接, 导致 sdk 视角下连接数非常多 (集群规模上去之后才发现), 为了降低不必要的oncall, 我们采用了 优化的pick_first, 但是 pick_first 容易存在问题, 因为 pick_first 总是返回第一个, 但是 第一个可能是 服务发现缓存的 bug 导致返回的是 一个不可用的ip, 在不正确设置 超时时间的情况下, ip:port 的连接可用性问题 会导致一直连接失败, 导致连接建连卡主, 因此需要使用 优化的 pick_first, 因此在 服务发现的实现中, 尽量随机 random 下.</p>
+<p>但是 pick_first 也不是万能的, 因为感知到连接失败需要 15s, 不同公司的 linux 配置不一样, 在15s内 如果因为 认证、授权 以及 负载自我保护措施下, 会导致连接一直重连过去, 反而引起更高的cpu 负载, 所以 stream 应用场景下 尽可能使用 randon pick.</p>
+]]></content>
         </item>
         
         <item>
@@ -8916,7 +9759,9 @@ candidateBroker的选择有如下几种:</p>
             
             <guid>https://xujianhai.fun/posts/redis-overall/</guid>
             <description>第一次学习redis和深入redis源代码的时候, 已经是大学的光景, 当时memcached还很盛行, 新浪在csdn blog上分享关于redis实操免费的视频(当时应该果断到官网学习呀&amp;hellip;), 后来redis设计与实现一书发版, 也跟进了学习. 算下来, 从接触到现在生产使用, 已经5年光景. 这里附上自己的一些体会.
- 常见的数据结构 主从复制 主从切换  参考书籍 &amp;ldquo;Redis设计与实现&amp;rdquo;</description>
+ 常见的数据结构 主从复制 主从切换  参考书籍 &amp;ldquo;Redis设计与实现&amp;rdquo;
+redis 5.0 特性: 动态server.hz
+ https://luoming1224.github.io/2018/11/27/[redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0]redis%205.0%E6%96%B0%E7%89%B9%E6%80%A7-%E5%8A%A8%E6%80%81hz%E5%8F%8A%E7%9B%B8%E5%85%B3%E4%BC%98%E5%8C%96/ https://www.cnblogs.com/CtripDBA/p/9776466.html?utm_source=tuicool&amp;amp;utm_medium=referral  </description>
             <content type="html"><![CDATA[<p>第一次学习redis和深入redis源代码的时候, 已经是大学的光景, 当时memcached还很盛行, 新浪在csdn blog上分享关于redis实操免费的视频(当时应该果断到官网学习呀&hellip;), 后来redis设计与实现一书发版, 也跟进了学习. 算下来, 从接触到现在生产使用, 已经5年光景. 这里附上自己的一些体会.</p>
 <ol>
 <li>常见的数据结构</li>
@@ -8924,6 +9769,12 @@ candidateBroker的选择有如下几种:</p>
 <li>主从切换</li>
 </ol>
 <p>参考书籍 &ldquo;Redis设计与实现&rdquo;</p>
+<p>redis 5.0 特性:
+动态server.hz</p>
+<ul>
+<li><a href="https://luoming1224.github.io/2018/11/27/%5Bredis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%5Dredis%205.0%E6%96%B0%E7%89%B9%E6%80%A7-%E5%8A%A8%E6%80%81hz%E5%8F%8A%E7%9B%B8%E5%85%B3%E4%BC%98%E5%8C%96/">https://luoming1224.github.io/2018/11/27/[redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0]redis%205.0%E6%96%B0%E7%89%B9%E6%80%A7-%E5%8A%A8%E6%80%81hz%E5%8F%8A%E7%9B%B8%E5%85%B3%E4%BC%98%E5%8C%96/</a></li>
+<li><a href="https://www.cnblogs.com/CtripDBA/p/9776466.html?utm_source=tuicool&amp;utm_medium=referral">https://www.cnblogs.com/CtripDBA/p/9776466.html?utm_source=tuicool&amp;utm_medium=referral</a></li>
+</ul>
 ]]></content>
         </item>
         
@@ -9548,27 +10399,27 @@ namesrv 的主要模块有 RouteInfoManager 和 KVConfigManager, 就是分别维
             <guid>https://xujianhai.fun/posts/rocketmq-debug/</guid>
             <description>这里记录下启动 rocketmq 的启动 和 消息的收发
 rocketmq-namesrv 环境变量添加:
-ROCKETMQ_HOME ${YOUR_DOWNLOAD_PATH}/rocketmq/distribution run 按妞运行服务, 启动成功后, 控制台会输出:
+ROCKETMQ_HOME ${YOUR_DOWNLOAD_PATH}/rocketmq/distribution run 按妞运行服务 &amp;ldquo;org.apache.rocketmq.namesrv.NamesrvStartup&amp;rdquo;, 启动成功后, 控制台会输出:
 The Name Server boot success. serializeType=JSON rocketmq-broker program arguments:
 -n localhost:9876 环境变量参数
-ROCKETMQ_HOME ${YOUR_DOWNLOAD_PATH}/rocketmq/distribution run 按妞运行服务, 启动成功后, 控制台会输出:
+ROCKETMQ_HOME ${YOUR_DOWNLOAD_PATH}/rocketmq/distribution run 按妞运行服务 &amp;ldquo;org.apache.rocketmq.broker.BrokerStartup&amp;rdquo;, 启动成功后, 控制台会输出:
 The broker[${YOUR_MAC_NAME}, ${YOUR_IP}:${YOUR_PORT}] boot success. serializeType=JSON and name server is localhost:9876 rocketmq-consumer 环境变量参数
 NAMESRV_ADDR=localhost:9876 run 按妞运行服务, 启动成功后, 控制台会输出:
 Consumer Started. rocketmq-producer 环境变量参数
 NAMESRV_ADDR=localhost:9876 run 按妞运行服务, 启动成功后, 控制台输出大量SendResult日志如下:
-SendResult [sendStatus=SEND_OK, msgId=0A5E54923F6218B4AAC236E079DA0000, offsetMsgId=0A5E549200002A9F0000000000000000, messageQueue=MessageQueue [topic=TopicTest, brokerName=${YOUR_NAME}, queueId=1], queueOffset=0] ....... ....... 此时, consumer 也会输出 接收到的日志内容:</description>
+SendResult [sendStatus=SEND_OK, msgId=0A5E54923F6218B4AAC236E079DA0000, offsetMsgId=0A5E549200002A9F0000000000000000, messageQueue=MessageQueue [topic=TopicTest, brokerName=${YOUR_NAME}, queueId=1], queueOffset=0] ....... .</description>
             <content type="html"><![CDATA[<p>这里记录下启动 rocketmq 的启动 和 消息的收发</p>
 <h2 id="rocketmq-namesrv">rocketmq-namesrv</h2>
 <p>环境变量添加:</p>
 <pre><code>ROCKETMQ_HOME  ${YOUR_DOWNLOAD_PATH}/rocketmq/distribution
-</code></pre><p>run 按妞运行服务, 启动成功后, 控制台会输出:</p>
+</code></pre><p>run 按妞运行服务 &ldquo;org.apache.rocketmq.namesrv.NamesrvStartup&rdquo;, 启动成功后, 控制台会输出:</p>
 <pre><code>The Name Server boot success. serializeType=JSON
 </code></pre><h2 id="rocketmq-broker">rocketmq-broker</h2>
 <p>program arguments:</p>
 <pre><code>-n localhost:9876
 </code></pre><p>环境变量参数</p>
 <pre><code>ROCKETMQ_HOME  ${YOUR_DOWNLOAD_PATH}/rocketmq/distribution
-</code></pre><p>run 按妞运行服务, 启动成功后, 控制台会输出:</p>
+</code></pre><p>run 按妞运行服务 &ldquo;org.apache.rocketmq.broker.BrokerStartup&rdquo;, 启动成功后, 控制台会输出:</p>
 <pre><code>The broker[${YOUR_MAC_NAME}, ${YOUR_IP}:${YOUR_PORT}] boot success. serializeType=JSON and name server is localhost:9876 
 </code></pre><h2 id="rocketmq-consumer">rocketmq-consumer</h2>
 <p>环境变量参数</p>
@@ -9836,7 +10687,7 @@ bin/kafka-console-producer.sh &amp;ndash;broker-list localhost:9092 &amp;ndash;t
 ApiVersions Metadata ApiVersions Produce.... 细节分析   ApiVersions
 返回 broker 是否支持client version
   Metadata
-获取broker信息, 以及相应的partition信息
+获取broker信息, 以及相应的partition信息(client会选择负载最轻的一个节点broker获取 metadata)
   ApiVersions
 同上
   Produce 主要的流程
@@ -9862,7 +10713,7 @@ ApiVersions Metadata ApiVersions Produce.... 细节分析   ApiVersions
 </li>
 <li>
 <p>Metadata</p>
-<p>获取broker信息, 以及相应的partition信息</p>
+<p>获取broker信息, 以及相应的partition信息(client会选择负载最轻的一个节点broker获取 metadata)</p>
 </li>
 <li>
 <p>ApiVersions</p>

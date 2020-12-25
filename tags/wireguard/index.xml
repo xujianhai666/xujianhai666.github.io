@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>wireguard on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/wireguard/</link>
+    <description>Recent content in wireguard on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 13 Oct 2020 09:46:36 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/wireguard/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Wireguard</title>
+      <link>https://xujianhai.fun/posts/wireguard/</link>
+      <pubDate>Tue, 13 Oct 2020 09:46:36 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/wireguard/</guid>
+      <description>几种设计 ipsec: 基于 Linux transform (“xfrm”) layer, 在内核中通过structure参数判断, user space 中有个后台进程负责更新stucture(基于 key交换的结果, 通常是 IKEv2), 这就复杂了很多, 并且因为分层的抽象, 防火墙规则 配置也很复杂 wireguard: 使用了虚拟的interface(比如wg0), 使用简单, 状态管理透明 基于 openssh 的思维, 支持 base64 编码 加密: Trevor Perrin’s Noise, 没有用 tls 在 3层工作: ip. 支持 ipv6 &amp;lt;-&amp;gt; ipv4 openvpn: tls + user space tun/tap (类似wireguard), 性能低, user/kernel space 多次copy, 需要 long-lived daemon, 但是因为基于tls, 会导致 很多问题
+wireguard 设计 常规交互:
+ 1-RTT key exchange handshake 加密数据传输   使用 12-byte TAI64N [7] timestamp, 通过每次使用更大的timestamp 避免了 回放攻击 支持 预共享 加密key, 避免 量子计算的攻击 在高负载下, 支持 cookie reply, 延迟握手时间, 第一次握手返回cookie, 到期后基于cookie 进行握手  timer &amp;amp; Stateless UX  传输的消息数量有限制, 超过后会重新分发对称key, 创建新的session Rekey-After-Time 时间后会重新创建新的session, 分发新的对称key handshake initiation 重传, 第一条用户消息会触发 handshake initiation.</description>
+    </item>
+    
+  </channel>
+</rss>

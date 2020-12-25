@@ -6,14 +6,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="author" content="Zero xu ">
 <meta name="description" content="背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
-基础 fork  1）在父进程中，fork返回新创建子进程的进程ID； 2）在子进程中，fork返回0； 注意printf 这种缓冲区复制的情况
-基本数据类型 long long 和 long 和 int的区别
-取决于 编译器实现, 编译器根据系统类型的不同做法不同 (16/32/64位系统). long long 肯定是 8字节
- https://blog.csdn.net/w773913/article/details/72810117  类的多态 https://blog.csdn.net/afei__/article/details/82142775
-官方定义: 程序运行时，父类指针可以根据具体指向的子类对象，来执行不同的函数 假设Parent 和 child 两个类. Parent 定义了 虚函数和实现, 子类进行了重新的实现. 这个时候会根据具体的实例化指向具体的实现.
-- 对存在虚函数的类，编译器会在类中自动生成一个一维的虚函数表: 存储类成员函数指针 - 虚函数表由编译器自动生成和维护 - 被virtual 修饰的成员函数会被编译器放入虚函数表中 - 存在虚函数时，编译器会为对象自动生成一个指向虚函数表的虚指针（通常称之为 vptr 指针） - 虚表是和类对应的，虚表指针是和对象对应的 注意: 父类的构造方法中调用虚函数，不会发生多态。这个和 vptr 的分步初始化有关
-为什么呢? 这个和创建子类对象的编译器执行顺序有关
-- 对象在创建时，由编译器对 vptr 进行初始化 - 子类的构造会先调用父类的构造函数，这个时候 vptr 会先指向父类的虚函数表 - 子类构造的时候，vptr 会再指向子类的虚函数表 - 对象的创建完成后，vptr 最终的指向才确定 纯虚函数是虚函数再加上 = 0, 抽象类是指包括至少一个纯虚函数的类" />
+book 术语 libc是Linux下原来的标准C库, 后来逐渐被glibc取代; glibc是Linux系统中最底层的API，几乎其它任何的运行库都要依赖glibc, glibc最主要的功能就是对系统调用的封装, 以及上层的接口 (malloc 等) glib也是个c程序库，不过比较轻量级，glib将C语言中的数据类型统一封装成自己的数据类型，提供了C语言常用的数据结构的定义以及处理函数 libc&#43;&#43;是针对clang编译器特别重写的C&#43;&#43;标准库，那libstdc&#43;&#43;是gcc
+concept ? 这个貌似很后面才有的 20？很像rust 了 模板元编程 参考: https://cloud.tencent.com/developer/article/1347878 策略 标签 特性
+另外看书
+memory order gcc 里面 consumer 语意和 acquire 是一样的, 从 cpp11 stckoverflow知道, 不建议使用 consume
+https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync 这个例子很丰富, seq_cst 的效果和串行编程类似, relaxed 只是保证看到的只能是 更新的value, 没有线程同步语意, 纯粹是 atomic. Acquire/Release 只提供 有依赖关系的变量的 happen-before。 acquire-release 竟然只要求了 两个线程之间的同步 &amp;hellip;. 同步机制中, 本质上flush语意
+奇怪了, __atomic_compare_exchange_n 中 success fail 是在哪一步起作用的？为什么 fail 的 memory order 要弱于 success?" />
 <meta name="keywords" content="homepage, blog, science, informatics, development, programming, cpp" />
 <meta name="robots" content="noodp" />
 <meta name="theme-color" content="#252627" />
@@ -40,17 +38,15 @@
 
 <meta itemprop="name" content="Cpp_basic">
 <meta itemprop="description" content="背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
-基础 fork  1）在父进程中，fork返回新创建子进程的进程ID； 2）在子进程中，fork返回0； 注意printf 这种缓冲区复制的情况
-基本数据类型 long long 和 long 和 int的区别
-取决于 编译器实现, 编译器根据系统类型的不同做法不同 (16/32/64位系统). long long 肯定是 8字节
- https://blog.csdn.net/w773913/article/details/72810117  类的多态 https://blog.csdn.net/afei__/article/details/82142775
-官方定义: 程序运行时，父类指针可以根据具体指向的子类对象，来执行不同的函数 假设Parent 和 child 两个类. Parent 定义了 虚函数和实现, 子类进行了重新的实现. 这个时候会根据具体的实例化指向具体的实现.
-- 对存在虚函数的类，编译器会在类中自动生成一个一维的虚函数表: 存储类成员函数指针 - 虚函数表由编译器自动生成和维护 - 被virtual 修饰的成员函数会被编译器放入虚函数表中 - 存在虚函数时，编译器会为对象自动生成一个指向虚函数表的虚指针（通常称之为 vptr 指针） - 虚表是和类对应的，虚表指针是和对象对应的 注意: 父类的构造方法中调用虚函数，不会发生多态。这个和 vptr 的分步初始化有关
-为什么呢? 这个和创建子类对象的编译器执行顺序有关
-- 对象在创建时，由编译器对 vptr 进行初始化 - 子类的构造会先调用父类的构造函数，这个时候 vptr 会先指向父类的虚函数表 - 子类构造的时候，vptr 会再指向子类的虚函数表 - 对象的创建完成后，vptr 最终的指向才确定 纯虚函数是虚函数再加上 = 0, 抽象类是指包括至少一个纯虚函数的类">
+book 术语 libc是Linux下原来的标准C库, 后来逐渐被glibc取代; glibc是Linux系统中最底层的API，几乎其它任何的运行库都要依赖glibc, glibc最主要的功能就是对系统调用的封装, 以及上层的接口 (malloc 等) glib也是个c程序库，不过比较轻量级，glib将C语言中的数据类型统一封装成自己的数据类型，提供了C语言常用的数据结构的定义以及处理函数 libc&#43;&#43;是针对clang编译器特别重写的C&#43;&#43;标准库，那libstdc&#43;&#43;是gcc
+concept ? 这个貌似很后面才有的 20？很像rust 了 模板元编程 参考: https://cloud.tencent.com/developer/article/1347878 策略 标签 特性
+另外看书
+memory order gcc 里面 consumer 语意和 acquire 是一样的, 从 cpp11 stckoverflow知道, 不建议使用 consume
+https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync 这个例子很丰富, seq_cst 的效果和串行编程类似, relaxed 只是保证看到的只能是 更新的value, 没有线程同步语意, 纯粹是 atomic. Acquire/Release 只提供 有依赖关系的变量的 happen-before。 acquire-release 竟然只要求了 两个线程之间的同步 &hellip;. 同步机制中, 本质上flush语意
+奇怪了, __atomic_compare_exchange_n 中 success fail 是在哪一步起作用的？为什么 fail 的 memory order 要弱于 success?">
 <meta itemprop="datePublished" content="2020-04-05T19:36:11&#43;08:00" />
 <meta itemprop="dateModified" content="2020-04-05T19:36:11&#43;08:00" />
-<meta itemprop="wordCount" content="286">
+<meta itemprop="wordCount" content="751">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -60,14 +56,12 @@
 
 <meta name="twitter:title" content="Cpp_basic"/>
 <meta name="twitter:description" content="背景 最近准备写 cpp 的一些项目, 学习下不太了解的领域.
-基础 fork  1）在父进程中，fork返回新创建子进程的进程ID； 2）在子进程中，fork返回0； 注意printf 这种缓冲区复制的情况
-基本数据类型 long long 和 long 和 int的区别
-取决于 编译器实现, 编译器根据系统类型的不同做法不同 (16/32/64位系统). long long 肯定是 8字节
- https://blog.csdn.net/w773913/article/details/72810117  类的多态 https://blog.csdn.net/afei__/article/details/82142775
-官方定义: 程序运行时，父类指针可以根据具体指向的子类对象，来执行不同的函数 假设Parent 和 child 两个类. Parent 定义了 虚函数和实现, 子类进行了重新的实现. 这个时候会根据具体的实例化指向具体的实现.
-- 对存在虚函数的类，编译器会在类中自动生成一个一维的虚函数表: 存储类成员函数指针 - 虚函数表由编译器自动生成和维护 - 被virtual 修饰的成员函数会被编译器放入虚函数表中 - 存在虚函数时，编译器会为对象自动生成一个指向虚函数表的虚指针（通常称之为 vptr 指针） - 虚表是和类对应的，虚表指针是和对象对应的 注意: 父类的构造方法中调用虚函数，不会发生多态。这个和 vptr 的分步初始化有关
-为什么呢? 这个和创建子类对象的编译器执行顺序有关
-- 对象在创建时，由编译器对 vptr 进行初始化 - 子类的构造会先调用父类的构造函数，这个时候 vptr 会先指向父类的虚函数表 - 子类构造的时候，vptr 会再指向子类的虚函数表 - 对象的创建完成后，vptr 最终的指向才确定 纯虚函数是虚函数再加上 = 0, 抽象类是指包括至少一个纯虚函数的类"/>
+book 术语 libc是Linux下原来的标准C库, 后来逐渐被glibc取代; glibc是Linux系统中最底层的API，几乎其它任何的运行库都要依赖glibc, glibc最主要的功能就是对系统调用的封装, 以及上层的接口 (malloc 等) glib也是个c程序库，不过比较轻量级，glib将C语言中的数据类型统一封装成自己的数据类型，提供了C语言常用的数据结构的定义以及处理函数 libc&#43;&#43;是针对clang编译器特别重写的C&#43;&#43;标准库，那libstdc&#43;&#43;是gcc
+concept ? 这个貌似很后面才有的 20？很像rust 了 模板元编程 参考: https://cloud.tencent.com/developer/article/1347878 策略 标签 特性
+另外看书
+memory order gcc 里面 consumer 语意和 acquire 是一样的, 从 cpp11 stckoverflow知道, 不建议使用 consume
+https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync 这个例子很丰富, seq_cst 的效果和串行编程类似, relaxed 只是保证看到的只能是 更新的value, 没有线程同步语意, 纯粹是 atomic. Acquire/Release 只提供 有依赖关系的变量的 happen-before。 acquire-release 竟然只要求了 两个线程之间的同步 &hellip;. 同步机制中, 本质上flush语意
+奇怪了, __atomic_compare_exchange_n 中 success fail 是在哪一步起作用的？为什么 fail 的 memory order 要弱于 success?"/>
 
 
 
@@ -134,7 +128,7 @@
     <main class="post">
 
         <div class="post-info">
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>4 minutes
 
             
 
@@ -151,7 +145,135 @@
             <div class="post-content">
                 <h2 id="背景">背景</h2>
 <p>最近准备写 cpp 的一些项目, 学习下不太了解的领域.</p>
-<h2 id="基础">基础</h2>
+<h2 id="book">book</h2>
+<h2 id="术语">术语</h2>
+<p>libc是Linux下原来的标准C库, 后来逐渐被glibc取代;
+glibc是Linux系统中最底层的API，几乎其它任何的运行库都要依赖glibc, glibc最主要的功能就是对系统调用的封装, 以及上层的接口 (malloc 等)
+glib也是个c程序库，不过比较轻量级，glib将C语言中的数据类型统一封装成自己的数据类型，提供了C语言常用的数据结构的定义以及处理函数
+libc++是针对clang编译器特别重写的C++标准库，那libstdc++是gcc</p>
+<h3 id="concept--这个貌似很后面才有的-20很像rust-了">concept ? 这个貌似很后面才有的 20？很像rust 了</h3>
+<h3 id="模板元编程">模板元编程</h3>
+<p>参考: <a href="https://cloud.tencent.com/developer/article/1347878">https://cloud.tencent.com/developer/article/1347878</a>
+策略 标签 特性</p>
+<p>另外看书</p>
+<h3 id="memory-order">memory order</h3>
+<p>gcc 里面 consumer 语意和 acquire 是一样的, 从 cpp11 stckoverflow知道, 不建议使用 consume</p>
+<p><a href="https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html">https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html</a>
+<a href="https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync">https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync</a>  这个例子很丰富, seq_cst 的效果和串行编程类似, relaxed 只是保证看到的只能是 更新的value, 没有线程同步语意, 纯粹是 atomic. Acquire/Release 只提供 有依赖关系的变量的 happen-before。 acquire-release 竟然只要求了 两个线程之间的同步 &hellip;. 同步机制中, 本质上flush语意</p>
+<p>奇怪了, <code>__atomic_compare_exchange_n</code> 中 success fail 是在哪一步起作用的？为什么 fail 的 memory order 要弱于 success?</p>
+<h3 id="虚函数表和指针">虚函数表和指针</h3>
+<p><a href="https://zhuanlan.zhihu.com/p/98776075">https://zhuanlan.zhihu.com/p/98776075</a></p>
+<h3 id="cast">cast</h3>
+<p>dynamic_cast: <a href="https://www.bbsmax.com/A/obzbypybdE/">https://www.bbsmax.com/A/obzbypybdE/</a> 主要概你是 RTTI(其存储着类运行的相关信息， 比如类的名字，以及类的基类), 转换的时候会进行检查, 当有虚函数表的时候, 才会有RTTI, 还有 RTTICompleteObjectLocator
+dynamic_cast的时间和空间代价是相对较高的，在设计时应避免使用。</p>
+<p>static_cast 向下转换不会进行检, 编译时确定
+static_cast效率比dynamic_cast高，请尽可能用。大部分情况下static_cast编译时就可以确定指针移动多少偏移量，但是对于虚继承要用到虚指针确定一个到虚基类的偏移量，稍微麻烦一些</p>
+<h3 id="crpt-奇异递归末班模式">CRPT 奇异递归末班模式</h3>
+<p><a href="https://zhuanlan.zhihu.com/p/137879448">https://zhuanlan.zhihu.com/p/137879448</a>
+貌似 modern cpp 有, 可以参照
+还是得多实践下</p>
+<h3 id="functor">functor</h3>
+<p><a href="https://www.bogotobogo.com/cplusplus/functors.php">https://www.bogotobogo.com/cplusplus/functors.php</a> 无非是 重载了 () 实现 template, 另外, 也支持 struct
+其中, c98 支持 bind1st bind2nd, 限制太大, 还是使用 std::bind,</p>
+<pre><code>#include &lt;iostream&gt;
+#include &lt;functional&gt;   //std::bind
+using namespace std;
+
+void func(int x, int y)
+{
+    cout &lt;&lt; x &lt;&lt; &quot; &quot; &lt;&lt; y &lt;&lt; endl;
+}
+
+int main()
+{
+    bind(func, 1, 2)();                     //输出：1 2
+    bind(func, std::placeholders::_1, 2)(1);//输出：1 2
+
+    using namespace std::placeholders;    // adds visibility of _1, _2, _3,...
+    bind(func, 2, _1)(1);       //输出：2 1
+    bind(func, 2, _2)(1, 2);    //输出：2 2
+    bind(func, _1, _2)(1, 2);   //输出：1 2
+    bind(func,_2, _1)(1, 2);    //输出：2 1
+
+    //err, 调用时没有第二个参数
+    //bind(func, 2, _2)(1);
+
+    return 0;
+}
+</code></pre><h2 id="基础">基础</h2>
+<p>教程:
+<a href="https://changkun.de/modern-cpp/zh-cn/01-intro/index.html#1-1-%E8%A2%AB%E5%BC%83%E7%94%A8%E7%9A%84%E7%89%B9%E6%80%A7">https://changkun.de/modern-cpp/zh-cn/01-intro/index.html#1-1-%E8%A2%AB%E5%BC%83%E7%94%A8%E7%9A%84%E7%89%B9%E6%80%A7</a></p>
+<p>怎么理解 lock_guard 没有 mutex 的所有权 ?
+看看这个: <a href="https://www.cnblogs.com/haippy/p/3279565.html">https://www.cnblogs.com/haippy/p/3279565.html</a> 还没细看
+顺序一致性 和 全局一致性的差异没有很好的讲明白, 看些 ppt 和 video 增强下 <a href="https://changkun.de/modern-cpp/zh-cn/07-thread/index.html#7-4-%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F">https://changkun.de/modern-cpp/zh-cn/07-thread/index.html#7-4-%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F</a> 看样子 memory_order_seq_cst 并没有啥作用
+<a href="https://www.cnblogs.com/navono007/p/5746048.html">https://www.cnblogs.com/navono007/p/5746048.html</a></p>
+<p>ISO C++ Concurrency Study Group</p>
+<p>锁: 针对 memory_order 不错的解释</p>
+<p>std-memory-order-relaxed 重新学习</p>
+<p><a href="https://www.cnblogs.com/qingergege/p/7607089.html">https://www.cnblogs.com/qingergege/p/7607089.html</a> 浅层copy导致的 两次释放同一块区域 拷贝构造函数中，对于指针，我们一定要采用深层复制，而移动构造函数中，对于指针，我们采用浅层复制</p>
+<p>ringbuffer 实现, 和 disruptor 对比
+<a href="https://gist.github.com/xueliu/f7959c3608fad2bc942a9a4e48accea0">https://gist.github.com/xueliu/f7959c3608fad2bc942a9a4e48accea0</a> 有点高大上. typedef
+陈硕的设计: <a href="http://www.cppblog.com/Solstice/archive/2015/08/29/144378.html">http://www.cppblog.com/Solstice/archive/2015/08/29/144378.html</a>
+disruptor: <a href="https://github.com/Abc-Arbitrage/Disruptor-cpp">https://github.com/Abc-Arbitrage/Disruptor-cpp</a></p>
+<h2 id="奇淫技巧">奇淫技巧</h2>
+<p>vector:
+<code>_LIBCPP_INLINE_VISIBILITY</code>:  ？
+<code>_LIBCPP_NORETURN</code>: ?
+<code>_LIBCPP_EXTERN_TEMPLATE</code>: ?
+小技巧:</p>
+<pre><code>copy( rq.begin(), rq.end(),
+      ostream_iterator&lt;int&gt;( cout, &quot;\n&quot; ) );
+</code></pre><p>如何支持分配器 allocator 的设计?</p>
+<p>ringbuffer 的 &amp;T 用T 初始化，&amp;T 作为参数, 那么复制进去会不会 调用copy ？</p>
+<p>迭代器设计: <a href="https://users.cs.northwestern.edu/~riesbeck/programming/c++/stl-iterator-define.html">https://users.cs.northwestern.edu/~riesbeck/programming/c++/stl-iterator-define.html</a></p>
+<p>C++ <code>_GUARDED_BY</code>和<code>EXCLUDES</code>属性字:</p>
+<pre><code>http://clang.llvm.org/docs/ThreadSafetyAnalysis.html
+</code></pre><h3 id="移动语意">移动语意</h3>
+<p><a href="https://gaodq.github.io/2017/04/16/rvalue-reference-in-c++11/">https://gaodq.github.io/2017/04/16/rvalue-reference-in-c++11/</a></p>
+<h3 id="mutex">mutex</h3>
+<p>abseil 的 mutex 支持 锁检查、读写锁 等. 具体的在对比下 (TODO)</p>
+<h3 id="thread_local">thread_local</h3>
+<p>默认的thread local: <a href="https://spockwangs.github.io/blog/2017/12/01/thread-local-storage/">https://spockwangs.github.io/blog/2017/12/01/thread-local-storage/</a> (讲了很多, <a href="https://docs.oracle.com/cd/E19253-01/819-7050/chapter8-1/index.html">https://docs.oracle.com/cd/E19253-01/819-7050/chapter8-1/index.html</a>) ;
+默认的 pthread_t pthread_key_t pthread_key_create pthread_getspecific pthread_setspecific, 这个是 posix 的 thread local 设计, 本质上 pthread_key_t 有最大的数组限制 (编译要加-pthread); c++ 11 提供了 thread_local 关键字, elf 的实现 基于 tls 段实现的.</p>
+<p>GNUC下通过__thread关键字声明，MSVC下通过__declspec(thread)关键字声明</p>
+<p>注意: pthread_key 要保证只被创建了一次, 不然会覆盖</p>
+<p><code>__thread is faster than pthread_getspecific</code>
+<code>__thread是GCC内置的线程局部存储设施</code></p>
+<p>folly 中的设计: 使用 ThreadEntry 维护每个线程的 thread local 列表(elememts 对象), 每个thread local 通过 element wrapper 进行封装(支持自定义的deleter), 所有线程的 threadEntry 维护在 static meta(单例) 当中
+参考: <a href="https://toutiao.io/posts/5e08c1/preview">https://toutiao.io/posts/5e08c1/preview</a></p>
+<p>StaticMeta, ThreadEntry</p>
+<h3 id="thread-pool">thread pool</h3>
+<p>abseil 内部有个线程池实现, 基于vector, 不过内部测试用的</p>
+<p>folly 支持的比较完善, IOThreadPoolExecutor/CPUThreadPoolExecutor/ThreadPoolExecutor</p>
+<p>Executor, DefaultKeepAliveExecutor, IOExecutor, ThreadPoolExecutor, IOThreadPoolExecutor, GlobalExecutor</p>
+<p>facebook wangle: <a href="https://gaodq.github.io/2017/08/07/facebook-wangle/">https://gaodq.github.io/2017/08/07/facebook-wangle/</a>  <a href="https://engineering.fb.com/2016/04/20/networking-traffic/wangle-an-asynchronous-c-networking-and-rpc-library/">https://engineering.fb.com/2016/04/20/networking-traffic/wangle-an-asynchronous-c-networking-and-rpc-library/</a></p>
+<p>io async库: <a href="https://github.com/facebook/folly/tree/master/folly/io/async">https://github.com/facebook/folly/tree/master/folly/io/async</a></p>
+<p>CPUThreadPoolExecutor 依赖 LifoSemImpl, MPMCQueue</p>
+<p>c10k: <a href="http://www.kegel.com/c10k.html">http://www.kegel.com/c10k.html</a>
+fast unix server: <a href="https://nick-black.com/dankwiki/index.php/Fast_UNIX_Servers">https://nick-black.com/dankwiki/index.php/Fast_UNIX_Servers</a></p>
+<h3 id="io">io</h3>
+<p>libevent: <a href="https://libevent.org/">https://libevent.org/</a>
+基于libevent封装的io库: <a href="https://github.com/facebook/folly/tree/master/folly/io/async">https://github.com/facebook/folly/tree/master/folly/io/async</a></p>
+<h3 id="排查工具">排查工具</h3>
+<p>perf sched</p>
+<h3 id="容器">容器</h3>
+<p>c++11 支持了新的 emplace 方法, 避免了常规的 insert 导致的临时变量的开销(变参模板, 完美转发, 看上去是直接在 容器的内存上构造参数)
+<a href="https://www.cnblogs.com/narjaja/p/10039509.html">https://www.cnblogs.com/narjaja/p/10039509.html</a>
+<a href="http://www.cplusplus.com/reference/map/map/emplace/">http://www.cplusplus.com/reference/map/map/emplace/</a></p>
+<h3 id="技巧">技巧</h3>
+<ul>
+<li>模板元编程 <a href="https://google.github.io/styleguide/cppguide.html#Template_metaprogramming">https://google.github.io/styleguide/cppguide.html#Template_metaprogramming</a></li>
+<li>style guide <a href="https://google.github.io/styleguide/cppguide.html">https://google.github.io/styleguide/cppguide.html</a></li>
+<li>diamond dependency problem: d -&gt; c, b -&gt; a, 编译器会报错</li>
+<li>Hyrum&rsquo;s Law <a href="https://www.hyrumslaw.com/">https://www.hyrumslaw.com/</a></li>
+</ul>
+<h3 id="proposal">proposal</h3>
+<p>std::expected</p>
+<h3 id="编译器优化">编译器优化</h3>
+<p>+= 做了什么 ?</p>
+<h3 id="abseil">abseil</h3>
+<p>更快的随机数
+多种编译器: clang llvm/ gnu gcc compiler/visual studio mscv</p>
 <h3 id="fork">fork</h3>
 <pre><code>    1）在父进程中，fork返回新创建子进程的进程ID；
     2）在子进程中，fork返回0；
@@ -233,6 +355,13 @@
 <pre><code> V&amp; operator=(V&amp;&amp; other) {}
 </code></pre><p><a href="https://zh.cppreference.com/w/cpp/language/move_assignment">https://zh.cppreference.com/w/cpp/language/move_assignment</a>
 <a href="https://zh.cppreference.com/w/cpp/named_req/MoveAssignable">https://zh.cppreference.com/w/cpp/named_req/MoveAssignable</a></p>
+<p><em>noexcept</em></p>
+<p>申明没有异常, 有效的阻止异常的传播与扩散, 编译器会选择 terminate. 有利于编译器对程序做更多的优化: C++中的异常处理是在运行时而不是编译时检测的, 为了实现运行时检测，编译器创建额外的代码. 支持 有条件的noexcecpt: noexcept(noexcept(x.swap(y))). 建议使用的场景:</p>
+<pre><code>移动构造函数（move constructor）
+移动分配函数（move assignment）
+析构函数（destructor）(在新版本的编译器中，析构函数是默认加上关键字noexcept的)
+叶子函数（Leaf Function）。叶子函数是指在函数内部不分配栈空间，也不调用其它函数，也不存储非易失性寄存器，也不处理异常 ?
+</code></pre><p><em>叶子函数</em></p>
 <p><em>仿函数</em></p>
 <p>函数指针 使函数作为参数 传递给处理逻辑, 解耦了 可插拔逻辑, 但是函数指针并不能维护 一些本地信息: 比如局部变量, 这个时候可以使用 Functor/仿函数,</p>
 <p><a href="https://cloud.tencent.com/developer/article/1347883">https://cloud.tencent.com/developer/article/1347883</a></p>
@@ -249,7 +378,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/cpp">cpp</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>286 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>751 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-04-05 19:36 &#43;0800</p>
         </div>
