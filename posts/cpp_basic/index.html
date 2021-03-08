@@ -46,7 +46,7 @@ https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html https://gcc.gn
 奇怪了, __atomic_compare_exchange_n 中 success fail 是在哪一步起作用的？为什么 fail 的 memory order 要弱于 success?">
 <meta itemprop="datePublished" content="2020-04-05T19:36:11&#43;08:00" />
 <meta itemprop="dateModified" content="2020-04-05T19:36:11&#43;08:00" />
-<meta itemprop="wordCount" content="751">
+<meta itemprop="wordCount" content="875">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -128,7 +128,7 @@ https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html https://gcc.gn
     <main class="post">
 
         <div class="post-info">
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>4 minutes
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>5 minutes
 
             
 
@@ -365,7 +365,65 @@ fast unix server: <a href="https://nick-black.com/dankwiki/index.php/Fast_UNIX_S
 <p><em>仿函数</em></p>
 <p>函数指针 使函数作为参数 传递给处理逻辑, 解耦了 可插拔逻辑, 但是函数指针并不能维护 一些本地信息: 比如局部变量, 这个时候可以使用 Functor/仿函数,</p>
 <p><a href="https://cloud.tencent.com/developer/article/1347883">https://cloud.tencent.com/developer/article/1347883</a></p>
-<h2 id="总结">总结</h2>
+<h2 id="设计模式">设计模式</h2>
+<p>单例</p>
+<pre><code>#include &lt;stddef.h&gt;
+#include &lt;memory&gt;
+#include &lt;mutex&gt;  // NOLINT(build/c++11)
+#include &lt;utility&gt;
+#include &quot;include/macros.h&quot;
+
+namespace byte {
+template &lt;typename T&gt;
+class SingletonBase {
+private:
+    // Used to check destructed of object.
+    struct Holder {
+        T value;
+        bool is_alive;
+
+        template &lt;typename... Args&gt;
+        Holder(Holder** holder, Args&amp;&amp;... args)  // NOLINT(runtime/explicit)
+            : value(std::forward&lt;Args&gt;(args)...), is_alive(true) {
+            *holder = this;
+        }
+
+        ~Holder() {
+            is_alive = false;
+        }
+    };
+
+protected:
+    SingletonBase() {}
+    ~SingletonBase() {}
+
+public:
+    // Construct singleton parameters.
+    template &lt;typename... Args&gt;
+    static T* Instance(Args&amp;&amp;... args) {
+        std::call_once(s_once_flag_, [] (Args&amp;&amp;... holder_args) {
+            static Holder holder(&amp;s_holder_, std::forward&lt;Args&gt;(holder_args)...);
+        }, std::forward&lt;Args&gt;(args)...);
+        return &amp;s_holder_-&gt;value;
+    }
+
+    static bool IsAlive() {
+        return s_holder_.get() &amp;&amp; s_holder_-&gt;is_alive;
+    }
+
+private:
+    static Holder* s_holder_;
+    static std::once_flag s_once_flag_;
+
+    DISALLOW_COPY_AND_ASSIGN(SingletonBase);
+};
+
+template &lt;typename T&gt;
+typename SingletonBase&lt;T&gt;::Holder* SingletonBase&lt;T&gt;::s_holder_;
+
+template &lt;typename T&gt;
+typename std::once_flag SingletonBase&lt;T&gt;::s_once_flag_;
+</code></pre><h2 id="总结">总结</h2>
 <p>目前参考 <a href="https://zh.cppreference.com">https://zh.cppreference.com</a> 和 <a href="https://zh.cppreference.com">https://zh.cppreference.com</a> 就足够了. 更多的需要example 辅助学习.</p>
 
             </div>
@@ -378,7 +436,7 @@ fast unix server: <a href="https://nick-black.com/dankwiki/index.php/Fast_UNIX_S
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/cpp">cpp</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>751 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>875 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-04-05 19:36 &#43;0800</p>
         </div>
@@ -421,7 +479,7 @@ fast unix server: <a href="https://nick-black.com/dankwiki/index.php/Fast_UNIX_S
                 <footer class="footer">
     <div class="footer__inner">
         <div class="footer__content">
-            <span>&copy; 2020</span>
+            <span>&copy; 2021</span>
             
                 <span><a href="https://xujianhai.fun/">Zero xu</a></span>
             

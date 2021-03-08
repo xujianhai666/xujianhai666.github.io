@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>baidu on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/baidu/</link>
+    <description>Recent content in baidu on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 20 Dec 2020 22:37:58 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/baidu/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Essay_atlas</title>
+      <link>https://xujianhai.fun/posts/essay_atlas/</link>
+      <pubDate>Sun, 20 Dec 2020 22:37:58 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/essay_atlas/</guid>
+      <description>atlas 是 baidu 自研的kv存储系统, 但是从论文中的描述上, 还是更像是 分布式文件对 小文件的优化, 尤其是使用场景: 小图片 等. 在统计意义上, 发现 大部分的读写都集中在 (128k, 256k], 读写比例大概是 96.3% 和 94.1%.
+架构设计: 在架构上, 底层是 块存储服务层: RBS Master + RBS PartServer, PartServer 是block 的存储层, 只负责块的存储, RBS Master 管理 block-&amp;gt; RBS PartServer 的映射 以及 高可用管理, 但是块存储并不适合kv的高频、low-seized 的写入, 因此 需要上层的 PIS Slice 做一层cache, 除此之外, PIS 还需要维护 kv-&amp;gt;block 的映射 (PIS: patch and index system)
+贴个图
+模块设计: PIS 截图就行
+replication 保证多副本高可用(半同步). 内部有 patch 和 index 模块, 新写入的kv 先进入 patch 层(cache+file; 三副本+秒级flush+电池供应), 攒到64MB 的block, 则刷新block到RBS, 并更新原来的kv数据, value 转换为数据的索引: [blockid, offset, length], 并重新块里面的数据信息, 然后写入 index module 的LSM.</description>
+    </item>
+    
+  </channel>
+</rss>

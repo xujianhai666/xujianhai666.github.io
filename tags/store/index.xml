@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>store on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/store/</link>
+    <description>Recent content in store on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 21 Feb 2021 16:29:24 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/store/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Essay_ambry</title>
+      <link>https://xujianhai.fun/posts/essay_ambry/</link>
+      <pubDate>Sun, 21 Feb 2021 16:29:24 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/essay_ambry/</guid>
+      <description>background linkedin 的 blob storage 实现, 已经开源了, 还是java写的. 以前是基于 nas + oracle 搭建的media server落地的, 但是大量的小文件导致巨量的metadata, 内存和cpu都面临 无法水平扩展的窘境. 新的设计, 相比于已有的 facebook hystack/f4 或者 twitter, 更加注重 rebalance 特性 和 geo地理复制.
+design abstraction partition 是一组blob的逻辑抽象, 倾向于称呼 logic partition, 映射到 一组机器的副本 (会考虑到故障域隔离): physical placement. 在 physical placement 上, blob 不断追加到 data 文件, 除此之外, 还需要维护 indexing、journal、bloom filter 的额外数据结构, 每个data 文件 100GB, 写到 80%-90% 的容量空间的时候, partition 会从 read-write state 转换为 read-only state (需要额外的空间负责delete).
+架构   cluster manager: 负责集群管理: physical/hardware layout(node &amp;amp; disk placement, up/down state)、partition state/logic layout(read-write/read-only, mapping: partition(state)-&amp;gt;placement info(dc+datanode+disk))</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>wisckey on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/wisckey/</link>
+    <description>Recent content in wisckey on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 01 Feb 2021 20:32:35 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/wisckey/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Essay_wisckey</title>
+      <link>https://xujianhai.fun/posts/essay_wisckey/</link>
+      <pubDate>Mon, 01 Feb 2021 20:32:35 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/essay_wisckey/</guid>
+      <description>序 比较经典的kv存储分离的实现, 将大的value存储在 vlog 文件上, lsm 只存储 (key, offset) 信息, (需要注意的是, vlog的内容也需要记录key的信息, 加快gc), 极大的降低了 lsm 在 写放大, 延长ssd的生命周期. 虽然通过vlog 无法利用顺序读的优势, 但是可以利用 多线程 + ssd 来达到顺序读取的效果. 在内部实现上, 甚至去除了 lsm 中log的模块, 并达到了一致性.
+论文精读 论文开篇对比列出了 hdd/ssd lsm实现的几个问题:
+ ssd 的 顺序IO/随机IO 的差距明显低于 hdd, 这样就显得 lsm 中大量 随机IO-&amp;gt;顺序IO的优化显得没那么必要 (参见论文figure 3) ssd 的内部并行化程度高 ssd 的不擅长重复擦除写, LSM 最差 50x 的写放大会降低 ssd 的生命周期  为此, 设计了 wisckey, 充分利用 ssd 的随机+内部并发能力, 将value存储在vlog上, 同时降低不必要的写放大
+挑战 在设计wisckey, 会和 传统 lsm 设计存在很大的gap, 例如:</description>
+    </item>
+    
+  </channel>
+</rss>

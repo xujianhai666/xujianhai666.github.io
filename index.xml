@@ -6,128 +6,139 @@
     <description>Recent content on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 08 Dec 2020 17:08:42 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 03 Mar 2021 21:06:00 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>Kernel_block</title>
-      <link>https://xujianhai.fun/posts/kernel_block/</link>
-      <pubDate>Tue, 08 Dec 2020 17:08:42 +0800</pubDate>
+      <title>Essay_dadi</title>
+      <link>https://xujianhai.fun/posts/essay_dadi/</link>
+      <pubDate>Wed, 03 Mar 2021 21:06:00 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/kernel_block/</guid>
-      <description>大部分在linux源码有所介绍, 这里针对代码层的实现大概讲解下 (可以用 https://code.woboq.org/linux/linux/include/linux/blk-mq.h.html 看, 但是最后还是下载到本地看代码了)
-block I/O 请求是以 I/O 向量的形式进行提交和处理的
-主要的数据结构 基本概念 部分基本概念在 深入理解linux内核 中有讲解.
-sector: 硬件控制器的基本单元(传输数据的基本单元), 通常是512 block: vfs、fs 的基本数据单元(磁盘存储单元的最小视角), 扇区大小的整数倍, 比如2k、4k 段: 一个段就是一个内存页或者页的一部分. 管来管理磁盘上物理相邻的数据块 bio: 一次io操作. (block io的缩写, 包含多个段, 因为后续请求可能merge进来) 磁盘高速缓存: 用于磁盘数据的页 块缓冲区: 还没有接触到 物理段:	通用块层 将 ram页框连续并且磁盘上的数据块也是相邻的 进行合并 产生的内存区 硬件段: IO-MMU 处理的 物理地址-&amp;gt;硬件地址的映射进行的合并产生的内存区
-基本数据结构: linux/include/linux/blk_types.h /* * main unit of I/O for the block layer and lower layers (ie drivers and * stacking drivers) */ struct bio { // 一个 bio 有多个链表组成, 所以经常 bio_for_each_segment struct bio	*bi_next;	/* request queue link */ // 一个请求中会合并相邻的bio, 所以是链表 bio_end_io_t	*bi_end_io; struct bio_vec	*bi_io_vec;	/* the actual vec list */ // 存放数据的页列表 struct bio_set	*bi_pool; .</description>
+      <guid>https://xujianhai.fun/posts/essay_dadi/</guid>
+      <description>background 早期的镜像分发 是直接从 registry 拉取, 后来有了p2p 模式的大规模网络镜像拉取的优化, 但是论文指出 大规模的容器集群(container cluster) 这种方式还是不够用, 因此有了 论文中 提到的 DADI(Data Acceleration for Disaggregated Infrastructure): 分层基础设施的数据加速 (本人直译).
+DADI 的本质在于将 container 的每一层 image 都映射了一个块设备上 (我也是很惊讶), 读取container 本质上就是 读取相应的 块设备, 并行化程度高了很多, 同时还能避免 原来镜像分发中 重复的内容, 去重又进一步降低了需要传输的数据量(后面有数据). 除此之外, 为了平衡各个主机的网络流量, 还使用了 p2p 架构, 可以直接从其他节点的缓存获取数据(后续在 data load 流程中展开), 延迟进一步降低. 按照论文的说法, 4s内可以拉取 总结 1000 个主机上 总计 10000 个container.
+不过从论文整理上来看, dadi 只是通过 network block device(nbd) 技术将写追加到了 blob 类型的存储, 并做索引, 后面contianer 通过合并多层 image, 定位数据所在的blob 进行读写而已. 因此, 每个 image 并没有占据完整的 lba, 只用不断追加就可以.</description>
     </item>
     
     <item>
-      <title>Wireguard</title>
-      <link>https://xujianhai.fun/posts/wireguard/</link>
-      <pubDate>Tue, 13 Oct 2020 09:46:36 +0800</pubDate>
+      <title>Essay_fb_rocksdb</title>
+      <link>https://xujianhai.fun/posts/essay_fb_rocksdb/</link>
+      <pubDate>Wed, 03 Mar 2021 19:25:53 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/wireguard/</guid>
-      <description>几种设计 ipsec: 基于 Linux transform (“xfrm”) layer, 在内核中通过structure参数判断, user space 中有个后台进程负责更新stucture(基于 key交换的结果, 通常是 IKEv2), 这就复杂了很多, 并且因为分层的抽象, 防火墙规则 配置也很复杂 wireguard: 使用了虚拟的interface(比如wg0), 使用简单, 状态管理透明 基于 openssh 的思维, 支持 base64 编码 加密: Trevor Perrin’s Noise, 没有用 tls 在 3层工作: ip. 支持 ipv6 &amp;lt;-&amp;gt; ipv4 openvpn: tls + user space tun/tap (类似wireguard), 性能低, user/kernel space 多次copy, 需要 long-lived daemon, 但是因为基于tls, 会导致 很多问题
-wireguard 设计 常规交互:
- 1-RTT key exchange handshake 加密数据传输   使用 12-byte TAI64N [7] timestamp, 通过每次使用更大的timestamp 避免了 回放攻击 支持 预共享 加密key, 避免 量子计算的攻击 在高负载下, 支持 cookie reply, 延迟握手时间, 第一次握手返回cookie, 到期后基于cookie 进行握手  timer &amp;amp; Stateless UX  传输的消息数量有限制, 超过后会重新分发对称key, 创建新的session Rekey-After-Time 时间后会重新创建新的session, 分发新的对称key handshake initiation 重传, 第一条用户消息会触发 handshake initiation.</description>
+      <guid>https://xujianhai.fun/posts/essay_fb_rocksdb/</guid>
+      <description>background facebook 在今年(2021年)的论文, 主要讨论了 fb 这几年在 rocksdb 方面的积累, 本来期望还是很大的, 以为有很多特殊的技巧, 但是, 阅读下来总体而言, 确实只是这么多年在 开发落地 rocksdb 方面的总结. 可以作为入门阅读. 这里挑了一些自己感兴趣的方面.
+summary ssd 的写放大原理
+linkbench
+Dynamic Leveled Compaction, where the size of each level in the tree is automatically adjusted based on the actual size of the last level (instead of setting the size of each level statically) [19].
+fb udb
+NAND flash
+prefix bloom filters, applying the bloom filter before index lookups, and other bloom filter improvement：cpu 利用率提升</description>
     </item>
     
     <item>
-      <title>Golang_generic</title>
-      <link>https://xujianhai.fun/posts/golang_generic/</link>
-      <pubDate>Sun, 20 Sep 2020 10:00:09 +0800</pubDate>
+      <title>Essay_tectonic</title>
+      <link>https://xujianhai.fun/posts/essay_tectonic/</link>
+      <pubDate>Sun, 28 Feb 2021 23:07:28 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/golang_generic/</guid>
-      <description>preface 前一段时间golang的泛型再次被提及, 看了相关的proposal之后, 一直没空写, 最近终于得空, 写一波
-特点 泛型 基于 type parameter 实现的, type parameter 通常用 [] 圈起来, 如下使用:
-func F[T any] (p T) { .... } // T 就是 F 的 type parameter type M[T any] []T // type parameter list 的定义 func F[T Contraint](p T) { .... } // 具有约束的泛型 与之相对的是, 常规的参数是 non-type parameter, 两者最显著的区别就是 [].
-除了 type parameter, 频繁的词是 type argument, 是运行泛型代码的时候的入参, 会替换掉 type parameter.
-约束可以理解成 对 泛型的行为定义, 但是相比于java, 缺乏了 extend 和 super, 通常用 interface 约束泛型, 比如:</description>
+      <guid>https://xujianhai.fun/posts/essay_tectonic/</guid>
+      <description>background 从论文看来, 用分布式文件系统 tectonic 取代了 blob/f4、data warehouse 的存储实现, 类似 azure 的底层文件系统的实现, blob/f4、data warehouse 作为上层 tenants, 直接和存储交互 (类似头条的 byteStore).
+每个 tenant 是一个 namespace, 但是资源隔离是 tenant 级别的(后续看).
+design 传统的 mds + data node + background service 组成, data node 写入时传统的 append 模式, mds 独立进程部署.
+mds data model: 分层存储 Name layer(&amp;ldquo;dir-&amp;gt;list of subdir/name&amp;rdquo;)、File Layer(&amp;ldquo;file id-&amp;gt;list of block id&amp;rdquo;)、Block Layer(&amp;ldquo;block-&amp;gt;list of disk&amp;rdquo;&amp;amp;&amp;ldquo;disk-&amp;gt;list of block&amp;rdquo;). 分层的模型在存储上分层存储, 降低热点, 提高可用性&amp;amp;容量扩展性
+storage model(逻辑分层+物理分层): 自研了 ZippyDB(分布式线性kv存储): paxos+rocksdb, 数据管理是 shard 级别的, 这样, 一个 mds node 可能多个 shard.</description>
     </item>
     
     <item>
-      <title>Network_grpc</title>
-      <link>https://xujianhai.fun/posts/network_grpc/</link>
-      <pubDate>Sat, 19 Sep 2020 13:11:35 +0800</pubDate>
+      <title>Essay_paxostore</title>
+      <link>https://xujianhai.fun/posts/essay_paxostore/</link>
+      <pubDate>Sat, 27 Feb 2021 10:54:55 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/network_grpc/</guid>
-      <description>准备  client  package main import ( &amp;quot;context&amp;quot; &amp;quot;log&amp;quot; &amp;quot;time&amp;quot; &amp;quot;google.golang.org/grpc&amp;quot; pb &amp;quot;google.golang.org/grpc/examples/helloworld/helloworld&amp;quot; ) const ( address = &amp;quot;localhost:50051&amp;quot; defaultName = &amp;quot;world&amp;quot; ) func main() { // Set up a connection to the server. ctx, cancel := context.WithTimeout(context.Background(), time.Second*3) defer cancel() conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock()) if err != nil { log.Fatalf(&amp;quot;did not connect: %v&amp;quot;, err) } defer conn.Close() c := pb.NewGreeterClient(conn) // Contact the server and print out its response.</description>
+      <guid>https://xujianhai.fun/posts/essay_paxostore/</guid>
+      <description>早期做IM 参考微信的做法内部曾经自研过存储一段时间, 奈何组织架构调整, 这里回顾下相关论文
+design 设计上, 将一致性协议和存储实现 分离, 支持 bitcask、LSM-tree、Main/Delta 模型, 上层模型支持 Key-value、Table、Queue、Set 等, 类似 azure 的分层思想, 但是没有走服务分层. 比较有意思的是, paxos 协议用的 无租约 模式, 存在 write-write 冲突 以及 重复提交请求 的问题.
+重点关注下 paxos 实现的一致性保障、存储层实践优化、容灾&amp;amp;数据恢复
+paxos 常规的paxos实现, prepare+accept 两阶段提交, 这里使用 消息传递机制 替换了状态机实现 (有点像raft实现), 不过是无租约的, 这样downtime 的可用性可以大大提升.
+paxos log 作为 数据更新的 wal; paoxs log 由 entry 组成, entry=request id(client id 32bit ipv4 + timestamp second 16bit + request seq 16bit) + promise id(32bit machine id, 用于pre-preparing optimization) + value.</description>
     </item>
     
     <item>
-      <title>Select_chan</title>
-      <link>https://xujianhai.fun/posts/select_chan/</link>
-      <pubDate>Sun, 13 Sep 2020 11:40:15 +0800</pubDate>
+      <title>Essay_ambry</title>
+      <link>https://xujianhai.fun/posts/essay_ambry/</link>
+      <pubDate>Sun, 21 Feb 2021 16:29:24 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/select_chan/</guid>
-      <description>最近小伙伴问了一个有趣的问题, 如果 for-select 监听多个chan, 其中一个是 eventCh, 一个是 closeCh, event 每隔一段时间会有通知, 但是因为 chan blocking 的特性, 每次 slelect 的时候 closeCh 都会将goroutine 添加到 chan 的 sendq, 那么 sendq 的双链 岂不是爆炸？
-直观上大家可定认为 不会发生, 会给出一些 猜测的解决方案, 但是到底会发生什么呢? 先写下如下 demo
-package main func main() { doCh := make(chan struct{}) dataCh := make(chan struct{}) select { case &amp;lt;-doCh: case &amp;lt;-dataCh: } } 为了方便反汇编, 执行编译: go build -gcflags &#39;-l&#39; -o main main.go
-执行反汇编: go tool objdump -s &amp;quot;main&amp;quot; main</description>
+      <guid>https://xujianhai.fun/posts/essay_ambry/</guid>
+      <description>background linkedin 的 blob storage 实现, 已经开源了, 还是java写的. 以前是基于 nas + oracle 搭建的media server落地的, 但是大量的小文件导致巨量的metadata, 内存和cpu都面临 无法水平扩展的窘境. 新的设计, 相比于已有的 facebook hystack/f4 或者 twitter, 更加注重 rebalance 特性 和 geo地理复制.
+design abstraction partition 是一组blob的逻辑抽象, 倾向于称呼 logic partition, 映射到 一组机器的副本 (会考虑到故障域隔离): physical placement. 在 physical placement 上, blob 不断追加到 data 文件, 除此之外, 还需要维护 indexing、journal、bloom filter 的额外数据结构, 每个data 文件 100GB, 写到 80%-90% 的容量空间的时候, partition 会从 read-write state 转换为 read-only state (需要额外的空间负责delete).
+架构   cluster manager: 负责集群管理: physical/hardware layout(node &amp;amp; disk placement, up/down state)、partition state/logic layout(read-write/read-only, mapping: partition(state)-&amp;gt;placement info(dc+datanode+disk))</description>
     </item>
     
     <item>
-      <title>Google_article</title>
-      <link>https://xujianhai.fun/posts/google_article/</link>
-      <pubDate>Tue, 21 Jul 2020 23:06:09 +0800</pubDate>
+      <title>Essay_pebblesdb</title>
+      <link>https://xujianhai.fun/posts/essay_pebblesdb/</link>
+      <pubDate>Wed, 17 Feb 2021 11:28:15 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/google_article/</guid>
-      <description>序 读论文的路上继续. 这里主要围绕 spanner sql 、megaStore、F1、dremel 相关的论文.
-spanner sql 1 在之前spanner kv的基础上, 主要介绍了sql的实现(从kv-&amp;gt;rdbms), 不同于其他sql+存储松耦合的实现方式(两套系统), spanner 采取了内部紧耦合的策略. 除了sql, 还提及了一个新的数据存储格式: Ressi, 和 SSTable 不同的是, block之间是面向 row的, 但是block内部存储却是面向 列的, 这样既保留了 rowkey 的有序性, 还让单个column的读取更加高效. 除此之外, 还支持冷热数据(老版本数据被放在inactive files) 以及 大value另外存储(避免不必要的读取), Ressi 的底层数据结构是 vector(能够更好的压缩).
-sql的研究方面, 介绍了 QUERY DISTRIBUTION （Distributed query compilation 、Distributed Execution、 Distributed joins、Query distribution APIs), QUERY RANGE EXTRACTION(Compile-time rewriting、Filter tree), QUERY RESTARTS(用户体验上的提升, ), 除此之外, 还使用了公司统一的SQL Diaect, 重点介绍了测试. (没有太深的经验, 勿喷)
-ps: 建议重试相关工作的时候在读一遍, 没看太懂(不是很想话时间立即学习&amp;hellip;)
-可以参考: https://zhuanlan.zhihu.com/p/27544985 学习下</description>
+      <guid>https://xujianhai.fun/posts/essay_pebblesdb/</guid>
+      <description>background 通过 fragmented lsm (FLSM) 降低写放大. 适配到了 HyperLevelDB 修改为 pebblesDB. 显著降低 2.4-3x 写放大. 增加了 6.7x 写吞吐量. 并将 FLSM 作为 mongdb/HyperDex 的底层存储引擎 (IO吞吐量显著增加).
+note: 较大的写放大 会导致 负载过高. 同时 IO竞争 降低在线延迟
+结合了 SkipList + LSM, 以及 parallel seeks, aggressive seek-based compaction, and sstable-level bloom filters, 但是不擅长 range
+design FLSM’s compaction simply appends a new sstable fragment to the next level. guards: 将 key range 划分成 多个不相交的 单元. 每个level 包含多个 guards. level0 不包含 guards 打破了 a level 每个 sstable key 不接连的 约定, 也就是说, 相同的key 可以在 a level 的多个 sstable.</description>
     </item>
     
     <item>
-      <title>Paxos</title>
-      <link>https://xujianhai.fun/posts/paxos/</link>
-      <pubDate>Sun, 12 Jul 2020 21:18:49 +0800</pubDate>
+      <title>Essay_tao</title>
+      <link>https://xujianhai.fun/posts/essay_tao/</link>
+      <pubDate>Tue, 16 Feb 2021 16:53:50 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/paxos/</guid>
-      <description>preface 在分布式系统中, 共识算法是基层能力, 分布式锁、名字服务、服务注册&amp;amp;发现 都依赖分布式共识算法. 分布式共识的本质是多个server就value达成一致. 目前最流程的是raft, 早期流行过paxos, 讨论paxos的时候需要了解 basic paxos 和 multi paxos. paxos/basic paxos 讨论的是多个副本如何就一个value达成一致, multi paxos 是对一系列value达成一致(一般会提出master+lease+epoch的策略). 下面针对paxos深入学习
-ps: 严格意义上说, zab 不是paxos, 但是接近, ZAB是为了构建高可用的分布式主备系统, paxos则是用于构建分布式的一致性状态机. 因此这里放在一起讨论
-essay  paxos made simple 1  入门级读物, 讨论了如何确定一个value: propose + chosen + learn (basic paxos). 提出了paxos中的三个角色: proposer、acceptor、learner. value 被choose的定义是 足够多的acceptor 接受value, 足够多 的定义是基于 quorum协议的. 但是acceptor的accept的行为, 在论文中讨论了几个必要条件:
- P1. An acceptor must accept the first proposal that it receives P1a. An acceptor can accept a proposal numbered n iff it has not responded to a prepare request having a number greater than n.</description>
+      <guid>https://xujianhai.fun/posts/essay_tao/</guid>
+      <description>传统的图存储了, 早期阅读过, 重新复习记录下.
+需求  论文列举了 使用场景: 用户发布checkin 打卡地点 并 提及 朋友, 朋友之间发布评论. 用户之间的朋友关系维护. 现在面临的问题:
+ edge list 分布式控制逻辑 read-after-write consistency  设计 tao以前, 用 mysql + memcache 针对业务做了实现, 但是耦合太重, 后来针对性的 构建模型. 支持 lookside cache、list edge、lease，remote marker（写后读），支持 inverse 耦合操作.
+data model &amp;amp; api tao的数据模型: 将node/edge 抽象成 object 和 association, object存储 用户、checkin、landmark、comments. association 存储 freendiship、authorship(checkin/comment), 比较特殊的是, action 比如 like/acceptance of invitation, 既可以编码成 object, 也可以编码成 association. 另一些比如 frendiship、authorship 都是双向关系.
+实现上, object 使用 64bit integer 唯一标识, association 用 source object + association type + destination object 标志, 任意两个 object 只有一种type的关系.</description>
     </item>
     
     <item>
-      <title>Message_batch</title>
-      <link>https://xujianhai.fun/posts/message_batch/</link>
-      <pubDate>Fri, 10 Jul 2020 15:22:42 +0800</pubDate>
+      <title>Pnuts</title>
+      <link>https://xujianhai.fun/posts/essay_pnuts/</link>
+      <pubDate>Mon, 15 Feb 2021 20:12:32 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/message_batch/</guid>
-      <description>序 最近小伙伴聊到 batch消息 在ack的处理方式, 是一个个ack? 还是批量ack? 如果是多个消息存储成1个, 那么 offset 是怎么管理的呢? 消费的时候, ack掉一个就多个消息都被ack了? 那么因为分成了多个消息消费, 会不会导致重复ack?
-根据之前写rocketm-client-go的经验, client 传递给broker的消息确实是 batch后的 一条消息, 可是后面的路子就不是很清楚了. 因此深入研究下.
-RocketMQ 应用实战  首先, 重新验证下 对批量消息的理解, 运行下 org.apache.rocketmq.example.batch.SimpleBatchProducer 和 org.apache.rocketmq.example.simple.PushConsumer 的例子, SimpleBatchProducer 发送批量消息后, 可以发现 PushConsumer 消费的时候, 其实是一条条消费的:
-message: Hello world 0 0A5DE93A000018B4AAC231F9BC180000 3 message: Hello world 2 0A5DE93A000018B4AAC231F9BC180002 5 message: Hello world 1 0A5DE93A000018B4AAC231F9BC180001 4 这样就郁闷了, 发送的时候是批量成一条消息发送的(见下文), 那么什么时候解成一条条消息的呢? 而且打印的时候, 我特意打印了每个消息的 messageId 和 queueOffset, 可以发现这些消息的 queueOffset 确实不一样, 也就是说消息确实不一样.
- client  首先看下 client 是怎么传递消息的.</description>
+      <guid>https://xujianhai.fun/posts/essay_pnuts/</guid>
+      <description>定位是 分布式数据库. 特点: 提供 hashed/ordered tables. 中心化管理、地理位置复制、自动负载均衡.
+record 级别的 master-follow replica机制. 列举了 应用的不同一致性模型: read-any, read-critical, read-latest, write, test-and-set-write(乐观锁),
+支持 Bundled updates, notification,
+热点问题如何解决?
+系统架构 tablet controller、router、storage unit.
+router: 1. 维护 record -&amp;gt; tablet -&amp;gt; storage unit 的 internal mapping. 无论是 hash 还是 ordered 都是转换成 tablet. internal map 从 tablet controller 获取. soft state. 2. 包含 scatter-gather engine, 负责处理 multi-record, 并行将多个 record 发送到多个 storage unit. 采用stream模式. (服务端模式, 而不是客户端模式, 因为链接的资源消耗). 以及 topK 的实现.</description>
     </item>
     
     <item>
-      <title>Bigtable</title>
-      <link>https://xujianhai.fun/posts/bigtable/</link>
-      <pubDate>Wed, 08 Jul 2020 21:26:27 +0800</pubDate>
+      <title>Essay_wisckey</title>
+      <link>https://xujianhai.fun/posts/essay_wisckey/</link>
+      <pubDate>Mon, 01 Feb 2021 20:32:35 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/bigtable/</guid>
-      <description>preface 看完mit的课程, 意犹未尽, 因为google素有三驾马车之称的论文中, GFS 和 spanner 已经看过, 但是bigtable却没有深入了解过, 虽然基于 bigtable 论文实现的 hbase已经非常知名, 顺便结合之前的 hbase 学习的经验.
-design 在数据模型上, bigtable在论文中是宣称是 sparse, distributed, persistent multidimensional sorted map, 存储的kv结构是 (row:string, column:string, time:int64) → string, 通过key 中包含的time 实现了多版本的机制(会配置只保持最近n个版本, 或者老版本存活多少天), 通过 row 将同一个对象的多个属性(column)进行聚合, column 的分散设计能够高效的并发. bigtable 通过rowkey的字节序排序维护数据, 并且每个table的数据是动态partition的(分布式&amp;amp;负载均衡), partition的row range就是 tablet. 为了更好的管理column, 采用了 column family/cf 的设计, 类似于 group的概念, 一个 cf 下的数据通常是一起压缩的 并且数据类型相同, 访问控制配置也一样. 由于cf的设计, 一个 column key name就会变成: family:qualifier, qualifier 可以理解为 key, 在举例的场景中, web page 存储就分成了 cf: anchor, qualifer 是被引用的站点, 比如 google.</description>
+      <guid>https://xujianhai.fun/posts/essay_wisckey/</guid>
+      <description>序 比较经典的kv存储分离的实现, 将大的value存储在 vlog 文件上, lsm 只存储 (key, offset) 信息, (需要注意的是, vlog的内容也需要记录key的信息, 加快gc), 极大的降低了 lsm 在 写放大, 延长ssd的生命周期. 虽然通过vlog 无法利用顺序读的优势, 但是可以利用 多线程 + ssd 来达到顺序读取的效果. 在内部实现上, 甚至去除了 lsm 中log的模块, 并达到了一致性.
+论文精读 论文开篇对比列出了 hdd/ssd lsm实现的几个问题:
+ ssd 的 顺序IO/随机IO 的差距明显低于 hdd, 这样就显得 lsm 中大量 随机IO-&amp;gt;顺序IO的优化显得没那么必要 (参见论文figure 3) ssd 的内部并行化程度高 ssd 的不擅长重复擦除写, LSM 最差 50x 的写放大会降低 ssd 的生命周期  为此, 设计了 wisckey, 充分利用 ssd 的随机+内部并发能力, 将value存储在vlog上, 同时降低不必要的写放大
+挑战 在设计wisckey, 会和 传统 lsm 设计存在很大的gap, 例如:</description>
     </item>
     
     <item>
-      <title>Broken_pipe</title>
-      <link>https://xujianhai.fun/posts/broken_pipe/</link>
-      <pubDate>Tue, 23 Jun 2020 18:33:37 +0800</pubDate>
+      <title>Essay_Dostoevsky</title>
+      <link>https://xujianhai.fun/posts/essay_dostoevsky/</link>
+      <pubDate>Sun, 24 Jan 2021 16:06:33 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/posts/broken_pipe/</guid>
-      <description>Preface 最近使用sarama(kafka go client) 发现大量的报错: write: broken pipe, 并且还触发了我们的日志报警, 感到奇怪, 研究了一下
-报错类型 除了 broken pipe, 还有 reset by peer 和 EOF 两种报错. 根据查阅资料, 最终整理如下:
- Broken pipe: 是 第二次向 closed tcp pipe(收到了rst报文) 写入数据导致的报错 reset by peer: 是 在写入 closed tcp pipe(收到了rst报文) 之后读取操作 报错 io.EOF: 如果对端的写端关闭连接，读端继续读，报错EOF  这里 reset by peer 和 io.EOF 存在一定的雷同, 下面针对这三种情况进行测试:
-program 在 broken pipe 和 EOF 的测试中, 使用的server 和 client 代码是一个, 如下:
-package main import ( &amp;#34;log&amp;#34; &amp;#34;net&amp;#34; &amp;#34;time&amp;#34; &amp;#34;unsafe&amp;#34; ) func main() { doClient() } func doClient() { d := &amp;amp;net.</description>
+      <guid>https://xujianhai.fun/posts/essay_dostoevsky/</guid>
+      <description>从 https://www.jianshu.com/p/8fb8f2458253 看到了 Dostoevsky, 研究了下论文
+tired &amp;amp; level 基本原理  stcs:  每一层文件大小按比例增加, 每一层的文件数量固定. 比如 4层文件, 每层大小4倍增长, 则分别是: 100 MB, 400 MB, 1.6 GB and 6.4 GB.
+层间compaction, 比如 level(i) -&amp;gt; level(i+1), 当i层四个文件都写满了, 则会触发. 会将 level(i) 的四个文件进行 compaction 放到 level(i+1) 【空间放大的原因】
+经典的图, 参考论文
+ level:  每一层的文件大小固定, 文件数量按照层级按比例增长, 比如 4(level 0)、10、100、1000, 每个文件都是 16MB
+层间compaction 是当 level(i) 文件数满的时候触发的. 会从 level(i) 中选取一个文件 和 level(i+1) 的10个文件进行compaction, 并写入11个文件 【写放大的原因】
+经典的图, 参考论文
+写放大 写放大: 一次byte写入, 在磁盘上读写了多少次 (注意: lsm 因为有一次日志写commit-log, 因此至少有一次写放大)</description>
     </item>
     
   </channel>

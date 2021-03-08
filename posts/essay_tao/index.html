@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="传统的图存储了, 早期阅读过, 重新复习记录下.
+需求  论文列举了 使用场景: 用户发布checkin 打卡地点 并 提及 朋友, 朋友之间发布评论. 用户之间的朋友关系维护. 现在面临的问题:
+ edge list 分布式控制逻辑 read-after-write consistency  设计 tao以前, 用 mysql &#43; memcache 针对业务做了实现, 但是耦合太重, 后来针对性的 构建模型. 支持 lookside cache、list edge、lease，remote marker（写后读），支持 inverse 耦合操作.
+data model &amp;amp; api tao的数据模型: 将node/edge 抽象成 object 和 association, object存储 用户、checkin、landmark、comments. association 存储 freendiship、authorship(checkin/comment), 比较特殊的是, action 比如 like/acceptance of invitation, 既可以编码成 object, 也可以编码成 association. 另一些比如 frendiship、authorship 都是双向关系.
+实现上, object 使用 64bit integer 唯一标识, association 用 source object &#43; association type &#43; destination object 标志, 任意两个 object 只有一种type的关系." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_tao/" />
+
+
+    <title>
+        
+            Essay_tao :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Essay_tao">
+<meta itemprop="description" content="传统的图存储了, 早期阅读过, 重新复习记录下.
+需求  论文列举了 使用场景: 用户发布checkin 打卡地点 并 提及 朋友, 朋友之间发布评论. 用户之间的朋友关系维护. 现在面临的问题:
+ edge list 分布式控制逻辑 read-after-write consistency  设计 tao以前, 用 mysql &#43; memcache 针对业务做了实现, 但是耦合太重, 后来针对性的 构建模型. 支持 lookside cache、list edge、lease，remote marker（写后读），支持 inverse 耦合操作.
+data model &amp; api tao的数据模型: 将node/edge 抽象成 object 和 association, object存储 用户、checkin、landmark、comments. association 存储 freendiship、authorship(checkin/comment), 比较特殊的是, action 比如 like/acceptance of invitation, 既可以编码成 object, 也可以编码成 association. 另一些比如 frendiship、authorship 都是双向关系.
+实现上, object 使用 64bit integer 唯一标识, association 用 source object &#43; association type &#43; destination object 标志, 任意两个 object 只有一种type的关系.">
+<meta itemprop="datePublished" content="2021-02-16T16:53:50&#43;08:00" />
+<meta itemprop="dateModified" content="2021-02-16T16:53:50&#43;08:00" />
+<meta itemprop="wordCount" content="495">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Essay_tao"/>
+<meta name="twitter:description" content="传统的图存储了, 早期阅读过, 重新复习记录下.
+需求  论文列举了 使用场景: 用户发布checkin 打卡地点 并 提及 朋友, 朋友之间发布评论. 用户之间的朋友关系维护. 现在面临的问题:
+ edge list 分布式控制逻辑 read-after-write consistency  设计 tao以前, 用 mysql &#43; memcache 针对业务做了实现, 但是耦合太重, 后来针对性的 构建模型. 支持 lookside cache、list edge、lease，remote marker（写后读），支持 inverse 耦合操作.
+data model &amp; api tao的数据模型: 将node/edge 抽象成 object 和 association, object存储 用户、checkin、landmark、comments. association 存储 freendiship、authorship(checkin/comment), 比较特殊的是, action 比如 like/acceptance of invitation, 既可以编码成 object, 也可以编码成 association. 另一些比如 frendiship、authorship 都是双向关系.
+实现上, object 使用 64bit integer 唯一标识, association 用 source object &#43; association type &#43; destination object 标志, 任意两个 object 只有一种type的关系."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2021-02-16 16:53:50 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_tao/">Essay_tao</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>传统的图存储了, 早期阅读过, 重新复习记录下.</p>
+<h2 id="需求">需求 </h2>
+<p>论文列举了 使用场景: 用户发布checkin 打卡地点 并 提及 朋友, 朋友之间发布评论. 用户之间的朋友关系维护. 现在面临的问题:</p>
+<ul>
+<li>edge list</li>
+<li>分布式控制逻辑</li>
+<li>read-after-write consistency</li>
+</ul>
+<h2 id="设计">设计</h2>
+<p>tao以前, 用 mysql + memcache 针对业务做了实现, 但是耦合太重, 后来针对性的 构建模型. 支持 lookside cache、list edge、lease，remote marker（写后读），支持 inverse 耦合操作.</p>
+<h3 id="data-model--api">data model &amp; api</h3>
+<p>tao的数据模型: 将node/edge 抽象成 object 和 association, object存储 用户、checkin、landmark、comments. association 存储 freendiship、authorship(checkin/comment), 比较特殊的是, action 比如  like/acceptance of invitation, 既可以编码成 object, 也可以编码成 association. 另一些比如 frendiship、authorship 都是双向关系.</p>
+<p>实现上, object 使用  64bit integer 唯一标识, association 用 source object + association type + destination object 标志, 任意两个 object 只有一种type的关系. object 和 association 用 kv 标识, 如下:</p>
+<pre><code>Object: (id) → (otype, (key -&gt; value)∗)
+Assoc.: (id1, atype, id2) → (time, (key -&gt; value)∗)
+</code></pre><p>api层面上, object api 支持 allocation、retrive、update、delete 操作. association api 支持 assoc_add、assoc_change、assoc_delete, 以及 assoc_list (从最新到最早)、assoc_get、assoc_count、assoc_range、assoc_time_range</p>
+<h3 id="arch">arch</h3>
+<p>底层存储还是 mysql shard + cache tier(memcached), 每个database server 负责一个或多个shard(一致性hash分配). cache tier 支持完整的 api, 每个请求 映射到 cache tier 的一个cache server(算法和db sahrd一致, 比较有意思的是, 每个 object 都包含了shard id). cache tier 使用LRU 维护内存的 object、association list 和 association count.</p>
+<p>对于双向的添加, 接受forward egde 的 cache tier 会先请求 dest object 所在的 cache server 添加反方向的操作, 成功后再添加 forward edge; 中间不一致的状态通过async job 完成 (划重点, 这个设计很关键).</p>
+<p>为了处理高吞吐和大流量, 直接的办法就是 水平扩容 cache tier,  但是 cache tier 太大, 更加容易出现热点, 以及 链接数暴涨的问题, 为了更好的解决这个问题, cache tier 分成了 leader tier 和 多个follower tier, leader tier 的 membership 都是leader, 负责 一个或者多个shard, 所有对这个 db shard 的读写 都走这个 leader cache tier; follower tier 的 membership 都是 follower, follower 负责将 read-miss 和 write 转发给 leader tier; 有意思的是, client 永远不会和 leader tier 沟通, 都是和 最近的 follower tier.</p>
+<p>问题, leader-follower cache 如何保持一致性? follower tier 需要其他 follower tier 通知, 最终一致性的保证, 通过 leader-&gt;multi follower 的 cache-maintenance/invalidation/refill(version number+change set) 消息, follower 同步响应. leader tier 负责 序列化并发 避免惊群.</p>
+<p>因为最终一致性的实现, 以及 mysql + cache 同步机制的差异, 会出现 数据来回变动的现象, slave region中, mysql 存储了旧值, cache tier 一开始收到更新提供给client 新值, 但是因为 缓存压力置换出了数据, 再次从 数据库加载 就是 旧值了. 为了保证更强的一致性, 提供了 <code>critical</code> 模式, 会转发读取 master region.</p>
+<p>问题: cache cpordinator per database ?</p>
+<p>为了应对全球化布局, 单dc内 leader/follower cache tier 的延迟很低, 但是 跨dc的延迟很高, 而且 read-miss 有25倍. facebook 论文的解决方案, 设计了 每个shard的 master/slave region, 每个region都有 自己的数据库 和 leader-follower cache tier, follower region 的 db 复制 leader region db, leader region db 是 ”source of truth“, follower region 是 local-read(read-miss 也是本地), write 是转发到 master region. 每个region都是 完整的副本.</p>
+<p>多个shard 会映射到 多个 region上, 每个shard leader 只在一个region上, 一个region有多个 leader shard 和 follower shard. shard 可以在region之间切换.</p>
+<p>数据库之间的复制通过 统一的 database replication stream. 复制完成之后, 才会发送 invalidation/refill 同步消息 来保证数据的同步.</p>
+<p>后续讨论了 高效的memcache 和 mysql 实现.</p>
+<p>特殊的优化:</p>
+<ol>
+<li>cache load balance, 通过 cloned shard + client cache(version+data) 解决.</li>
+<li>空结果查询优化, 出度高的obejct, 可以选择入度object 进行查询; 限制时间的查询优化  ( 存在的场景下, dest obj time &gt; edge time)</li>
+</ol>
+<h3 id="失败检测">失败检测</h3>
+<p>类似熔断的做法 实现失败检测;</p>
+<p>细分:</p>
+<ul>
+<li>db 不可用: master region master db 不可用, 其他 slave db 直接自动升级; slave region db 挂了, 流量到 master region, binlog 同步组件后续会给 slave db 同步消息.</li>
+<li>leader cache tier 不可用: leader cache tier 的 server 可以互相替代, replacement cache server 会保存 async invalidagtion 给 recovered leader, 同时也会记录到 coordinator 以及 replication stream.  recoverd leader 对外提供服务的时候可能提供 stale value</li>
+<li>refill&amp;invalidation: 内存+磁盘 同步给follower; leader downtime recovery, 会 bulk invalidation; leader permanent replacement, 则 shard对应的数据 全部 invalidation</li>
+<li>follower tier: follower tier 互相补充提供服务, client 请求会提供 primary/backup tier 实现failover (read-after-write 会受到影响).</li>
+</ul>
+<h2 id="个人感受">个人感受</h2>
+<p>整体上感觉还是 业务层的抽象, 提供诸多服务的底层抽象. leader/follower tier 的设计思路不错; master/slave region 比较常规</p>
+<h2 id="参考">参考</h2>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>495 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2021-02-16 16:53 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/essay_pebblesdb/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Essay_pebblesdb</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/essay_pnuts/">
+                                <span class="button__text">Pnuts</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

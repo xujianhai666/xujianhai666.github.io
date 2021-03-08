@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="background 从论文看来, 用分布式文件系统 tectonic 取代了 blob/f4、data warehouse 的存储实现, 类似 azure 的底层文件系统的实现, blob/f4、data warehouse 作为上层 tenants, 直接和存储交互 (类似头条的 byteStore).
+每个 tenant 是一个 namespace, 但是资源隔离是 tenant 级别的(后续看).
+design 传统的 mds &#43; data node &#43; background service 组成, data node 写入时传统的 append 模式, mds 独立进程部署.
+mds data model: 分层存储 Name layer(&amp;ldquo;dir-&amp;gt;list of subdir/name&amp;rdquo;)、File Layer(&amp;ldquo;file id-&amp;gt;list of block id&amp;rdquo;)、Block Layer(&amp;ldquo;block-&amp;gt;list of disk&amp;rdquo;&amp;amp;&amp;ldquo;disk-&amp;gt;list of block&amp;rdquo;). 分层的模型在存储上分层存储, 降低热点, 提高可用性&amp;amp;容量扩展性
+storage model(逻辑分层&#43;物理分层): 自研了 ZippyDB(分布式线性kv存储): paxos&#43;rocksdb, 数据管理是 shard 级别的, 这样, 一个 mds node 可能多个 shard." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_tectonic/" />
+
+
+    <title>
+        
+            Essay_tectonic :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Essay_tectonic">
+<meta itemprop="description" content="background 从论文看来, 用分布式文件系统 tectonic 取代了 blob/f4、data warehouse 的存储实现, 类似 azure 的底层文件系统的实现, blob/f4、data warehouse 作为上层 tenants, 直接和存储交互 (类似头条的 byteStore).
+每个 tenant 是一个 namespace, 但是资源隔离是 tenant 级别的(后续看).
+design 传统的 mds &#43; data node &#43; background service 组成, data node 写入时传统的 append 模式, mds 独立进程部署.
+mds data model: 分层存储 Name layer(&ldquo;dir-&gt;list of subdir/name&rdquo;)、File Layer(&ldquo;file id-&gt;list of block id&rdquo;)、Block Layer(&ldquo;block-&gt;list of disk&rdquo;&amp;&ldquo;disk-&gt;list of block&rdquo;). 分层的模型在存储上分层存储, 降低热点, 提高可用性&amp;容量扩展性
+storage model(逻辑分层&#43;物理分层): 自研了 ZippyDB(分布式线性kv存储): paxos&#43;rocksdb, 数据管理是 shard 级别的, 这样, 一个 mds node 可能多个 shard.">
+<meta itemprop="datePublished" content="2021-02-28T23:07:28&#43;08:00" />
+<meta itemprop="dateModified" content="2021-02-28T23:07:28&#43;08:00" />
+<meta itemprop="wordCount" content="408">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Essay_tectonic"/>
+<meta name="twitter:description" content="background 从论文看来, 用分布式文件系统 tectonic 取代了 blob/f4、data warehouse 的存储实现, 类似 azure 的底层文件系统的实现, blob/f4、data warehouse 作为上层 tenants, 直接和存储交互 (类似头条的 byteStore).
+每个 tenant 是一个 namespace, 但是资源隔离是 tenant 级别的(后续看).
+design 传统的 mds &#43; data node &#43; background service 组成, data node 写入时传统的 append 模式, mds 独立进程部署.
+mds data model: 分层存储 Name layer(&ldquo;dir-&gt;list of subdir/name&rdquo;)、File Layer(&ldquo;file id-&gt;list of block id&rdquo;)、Block Layer(&ldquo;block-&gt;list of disk&rdquo;&amp;&ldquo;disk-&gt;list of block&rdquo;). 分层的模型在存储上分层存储, 降低热点, 提高可用性&amp;容量扩展性
+storage model(逻辑分层&#43;物理分层): 自研了 ZippyDB(分布式线性kv存储): paxos&#43;rocksdb, 数据管理是 shard 级别的, 这样, 一个 mds node 可能多个 shard."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2021-02-28 23:07:28 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_tectonic/">Essay_tectonic</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="background">background</h2>
+<p>从论文看来, 用分布式文件系统 tectonic 取代了 blob/f4、data warehouse 的存储实现, 类似 azure 的底层文件系统的实现, blob/f4、data warehouse 作为上层 tenants, 直接和存储交互 (类似头条的 byteStore).</p>
+<p>每个 tenant 是一个 namespace, 但是资源隔离是 tenant 级别的(后续看).</p>
+<h2 id="design">design</h2>
+<p>传统的 mds + data node + background service 组成, data node 写入时传统的 append 模式, mds 独立进程部署.</p>
+<h3 id="mds">mds</h3>
+<h4 id="data-model">data model:</h4>
+<p>分层存储 Name layer(&ldquo;dir-&gt;list of subdir/name&rdquo;)、File Layer(&ldquo;file id-&gt;list of block id&rdquo;)、Block Layer(&ldquo;block-&gt;list of disk&rdquo;&amp;&ldquo;disk-&gt;list of block&rdquo;). 分层的模型在存储上分层存储, 降低热点, 提高可用性&amp;容量扩展性</p>
+<h4 id="storage-model逻辑分层物理分层">storage model(逻辑分层+物理分层):</h4>
+<p>自研了 ZippyDB(分布式线性kv存储): paxos+rocksdb, 数据管理是 shard 级别的, 这样, 一个 mds node 可能多个 shard. 常规的负载迁移等.</p>
+<p>对于 d1 目录下文件 foo、bar, 会存储为 (d1, foo) 和 (d1, bar) 两个key. 遍历目录下的文件通过 scan 实现(用过的同学都懂的)</p>
+<p>data model 的分层逻辑在存储上 经过 hash 负载到 node 上存储, 避免了 range 局部性热点的问题(比如读取目录下的文件)</p>
+<p>一致性上 不支持跨分片的事务</p>
+<p>小优化: 计算引擎经常需要遍历 目录下的文件读取, mds将 文件名+id 同时下发给 计算引擎 避免 mds 高负载</p>
+<p>实践下来, 2/3 的metadata 操作是 block layer.</p>
+<p>个人疑惑的地方: chunk 的逻辑关系在 metadata 上并没有清晰的表现出来, 但是 block 是逻辑表示, 确实 chunk构成的, 感觉 md 上缺少了部分的表述</p>
+<h3 id="chunk-storedata-node">chunk store/data node</h3>
+<h4 id="持久化">持久化</h4>
+<p>tectonic 的 chunkstore 本质上就是一个对象存储, chunk 构成了上层的 logic block语义.</p>
+<p>tectonic 提供了 block 级别的持久化语义, 空间存储、容量、性能都是 block 级别的, 目前支持 多副本/RS编码 的方式, RS 根据对象的持久性分层 RS(9,6) encoded(长期存储的对象)、RS(3,3)(短期存活的对象); rs 编码的写入15个有14个成功就返回了，剩下的失败的1个 会离线修复; 对于blob的副本模式, 采用 &ldquo;partial block quorum appends&rdquo;, 2/3 的quorum 写入就算成功. 根据 blob hot-&gt;warm/cold 的 age 属性, 采用 Reencoding优化方案: 将复制的blob 在 sealed(不会再写入) 之后 转变成 rs 编码.</p>
+<p>论文中提到了 节点坏盘/高负载 导致 reconstruction read 形成 reconstruction storm 的问题, 为此采用优化 striped rs encoding(约束到10%, 避免成本过高)</p>
+<p>存储实现上, 本地文件读写用 xfs, 比较有意思的是, 每个 storage node 都有 36 hdd+1Tb ssd( xfs md + 缓存 hot chunk).</p>
+<h4 id="placement">placement</h4>
+<p>常规的copyset方案, 会根据情况保持 fixed copyset count.</p>
+<p>论文提到 <code>with only 5% of storage nodes unavailable, 80% of the block groups became unavailable for writes?</code> 的这个问题 不是很理解.</p>
+<h4 id="io-path">IO Path</h4>
+<p>IO路径上, block 只允许创建者 进行 append, 避免多点写入的问题; 对于data awrehouse, 允许一个文件并发写入(个人认为还是chunk粒度的并发).</p>
+<p>full-block 写入会先请求 资源分配, 在进行写入</p>
+<h4 id="sla">sla</h4>
+<p>每个tenant本质上是上层抽象的存储逻辑业务, 每个租户对外提供服务给 各个app, 因为一个集群可能存放多个tenant, 那么 tenant 之前的资源问题就显得很重要.</p>
+<p>论文中根据资源类型抽象了 持久化的资源(存储容量, 变化很慢, 不是隔离的重点) 和 非持久化的资源,  设计了 TrafficGroups, 每个 TrafficGrous 都有对应的 TrafficClasses: Gold, Silver, and Bronze, 分别对应于 latency-sensitive, normal, and background applications. tenant 内部, 空闲的资源(比如 disk time)根据 TrafficClass 进行调度.</p>
+<p>本地资源采用 weighted round-robin (WRR) scheduler 避免quota用光过度使用资源的情况. 为了更好的处理高优请求, 使用了三种IO调度策略:</p>
+<ul>
+<li>使用了 贪婪的优先级算法，只要低优请求在 高优请求插队后 仍然爱有时间完成 那么鼓励插队.
+限制低优请求量</li>
+<li>限制低优算法, 优先服务高优</li>
+<li>IO重调度算法: 将disk阻塞超过阈值的 gold 请求 放到 non-gold 前面</li>
+</ul>
+<p>客户端侧, 采用 分布式 counter 的限流 来保证 资源共享</p>
+<h3 id="background-service">background service</h3>
+<p>常规的设计比如 metadata gc、chunk rebalancer(copyset优化)&amp;repair(clean deleted chunk)</p>
+<h2 id="tenant-view">tenant view</h2>
+<p>security: 分层的 token  鉴权和分发
+data integration:  进程边界 checksum 保证, 不仅仅是 client 和 storage node 的边界
+不支持 geo复制, 上层tenants(比如 blob/warehouse) 实现
+远程数据获取走 代理</p>
+<p>设计比如 <code>Each tenant in a cluster typically owns one namespace.</code>还是比较常规的.
+du  容易过时, 总的而言, 和现在的 dfs(头条的byteStore) 设计差异不大</p>
+<p>论文中着重强调了 将 warehouse 和 blob 混部后 提高了 的资源利用率 并更好的隔离资源的效果, 也是不错的方向.</p>
+<p>future 上来讲, 因为性能 kv 服务还没有迁移过来, 还是有很多work的</p>
+<h2 id="个人感受">个人感受</h2>
+<p>虽然整体架构比较常规, 但是还是有很多可以借鉴的地方: mds 的 逻辑+物理分层设计 极大的避免了 热点问题. 各种IO调度策略优化 提高 SLA, reencode 统一了 blob hot/warm 模型(摒弃了 hystack/f4 两套系统).</p>
+<h2 id="参考">参考</h2>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>408 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2021-02-28 23:07 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/essay_fb_rocksdb/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Essay_fb_rocksdb</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/essay_paxostore/">
+                                <span class="button__text">Essay_paxostore</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="background 早期的镜像分发 是直接从 registry 拉取, 后来有了p2p 模式的大规模网络镜像拉取的优化, 但是论文指出 大规模的容器集群(container cluster) 这种方式还是不够用, 因此有了 论文中 提到的 DADI(Data Acceleration for Disaggregated Infrastructure): 分层基础设施的数据加速 (本人直译).
+DADI 的本质在于将 container 的每一层 image 都映射了一个块设备上 (我也是很惊讶), 读取container 本质上就是 读取相应的 块设备, 并行化程度高了很多, 同时还能避免 原来镜像分发中 重复的内容, 去重又进一步降低了需要传输的数据量(后面有数据). 除此之外, 为了平衡各个主机的网络流量, 还使用了 p2p 架构, 可以直接从其他节点的缓存获取数据(后续在 data load 流程中展开), 延迟进一步降低. 按照论文的说法, 4s内可以拉取 总结 1000 个主机上 总计 10000 个container.
+不过从论文整理上来看, dadi 只是通过 network block device(nbd) 技术将写追加到了 blob 类型的存储, 并做索引, 后面contianer 通过合并多层 image, 定位数据所在的blob 进行读写而已. 因此, 每个 image 并没有占据完整的 lba, 只用不断追加就可以." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_dadi/" />
+
+
+    <title>
+        
+            Essay_dadi :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Essay_dadi">
+<meta itemprop="description" content="background 早期的镜像分发 是直接从 registry 拉取, 后来有了p2p 模式的大规模网络镜像拉取的优化, 但是论文指出 大规模的容器集群(container cluster) 这种方式还是不够用, 因此有了 论文中 提到的 DADI(Data Acceleration for Disaggregated Infrastructure): 分层基础设施的数据加速 (本人直译).
+DADI 的本质在于将 container 的每一层 image 都映射了一个块设备上 (我也是很惊讶), 读取container 本质上就是 读取相应的 块设备, 并行化程度高了很多, 同时还能避免 原来镜像分发中 重复的内容, 去重又进一步降低了需要传输的数据量(后面有数据). 除此之外, 为了平衡各个主机的网络流量, 还使用了 p2p 架构, 可以直接从其他节点的缓存获取数据(后续在 data load 流程中展开), 延迟进一步降低. 按照论文的说法, 4s内可以拉取 总结 1000 个主机上 总计 10000 个container.
+不过从论文整理上来看, dadi 只是通过 network block device(nbd) 技术将写追加到了 blob 类型的存储, 并做索引, 后面contianer 通过合并多层 image, 定位数据所在的blob 进行读写而已. 因此, 每个 image 并没有占据完整的 lba, 只用不断追加就可以.">
+<meta itemprop="datePublished" content="2021-03-03T21:06:00&#43;08:00" />
+<meta itemprop="dateModified" content="2021-03-03T21:06:00&#43;08:00" />
+<meta itemprop="wordCount" content="754">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Essay_dadi"/>
+<meta name="twitter:description" content="background 早期的镜像分发 是直接从 registry 拉取, 后来有了p2p 模式的大规模网络镜像拉取的优化, 但是论文指出 大规模的容器集群(container cluster) 这种方式还是不够用, 因此有了 论文中 提到的 DADI(Data Acceleration for Disaggregated Infrastructure): 分层基础设施的数据加速 (本人直译).
+DADI 的本质在于将 container 的每一层 image 都映射了一个块设备上 (我也是很惊讶), 读取container 本质上就是 读取相应的 块设备, 并行化程度高了很多, 同时还能避免 原来镜像分发中 重复的内容, 去重又进一步降低了需要传输的数据量(后面有数据). 除此之外, 为了平衡各个主机的网络流量, 还使用了 p2p 架构, 可以直接从其他节点的缓存获取数据(后续在 data load 流程中展开), 延迟进一步降低. 按照论文的说法, 4s内可以拉取 总结 1000 个主机上 总计 10000 个container.
+不过从论文整理上来看, dadi 只是通过 network block device(nbd) 技术将写追加到了 blob 类型的存储, 并做索引, 后面contianer 通过合并多层 image, 定位数据所在的blob 进行读写而已. 因此, 每个 image 并没有占据完整的 lba, 只用不断追加就可以."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2021-03-03 21:06:00 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>4 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_dadi/">Essay_dadi</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="background">background</h2>
+<p>早期的镜像分发 是直接从 registry 拉取,  后来有了p2p 模式的大规模网络镜像拉取的优化, 但是论文指出 大规模的容器集群(container cluster) 这种方式还是不够用, 因此有了 论文中 提到的 DADI(Data Acceleration for Disaggregated Infrastructure): 分层基础设施的数据加速 (本人直译).</p>
+<p>DADI 的本质在于将 container 的每一层 image 都映射了一个块设备上 (我也是很惊讶), 读取container 本质上就是 读取相应的 块设备, 并行化程度高了很多, 同时还能避免 原来镜像分发中 重复的内容, 去重又进一步降低了需要传输的数据量(后面有数据).  除此之外, 为了平衡各个主机的网络流量, 还使用了 p2p 架构, 可以直接从其他节点的缓存获取数据(后续在 data load 流程中展开), 延迟进一步降低. 按照论文的说法, 4s内可以拉取 总结 1000 个主机上 总计 10000 个container.</p>
+<p>不过从论文整理上来看, dadi 只是通过 network block device(nbd) 技术将写追加到了 blob 类型的存储, 并做索引, 后面contianer 通过合并多层 image, 定位数据所在的blob 进行读写而已. 因此, 每个 image 并没有占据完整的 lba, 只用不断追加就可以. 和传统的块存储还是差异很大的</p>
+<h2 id="design">design</h2>
+<h3 id="dadi">dadi</h3>
+<p>分两部分看设计. DADI image server 基于 block interface 处理 image, 底层存储系统无感知(hdfs、nfs、cifs),</p>
+<p>一个image layer 的 delta change blocks 是一个 block device. 每个 container 对应对应一个 vnbd. overlay nbd 对应一个 server. 典型的场景, 用户在container 中读取一个文件, 会经历 fs-&gt;kernel-&gt;nbd protocol-&gt;vnbd-&gt;dadi module/OverlayBD-&gt;multi layer random read (一个文件可能被多层image修改), 个人理解会读取 多个 block device.</p>
+<p>(个人想法)需要注意的是, 每个block 多大呢? 按照 image layer 写完就不会修改的特性 (在修改就是另一个image了), 后续应该可以 compact block address.</p>
+<h4 id="data-model">data model</h4>
+<p><em>single image layer</em></p>
+<p>dadi 使用 var-length segments + index 维护数据空间. 看论文的数据结构.</p>
+<ul>
+<li>
+<p>moffset 和 pos 是什么意思 ? image 的 blob offset 和 lba 不是一一对应的, 因此需要映射. 读取 需要根据 moffset 读取. 如果只是一层, moffset 没有意义, 但是多层重叠修改的时候, lba 的一段地址空间 可能对应多个 segment的 一部分, 所以需要 moffset 记录实际读取的位置.</p>
+</li>
+<li>
+<p>blob offset 和 lba 怎么理解? blob offset 是 实际存储的位置.</p>
+</li>
+</ul>
+<p>index 是一组offset排序的数组. QEMU 因为 block size 太大 反而导致 index 更大, 不是很理解!! 读取直接根据index 读取.
+(个人想法) 如果用的是 bytedrive, 因为是不用 记录的, 因为我们本身记录了映射. 感觉他们底层存到了 blob 存储里面了, 所以需要额外记录, 而且这样也不需要处理 vbd 的 size 问题了. 因为是append模型的, 所以 hdfs 这种存储层 无感知模型 也就可替换了</p>
+<p><em>multi image layer</em> (主要是合并算法)</p>
+<p>contianer 包含了多层 image layer, 因此 需要聚合多层为 统一的视图(数据采用最新的), 论文统称 &ldquo;Merged View of Layers&rdquo;. 在index 加载的时候, 提前算法 lba 每一段range 对应的 index (figure 5挺清晰的), 算法描述在 algorithm 2, 就是从上(最新的layer)向下定位, 用最新 non-hole的 segment 信息, hole segment 可能在下面的层被修改过, 因此需要递归向下定位</p>
+<p>查询一段range的blob信息的 伪代码是 algorithm 1, 语言描述如下:</p>
+<ol>
+<li>通过 index 的 end 二叉搜索 找到第一个不小于 offset 的 index (因为offset可能在index表示的lba中间)</li>
+<li>如果 offset 刚好在中间, 那么记录 offset-&gt;index.end 作为一段lba; 不在则略过.</li>
+<li>从上面的index 遍历定位 length 范围的数据. 需要注意 中间 以及 end 存在 hole 的情况 (中间的空洞通过比较 待查的offset和 index 的offset 就知道; 尾部通过比较 最终待查的 offset 和 end)</li>
+</ol>
+<p>algorithm 3 是对应的读取操作, 先通过调用 algorithm 2 知道 (offset, length) 对应的 segment 信息, 然后读取 segment 指定的位置  (论文应该有问题, pread 应该用 moffset).</p>
+<p>算法中的 merged_index 记录的是 一段lba 对应在哪个 blob[i], 用 segment 描述. lookup(offset, length) 返回这段lba 覆盖的 blob, 可能是多个 blob 位于不同的layer.</p>
+<p><em>zfile</em></p>
+<p>避免传统压缩 需要解压缩 offset 前面的地址空间, 提出了 zfile 的设计. 从论文看, 就是将文件分成 chunk 进行压缩, 这样对于 segment 的读取 也就是 解压缩相应的 chunk. 实现上 支持各种 压缩算法 + 字典加速. index 也是压缩的 (感觉没有太大收益, 毕竟数据量少). 无论是 nvme ssd/hdd 收益都很大, 因为 zfile的 读IO的时间收益 &gt; 解压缩的消耗.
+另外, 通过 lz4 实现了在线解压缩.</p>
+<p><em>writable layer</em></p>
+<p>这个比较有意思, 通过 log-structed 实现了 Writable Layer, 并且解耦了存储层类型. 不断写入过程中, 存在重叠的现象, 会启动后台gc线程清理, 除此之外, writable layer 写入后 也会进行 compact.</p>
+<h3 id="p2p">p2p</h3>
+<p>考虑到 大contianer的服务压力, 会在 host 本机磁盘上缓存 最近使用的数据块. 也支持从 其他host 拉取. 为了提高效率, 这里使用了 <code>tree-structed overlay topology</code>, host role 分为了 dadi agent 和 dadi root, 每个集群都有几个 dadi root 互为灾备(论文说有复制流程). agent 读取数据 必须从parent 读取, 允许层层递归. dadi root 维护topo, 并且分配 parent, 以及从 register 读取 data block 到本地缓存.</p>
+<p>dadi root 会为 新的layer 执行 warm-up. 使用 crc32 保护 image block integration.</p>
+<p>问题:</p>
+<ul>
+<li>这个host是专门的dadi cache 还是说 也是 container host ？看 IO Path 应该就是 container host.</li>
+</ul>
+<h3 id="io-path">IO Path</h3>
+<p>请求还是 走 nbd 协议, overlayBD 对于本地没有缓存的 image layer 会请求 p2p agent 的 持久化缓存, 然后持久化本地缓存中(lru缓存最近). qemu 走 dadi block driver, 行为和 nbd 模式一致.</p>
+<p>dadi 也通过 graph driver(docker plugin) 和 docker 集成. dadi 实现了 snapshotter(类似graph driver) 和 container 集成. 这样就有 .tgz 已有的镜像格式 以及 dadi 格式. 目前是双格式兼容的. 测试下来, dadi 格式的 download 和 build 速度都有很大的提升 (避免拉取完整的镜像: 存在很多冗余).</p>
+<p>ps: 上面提到的 log-structed writable layer, 也就实现了 随机写 转换成顺序写, 加快构建速度. 但是一个 image 的构建有很多 layer, 每个layer 都需要 启停一次 nbd, 太费了. 这里用 stack-commit 模式进行了优化: 直接启动一个新的layer, 后台 commit. 也支持格式转换</p>
+<h2 id="历史方案回顾">历史方案回顾</h2>
+<p>以前的解决方式</p>
+<ol>
+<li>p2p</li>
+<li>按需下载</li>
+</ol>
+<p>两种方式都是从 文件系统接口入口, 但是 文件操作粒度大 (新增的 image layer 更新前先要copy整个文件, 硬链接也要copy, 文件属性在多平台之间不兼容；即使一个平台, 不同文件系统之间也没全部支持 hard links/sparse file)。 如果基于文件系统搞: 安全 性能 健壮性 都比 block 难度大</p>
+<p>Overlay Block Device (OverlayBD) 的设计:</p>
+<p>provides a merged view of a sequence of block-based layers. 支持 multi-layer container flatten 来提升性能, 好处: (1) fine-grained on-demand data transfer of remote images; (2) online decom- pression with efficient codecs; (3) trace-based prefetching; (4) peer-to-peer transfer to handle burst workload; (5) flexible choice of guest file systems and host systems; (6) efficient modification of large files (cross layer block references); (7) easy integration with the container ecosystem.</p>
+<h2 id="知识补充">知识补充</h2>
+<ol>
+<li>
+<p>docker container image 和 layer 的关系是什么? container layer 强调共享, 多人共享. 写文件操作是 cow. 快照 和 disk 绑定, 生命周期 从属于 disk</p>
+</li>
+<li>
+<p>qcow2 image format of QEMU,</p>
+</li>
+<li>
+<p>exo-clones？</p>
+</li>
+<li>
+<p>blktrace prefetch 不懂, 为什么用 fio ?</p>
+</li>
+</ol>
+<h2 id="问题">问题</h2>
+<ol>
+<li>
+<p>每个layer一个 virtual block device, 那么load 一个 container 岂不是要读取很多次 block? bm的qps 也就变大了, 这样需要支持多点挂在 只读设备</p>
+</li>
+<li>
+<p>Startup in our Production Environment 为什么只算一个 metadata 的拉取时间呢? 应该是切分成了 pull metadata + launch app 两部分, dadi 只有在 launch 的时候加载数据, metadata 部分只 load index.</p>
+</li>
+<li>
+<p>有意思的是, launch 也很快, 因为 overlaybd 比 overlayfs 更快, 以及 p2p 走cache</p>
+</li>
+<li>
+<p>DADI realizes each layered image as a separate virtual block device 会不会太浪费, 为什么不是都放在一个盘上？ 因为采用了 log-structed 的模式, 将新增部分 追加到了 存储上, 因此表面上 每个 layer 一个 block device 占据了 很大的 lba, 实际上只占用了 很小的空间</p>
+</li>
+<li>
+<p>overlayfs  还能共享 page cache, 比较惊讶</p>
+</li>
+</ol>
+<h2 id="参考">参考</h2>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>754 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2021-03-03 21:06 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/essay_fb_rocksdb/">
+                                <span class="button__text">Essay_fb_rocksdb</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

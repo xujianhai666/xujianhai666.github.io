@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="早期做IM 参考微信的做法内部曾经自研过存储一段时间, 奈何组织架构调整, 这里回顾下相关论文
+design 设计上, 将一致性协议和存储实现 分离, 支持 bitcask、LSM-tree、Main/Delta 模型, 上层模型支持 Key-value、Table、Queue、Set 等, 类似 azure 的分层思想, 但是没有走服务分层. 比较有意思的是, paxos 协议用的 无租约 模式, 存在 write-write 冲突 以及 重复提交请求 的问题.
+重点关注下 paxos 实现的一致性保障、存储层实践优化、容灾&amp;amp;数据恢复
+paxos 常规的paxos实现, prepare&#43;accept 两阶段提交, 这里使用 消息传递机制 替换了状态机实现 (有点像raft实现), 不过是无租约的, 这样downtime 的可用性可以大大提升.
+paxos log 作为 数据更新的 wal; paoxs log 由 entry 组成, entry=request id(client id 32bit ipv4 &#43; timestamp second 16bit &#43; request seq 16bit) &#43; promise id(32bit machine id, 用于pre-preparing optimization) &#43; value." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_paxostore/" />
+
+
+    <title>
+        
+            Essay_paxostore :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Essay_paxostore">
+<meta itemprop="description" content="早期做IM 参考微信的做法内部曾经自研过存储一段时间, 奈何组织架构调整, 这里回顾下相关论文
+design 设计上, 将一致性协议和存储实现 分离, 支持 bitcask、LSM-tree、Main/Delta 模型, 上层模型支持 Key-value、Table、Queue、Set 等, 类似 azure 的分层思想, 但是没有走服务分层. 比较有意思的是, paxos 协议用的 无租约 模式, 存在 write-write 冲突 以及 重复提交请求 的问题.
+重点关注下 paxos 实现的一致性保障、存储层实践优化、容灾&amp;数据恢复
+paxos 常规的paxos实现, prepare&#43;accept 两阶段提交, 这里使用 消息传递机制 替换了状态机实现 (有点像raft实现), 不过是无租约的, 这样downtime 的可用性可以大大提升.
+paxos log 作为 数据更新的 wal; paoxs log 由 entry 组成, entry=request id(client id 32bit ipv4 &#43; timestamp second 16bit &#43; request seq 16bit) &#43; promise id(32bit machine id, 用于pre-preparing optimization) &#43; value.">
+<meta itemprop="datePublished" content="2021-02-27T10:54:55&#43;08:00" />
+<meta itemprop="dateModified" content="2021-02-27T10:54:55&#43;08:00" />
+<meta itemprop="wordCount" content="303">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Essay_paxostore"/>
+<meta name="twitter:description" content="早期做IM 参考微信的做法内部曾经自研过存储一段时间, 奈何组织架构调整, 这里回顾下相关论文
+design 设计上, 将一致性协议和存储实现 分离, 支持 bitcask、LSM-tree、Main/Delta 模型, 上层模型支持 Key-value、Table、Queue、Set 等, 类似 azure 的分层思想, 但是没有走服务分层. 比较有意思的是, paxos 协议用的 无租约 模式, 存在 write-write 冲突 以及 重复提交请求 的问题.
+重点关注下 paxos 实现的一致性保障、存储层实践优化、容灾&amp;数据恢复
+paxos 常规的paxos实现, prepare&#43;accept 两阶段提交, 这里使用 消息传递机制 替换了状态机实现 (有点像raft实现), 不过是无租约的, 这样downtime 的可用性可以大大提升.
+paxos log 作为 数据更新的 wal; paoxs log 由 entry 组成, entry=request id(client id 32bit ipv4 &#43; timestamp second 16bit &#43; request seq 16bit) &#43; promise id(32bit machine id, 用于pre-preparing optimization) &#43; value."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2021-02-27 10:54:55 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_paxostore/">Essay_paxostore</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>早期做IM 参考微信的做法内部曾经自研过存储一段时间, 奈何组织架构调整, 这里回顾下相关论文</p>
+<h2 id="design">design</h2>
+<p>设计上, 将一致性协议和存储实现 分离, 支持 bitcask、LSM-tree、Main/Delta 模型, 上层模型支持 Key-value、Table、Queue、Set 等, 类似 azure 的分层思想, 但是没有走服务分层. 比较有意思的是, paxos 协议用的 无租约 模式, 存在 write-write 冲突 以及 重复提交请求 的问题.</p>
+<p>重点关注下 paxos 实现的一致性保障、存储层实践优化、容灾&amp;数据恢复</p>
+<h3 id="paxos">paxos</h3>
+<p>常规的paxos实现, prepare+accept 两阶段提交, 这里使用 消息传递机制 替换了状态机实现 (有点像raft实现), 不过是无租约的, 这样downtime 的可用性可以大大提升.</p>
+<p>paxos log 作为 数据更新的 wal; paoxs log 由 entry 组成, entry=request id(client id 32bit ipv4 + timestamp second 16bit + request seq 16bit) + promise id(32bit machine id, 用于pre-preparing optimization) + value.</p>
+<p>key-value 场景中, value 可以使用 paxos log 的entry, 降低写入的IO. 同时, paxos 也被划分成了 chosen 和 ongoing 两部分.</p>
+<p>一致性读写上, 读需要 read majority 确定版本最新(trival paxos, 个人感觉这样可以满足 read-after-write), 但是对于一次读, 只要没落后-1 应该就满足了呀 (论文解释的有问题).</p>
+<p>一致性写, 走 paxos 协议, 但是因为 write-write contention 导致 livelock, paxos-store 用了 time window 来保证 local replica 拒绝 其他的并发请求</p>
+<p>一致性写 还采用了 prespecified replica node 的feature, unspecifield replica node 不是实时 apply, 而是 &ldquo;PaxosLog-entry batched applying&rdquo; (将写频繁的负载).</p>
+<h3 id="存储模型">存储模型</h3>
+<p>常用的存储引擎 bitcask(point query)/lsm(range query); 常用的数据结构是 kv pair(bitcask/lsm)/retional table.  table 也是 kv 存储实现的, 但是 读频繁场景下 会导致性能低下(内存有限, 读取经常需要加载内存), 为此 paxos 用 differential update  技术: read-optimized main-table(主要的数据) + write-friendly delta-table(内存中更新), delta-table 占用内存低, 并周期性的 merged 到 main table.</p>
+<h3 id="容灾数据恢复">容灾&amp;数据恢复</h3>
+<p>多dc 部署, 一个geo region 的多个dc会聚合成 不相连的集合=mini cluster 来对外服务, region 内(inter-region)的 data placement 用 consistent hash,  intra-region(region之间) 用 三个dc 维护 hash到region的数据的副本.</p>
+<p>dc内部采用 mini-cluster 实现, 将 node 划分成多个大小相等的 mini-cluster, 论文定义了 mini-cluster size 为符号C. 注意, 一个node 的数据 会在 remote dc 多个不同的节点. 不理解的地方, 一致性hash算法对于相同的配置, hash 结果也是一样的, 怎么会到不同的 远程节点 呢?  数据分布策略是怎样的呢?</p>
+<p>也就是说, region -&gt; dc -&gt; multi mini-cluster; 以 mini-cluster 做多副本策略. 数据通过通过一致性hash到一个mini-cluster, mini-cluster的节点选择算法没说(说是随机选择).</p>
+<p>数据恢复, 分几种情况:</p>
+<ol>
+<li>增量paxos log entries 存在, 通过 paxos log 恢复</li>
+<li>如果是 append-only, 通过 data image delta 同步</li>
+<li>从整个 data image 恢复 </li>
+</ol>
+<p>有意思的是, 在恢复到crash之前的状态后, 后续的恢复通过 lazy recovery: 也就是一致性读写操作, 个人觉得容易数据丢失</p>
+<h3 id="其他优化">其他优化</h3>
+<ul>
+<li>failover read: 对于副本节点的异常读取: 过期&amp;丢失数据, 会触发 副本的数据修复, 指定时间内数据恢复 就可以继续服务 副本上的读取</li>
+<li>去重: 因为 paxos 流程以及 网络延迟抖动导致 重复请求, 都会导致一个request 产生多条 paxos processure, 这里用 client id 进行去重</li>
+<li>异步: libco 框架实现异步. 通讯层 每个server 有多个 socket, batch process 提高处理能力</li>
+<li>无租约机制: 对比有lease 的raft, 能降低 downtime 不可用时间</li>
+<li>pre-preparing optimization: 跳过 prepare/promise.</li>
+</ul>
+<h2 id="参考">参考</h2>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>303 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2021-02-27 10:54 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/essay_tectonic/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Essay_tectonic</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/essay_ambry/">
+                                <span class="button__text">Essay_ambry</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

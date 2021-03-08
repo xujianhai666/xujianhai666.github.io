@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="atlas 是 baidu 自研的kv存储系统, 但是从论文中的描述上, 还是更像是 分布式文件对 小文件的优化, 尤其是使用场景: 小图片 等. 在统计意义上, 发现 大部分的读写都集中在 (128k, 256k], 读写比例大概是 96.3% 和 94.1%.
+架构设计: 在架构上, 底层是 块存储服务层: RBS Master &#43; RBS PartServer, PartServer 是block 的存储层, 只负责块的存储, RBS Master 管理 block-&amp;gt; RBS PartServer 的映射 以及 高可用管理, 但是块存储并不适合kv的高频、low-seized 的写入, 因此 需要上层的 PIS Slice 做一层cache, 除此之外, PIS 还需要维护 kv-&amp;gt;block 的映射 (PIS: patch and index system)
+贴个图
+模块设计: PIS 截图就行
+replication 保证多副本高可用(半同步). 内部有 patch 和 index 模块, 新写入的kv 先进入 patch 层(cache&#43;file; 三副本&#43;秒级flush&#43;电池供应), 攒到64MB 的block, 则刷新block到RBS, 并更新原来的kv数据, value 转换为数据的索引: [blockid, offset, length], 并重新块里面的数据信息, 然后写入 index module 的LSM." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, atlas, kv, baidu" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_atlas/" />
+
+
+    <title>
+        
+            Essay_atlas :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Essay_atlas">
+<meta itemprop="description" content="atlas 是 baidu 自研的kv存储系统, 但是从论文中的描述上, 还是更像是 分布式文件对 小文件的优化, 尤其是使用场景: 小图片 等. 在统计意义上, 发现 大部分的读写都集中在 (128k, 256k], 读写比例大概是 96.3% 和 94.1%.
+架构设计: 在架构上, 底层是 块存储服务层: RBS Master &#43; RBS PartServer, PartServer 是block 的存储层, 只负责块的存储, RBS Master 管理 block-&gt; RBS PartServer 的映射 以及 高可用管理, 但是块存储并不适合kv的高频、low-seized 的写入, 因此 需要上层的 PIS Slice 做一层cache, 除此之外, PIS 还需要维护 kv-&gt;block 的映射 (PIS: patch and index system)
+贴个图
+模块设计: PIS 截图就行
+replication 保证多副本高可用(半同步). 内部有 patch 和 index 模块, 新写入的kv 先进入 patch 层(cache&#43;file; 三副本&#43;秒级flush&#43;电池供应), 攒到64MB 的block, 则刷新block到RBS, 并更新原来的kv数据, value 转换为数据的索引: [blockid, offset, length], 并重新块里面的数据信息, 然后写入 index module 的LSM.">
+<meta itemprop="datePublished" content="2020-12-20T22:37:58&#43;08:00" />
+<meta itemprop="dateModified" content="2020-12-20T22:37:58&#43;08:00" />
+<meta itemprop="wordCount" content="464">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="atlas,kv,baidu," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Essay_atlas"/>
+<meta name="twitter:description" content="atlas 是 baidu 自研的kv存储系统, 但是从论文中的描述上, 还是更像是 分布式文件对 小文件的优化, 尤其是使用场景: 小图片 等. 在统计意义上, 发现 大部分的读写都集中在 (128k, 256k], 读写比例大概是 96.3% 和 94.1%.
+架构设计: 在架构上, 底层是 块存储服务层: RBS Master &#43; RBS PartServer, PartServer 是block 的存储层, 只负责块的存储, RBS Master 管理 block-&gt; RBS PartServer 的映射 以及 高可用管理, 但是块存储并不适合kv的高频、low-seized 的写入, 因此 需要上层的 PIS Slice 做一层cache, 除此之外, PIS 还需要维护 kv-&gt;block 的映射 (PIS: patch and index system)
+贴个图
+模块设计: PIS 截图就行
+replication 保证多副本高可用(半同步). 内部有 patch 和 index 模块, 新写入的kv 先进入 patch 层(cache&#43;file; 三副本&#43;秒级flush&#43;电池供应), 攒到64MB 的block, 则刷新block到RBS, 并更新原来的kv数据, value 转换为数据的索引: [blockid, offset, length], 并重新块里面的数据信息, 然后写入 index module 的LSM."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2020-12-20 22:37:58 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>3 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_atlas/">Essay_atlas</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>atlas 是 baidu 自研的kv存储系统, 但是从论文中的描述上, 还是更像是 分布式文件对 小文件的优化, 尤其是使用场景: 小图片 等. 在统计意义上, 发现 大部分的读写都集中在 (128k, 256k], 读写比例大概是 96.3% 和 94.1%.</p>
+<h2 id="架构设计">架构设计:</h2>
+<p>在架构上, 底层是 块存储服务层: RBS Master + RBS PartServer, PartServer 是block 的存储层, 只负责块的存储, RBS Master 管理 block-&gt; RBS PartServer 的映射 以及 高可用管理, 但是块存储并不适合kv的高频、low-seized 的写入, 因此 需要上层的 PIS Slice 做一层cache, 除此之外, PIS 还需要维护 kv-&gt;block 的映射 (PIS: patch and index system)</p>
+<p>贴个图</p>
+<h2 id="模块设计">模块设计:</h2>
+<h3 id="pis">PIS</h3>
+<p>截图就行</p>
+<p>replication 保证多副本高可用(半同步). 内部有 patch 和 index 模块, 新写入的kv 先进入 patch 层(cache+file; 三副本+秒级flush+电池供应), 攒到64MB 的block, 则刷新block到RBS, 并更新原来的kv数据, value 转换为数据的索引: [blockid, offset, length], 并重新块里面的数据信息, 然后写入 index module 的LSM. (这里需要注意, 当slice leader flush block 后 crash, 存在 redundancy block, 这个应该需要gc掉, 不过论文没讲到)</p>
+<h3 id="rbs">RBS</h3>
+<p>RBS master 维护metadata, 通过LSM 存储. metadta: block table(blockid -&gt; partserver ip list), partserver table(partserver ip -&gt; global part ip list). ha 主备.</p>
+<p>RBS Master 在 client request write 的时候, 会返回 blockId 和 15个ip address(避免写入失败, 可以failover, 保证ip不一样, 并且两机架挂掉可容忍), client 成功后提交 blockid+partserver ip 给 RBS Master.</p>
+<p>RBS partserver 和 RBS Master 之间通过心跳 keepalive, RBS Master 发现 partserver lost, 会执行恢复流程: 1. 更新 block table 避免失败的读取 2. generate repair task &amp; dispatch to selected partserver 3. update metadata(block table &amp; partserver table). 所以恢复流程是在 partserver 上执行的</p>
+<p>块存储, 最大的特点是 使用了 <code> Reed-Solomon coding</code>, 降低数据冗余, 64MB的block, 分成了 8个 8MB 的part, 经过计算一共会产生 12个 part (保证了最多5个part挂了, 数据才无法恢复).</p>
+<h2 id="io路径">IO路径:</h2>
+<p>目前支持的操作有: write(key, value)、read(key, value)、delete(key)</p>
+<h3 id="write">write</h3>
+<p>client write(key, value), 会先通过 hash function(key) (比如 MD5(key) % number of slices) 选择一个 slice, slice 会映射到一个 PIS 上.</p>
+<p>注意, 这里 slice 仅仅是 数据的逻辑单位, slice 的存储会映射到 PIS 物理存储服务上, 支持迁移slice 和 失败恢复 (问题: 论文中并没有讲到 PIS 的recovery failure), 这些行为会集中在 PIS Master (论文中也没描述, 感觉和 dynamo、codis 的数据逻辑抽象类似); 为了降低PIS Master的负载, slice-&gt;PIS Servers 的mapping 会 cache在client 侧.</p>
+<p>PIS 收到请求后, 并不会立即发送给 RBS PartServer, 而是会攒一个 block(64MB)的写入, 来提升编码、存储效率. 64MB block 会先平均分区到 8个 parts 然后分别存储到不同的 part server (涉及到 Reed-Solomon code 编码, TODO: 补充下). 成功存储后上报给 RBS Master</p>
+<p>画个图? 复制层 没写</p>
+<h3 id="read">read</h3>
+<p>client read(key), 会想通过 hash function 得到相应的 slice, 请求 PIS, PIS 会现在 Patch 模块进行匹配, 如果命中, 则直接返回value; 否则进入 index 层匹配, 没命中的话, 则说明key不存在; 命中, 则decode index value 获取 blockId、offset、length, 然后请求 RBS Master 获取 blockid-&gt;RBS PartServer 的映射信息, 得到 blockId 对应的 PartServer 地址, 请求 对应的RBS Partserver 获取数据. (这里不太理解了)</p>
+<pre><code>Otherwise, the function selects eight out of available parts of the block to read and decode to recover the requested data
+</code></pre><h3 id="delete">delete</h3>
+<p>寻址方式同上; PIS 搜到删除请求后, 执行半同步复制; 如果数据在patch层, 则直接删除, 无需请求RBS; 如果在 index 层, 则先标记删除, 等待后续的merge gc.</p>
+<p>gc流程是通过离线的 map-reduce 进行的, 对存在deleted kv的block, 按照: 1. 创建时间 和阈值比较(一周前) 2. 可用数据的空间比例低于阈值 进行判断是否需要gc. gc流程上, 会读取 读取有效的数据并重新写入 RBS, 成功后刷新 metadata(block table 和 partserver table【感觉应该是mapping信息】).</p>
+<p>rewrite之后, partserver 的block data并没有被删除, 需要partserver 不断轮询并对比 RBS Master 上的元数据信息(partserver 上合法的block) 并执行删除.</p>
+<h3 id="another-feature">another feature</h3>
+<p>除了本身的设计, 为了降低功耗, 使用了 arm 替换了 x86, 据说减少了 53%.</p>
+<p>Reed-Solomon code: 相比于三副本 200% 的数据冗余, 这里只有 50% 的数据冗余.</p>
+<h2 id="性能对比">性能对比</h2>
+<p>相比于单纯的 kv 存储, 写吞吐量提高了将近三倍, 因为 PIS patch 的设计降低了 写放大的影响,</p>
+<h2 id="个人评价">个人评价</h2>
+<p>通过 PIS 的patch 层 实现 前台IO 与 后台IO 隔离的设计, 提升了 RBS 的block存储效率; PIS 实现了 slot 迁移与 存储数据value 相分离的效果 (只需要迁移key, 降低了迁移数据量). 是 kv 面向大value存储的 另一个发展方向. 但是定位就比较蛋疼了, 形式是kv的，实现是 block, 底层的 RBS 可以换成 hdfs 等存储设施.</p>
+<p>arm 拥抱云基础设施 值得关注, 尤其是功耗这块. Reed-Solomon code 降低了冗余(这个算不上亮点, 基本是业界基本的做法了)</p>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/atlas">atlas</a></span><span class="tag"><a href="https://xujianhai.fun/tags/kv">kv</a></span><span class="tag"><a href="https://xujianhai.fun/tags/baidu">baidu</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>464 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-12-20 22:37 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/essay_copyset/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Essay_copyset</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/kernel_block/">
+                                <span class="button__text">Kernel_block</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

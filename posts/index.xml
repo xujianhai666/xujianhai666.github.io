@@ -5,8 +5,822 @@
         <description>Recent content in Posts on zero.xu blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en</language>
-        <lastBuildDate>Tue, 08 Dec 2020 17:08:42 +0800</lastBuildDate>
+        <lastBuildDate>Wed, 03 Mar 2021 21:06:00 +0800</lastBuildDate>
         <atom:link href="https://xujianhai.fun/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Essay_dadi</title>
+            <link>https://xujianhai.fun/posts/essay_dadi/</link>
+            <pubDate>Wed, 03 Mar 2021 21:06:00 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_dadi/</guid>
+            <description>background 早期的镜像分发 是直接从 registry 拉取, 后来有了p2p 模式的大规模网络镜像拉取的优化, 但是论文指出 大规模的容器集群(container cluster) 这种方式还是不够用, 因此有了 论文中 提到的 DADI(Data Acceleration for Disaggregated Infrastructure): 分层基础设施的数据加速 (本人直译).
+DADI 的本质在于将 container 的每一层 image 都映射了一个块设备上 (我也是很惊讶), 读取container 本质上就是 读取相应的 块设备, 并行化程度高了很多, 同时还能避免 原来镜像分发中 重复的内容, 去重又进一步降低了需要传输的数据量(后面有数据). 除此之外, 为了平衡各个主机的网络流量, 还使用了 p2p 架构, 可以直接从其他节点的缓存获取数据(后续在 data load 流程中展开), 延迟进一步降低. 按照论文的说法, 4s内可以拉取 总结 1000 个主机上 总计 10000 个container.
+不过从论文整理上来看, dadi 只是通过 network block device(nbd) 技术将写追加到了 blob 类型的存储, 并做索引, 后面contianer 通过合并多层 image, 定位数据所在的blob 进行读写而已. 因此, 每个 image 并没有占据完整的 lba, 只用不断追加就可以.</description>
+            <content type="html"><![CDATA[<h2 id="background">background</h2>
+<p>早期的镜像分发 是直接从 registry 拉取,  后来有了p2p 模式的大规模网络镜像拉取的优化, 但是论文指出 大规模的容器集群(container cluster) 这种方式还是不够用, 因此有了 论文中 提到的 DADI(Data Acceleration for Disaggregated Infrastructure): 分层基础设施的数据加速 (本人直译).</p>
+<p>DADI 的本质在于将 container 的每一层 image 都映射了一个块设备上 (我也是很惊讶), 读取container 本质上就是 读取相应的 块设备, 并行化程度高了很多, 同时还能避免 原来镜像分发中 重复的内容, 去重又进一步降低了需要传输的数据量(后面有数据).  除此之外, 为了平衡各个主机的网络流量, 还使用了 p2p 架构, 可以直接从其他节点的缓存获取数据(后续在 data load 流程中展开), 延迟进一步降低. 按照论文的说法, 4s内可以拉取 总结 1000 个主机上 总计 10000 个container.</p>
+<p>不过从论文整理上来看, dadi 只是通过 network block device(nbd) 技术将写追加到了 blob 类型的存储, 并做索引, 后面contianer 通过合并多层 image, 定位数据所在的blob 进行读写而已. 因此, 每个 image 并没有占据完整的 lba, 只用不断追加就可以. 和传统的块存储还是差异很大的</p>
+<h2 id="design">design</h2>
+<h3 id="dadi">dadi</h3>
+<p>分两部分看设计. DADI image server 基于 block interface 处理 image, 底层存储系统无感知(hdfs、nfs、cifs),</p>
+<p>一个image layer 的 delta change blocks 是一个 block device. 每个 container 对应对应一个 vnbd. overlay nbd 对应一个 server. 典型的场景, 用户在container 中读取一个文件, 会经历 fs-&gt;kernel-&gt;nbd protocol-&gt;vnbd-&gt;dadi module/OverlayBD-&gt;multi layer random read (一个文件可能被多层image修改), 个人理解会读取 多个 block device.</p>
+<p>(个人想法)需要注意的是, 每个block 多大呢? 按照 image layer 写完就不会修改的特性 (在修改就是另一个image了), 后续应该可以 compact block address.</p>
+<h4 id="data-model">data model</h4>
+<p><em>single image layer</em></p>
+<p>dadi 使用 var-length segments + index 维护数据空间. 看论文的数据结构.</p>
+<ul>
+<li>
+<p>moffset 和 pos 是什么意思 ? image 的 blob offset 和 lba 不是一一对应的, 因此需要映射. 读取 需要根据 moffset 读取. 如果只是一层, moffset 没有意义, 但是多层重叠修改的时候, lba 的一段地址空间 可能对应多个 segment的 一部分, 所以需要 moffset 记录实际读取的位置.</p>
+</li>
+<li>
+<p>blob offset 和 lba 怎么理解? blob offset 是 实际存储的位置.</p>
+</li>
+</ul>
+<p>index 是一组offset排序的数组. QEMU 因为 block size 太大 反而导致 index 更大, 不是很理解!! 读取直接根据index 读取.
+(个人想法) 如果用的是 bytedrive, 因为是不用 记录的, 因为我们本身记录了映射. 感觉他们底层存到了 blob 存储里面了, 所以需要额外记录, 而且这样也不需要处理 vbd 的 size 问题了. 因为是append模型的, 所以 hdfs 这种存储层 无感知模型 也就可替换了</p>
+<p><em>multi image layer</em> (主要是合并算法)</p>
+<p>contianer 包含了多层 image layer, 因此 需要聚合多层为 统一的视图(数据采用最新的), 论文统称 &ldquo;Merged View of Layers&rdquo;. 在index 加载的时候, 提前算法 lba 每一段range 对应的 index (figure 5挺清晰的), 算法描述在 algorithm 2, 就是从上(最新的layer)向下定位, 用最新 non-hole的 segment 信息, hole segment 可能在下面的层被修改过, 因此需要递归向下定位</p>
+<p>查询一段range的blob信息的 伪代码是 algorithm 1, 语言描述如下:</p>
+<ol>
+<li>通过 index 的 end 二叉搜索 找到第一个不小于 offset 的 index (因为offset可能在index表示的lba中间)</li>
+<li>如果 offset 刚好在中间, 那么记录 offset-&gt;index.end 作为一段lba; 不在则略过.</li>
+<li>从上面的index 遍历定位 length 范围的数据. 需要注意 中间 以及 end 存在 hole 的情况 (中间的空洞通过比较 待查的offset和 index 的offset 就知道; 尾部通过比较 最终待查的 offset 和 end)</li>
+</ol>
+<p>algorithm 3 是对应的读取操作, 先通过调用 algorithm 2 知道 (offset, length) 对应的 segment 信息, 然后读取 segment 指定的位置  (论文应该有问题, pread 应该用 moffset).</p>
+<p>算法中的 merged_index 记录的是 一段lba 对应在哪个 blob[i], 用 segment 描述. lookup(offset, length) 返回这段lba 覆盖的 blob, 可能是多个 blob 位于不同的layer.</p>
+<p><em>zfile</em></p>
+<p>避免传统压缩 需要解压缩 offset 前面的地址空间, 提出了 zfile 的设计. 从论文看, 就是将文件分成 chunk 进行压缩, 这样对于 segment 的读取 也就是 解压缩相应的 chunk. 实现上 支持各种 压缩算法 + 字典加速. index 也是压缩的 (感觉没有太大收益, 毕竟数据量少). 无论是 nvme ssd/hdd 收益都很大, 因为 zfile的 读IO的时间收益 &gt; 解压缩的消耗.
+另外, 通过 lz4 实现了在线解压缩.</p>
+<p><em>writable layer</em></p>
+<p>这个比较有意思, 通过 log-structed 实现了 Writable Layer, 并且解耦了存储层类型. 不断写入过程中, 存在重叠的现象, 会启动后台gc线程清理, 除此之外, writable layer 写入后 也会进行 compact.</p>
+<h3 id="p2p">p2p</h3>
+<p>考虑到 大contianer的服务压力, 会在 host 本机磁盘上缓存 最近使用的数据块. 也支持从 其他host 拉取. 为了提高效率, 这里使用了 <code>tree-structed overlay topology</code>, host role 分为了 dadi agent 和 dadi root, 每个集群都有几个 dadi root 互为灾备(论文说有复制流程). agent 读取数据 必须从parent 读取, 允许层层递归. dadi root 维护topo, 并且分配 parent, 以及从 register 读取 data block 到本地缓存.</p>
+<p>dadi root 会为 新的layer 执行 warm-up. 使用 crc32 保护 image block integration.</p>
+<p>问题:</p>
+<ul>
+<li>这个host是专门的dadi cache 还是说 也是 container host ？看 IO Path 应该就是 container host.</li>
+</ul>
+<h3 id="io-path">IO Path</h3>
+<p>请求还是 走 nbd 协议, overlayBD 对于本地没有缓存的 image layer 会请求 p2p agent 的 持久化缓存, 然后持久化本地缓存中(lru缓存最近). qemu 走 dadi block driver, 行为和 nbd 模式一致.</p>
+<p>dadi 也通过 graph driver(docker plugin) 和 docker 集成. dadi 实现了 snapshotter(类似graph driver) 和 container 集成. 这样就有 .tgz 已有的镜像格式 以及 dadi 格式. 目前是双格式兼容的. 测试下来, dadi 格式的 download 和 build 速度都有很大的提升 (避免拉取完整的镜像: 存在很多冗余).</p>
+<p>ps: 上面提到的 log-structed writable layer, 也就实现了 随机写 转换成顺序写, 加快构建速度. 但是一个 image 的构建有很多 layer, 每个layer 都需要 启停一次 nbd, 太费了. 这里用 stack-commit 模式进行了优化: 直接启动一个新的layer, 后台 commit. 也支持格式转换</p>
+<h2 id="历史方案回顾">历史方案回顾</h2>
+<p>以前的解决方式</p>
+<ol>
+<li>p2p</li>
+<li>按需下载</li>
+</ol>
+<p>两种方式都是从 文件系统接口入口, 但是 文件操作粒度大 (新增的 image layer 更新前先要copy整个文件, 硬链接也要copy, 文件属性在多平台之间不兼容；即使一个平台, 不同文件系统之间也没全部支持 hard links/sparse file)。 如果基于文件系统搞: 安全 性能 健壮性 都比 block 难度大</p>
+<p>Overlay Block Device (OverlayBD) 的设计:</p>
+<p>provides a merged view of a sequence of block-based layers. 支持 multi-layer container flatten 来提升性能, 好处: (1) fine-grained on-demand data transfer of remote images; (2) online decom- pression with efficient codecs; (3) trace-based prefetching; (4) peer-to-peer transfer to handle burst workload; (5) flexible choice of guest file systems and host systems; (6) efficient modification of large files (cross layer block references); (7) easy integration with the container ecosystem.</p>
+<h2 id="知识补充">知识补充</h2>
+<ol>
+<li>
+<p>docker container image 和 layer 的关系是什么? container layer 强调共享, 多人共享. 写文件操作是 cow. 快照 和 disk 绑定, 生命周期 从属于 disk</p>
+</li>
+<li>
+<p>qcow2 image format of QEMU,</p>
+</li>
+<li>
+<p>exo-clones？</p>
+</li>
+<li>
+<p>blktrace prefetch 不懂, 为什么用 fio ?</p>
+</li>
+</ol>
+<h2 id="问题">问题</h2>
+<ol>
+<li>
+<p>每个layer一个 virtual block device, 那么load 一个 container 岂不是要读取很多次 block? bm的qps 也就变大了, 这样需要支持多点挂在 只读设备</p>
+</li>
+<li>
+<p>Startup in our Production Environment 为什么只算一个 metadata 的拉取时间呢? 应该是切分成了 pull metadata + launch app 两部分, dadi 只有在 launch 的时候加载数据, metadata 部分只 load index.</p>
+</li>
+<li>
+<p>有意思的是, launch 也很快, 因为 overlaybd 比 overlayfs 更快, 以及 p2p 走cache</p>
+</li>
+<li>
+<p>DADI realizes each layered image as a separate virtual block device 会不会太浪费, 为什么不是都放在一个盘上？ 因为采用了 log-structed 的模式, 将新增部分 追加到了 存储上, 因此表面上 每个 layer 一个 block device 占据了 很大的 lba, 实际上只占用了 很小的空间</p>
+</li>
+<li>
+<p>overlayfs  还能共享 page cache, 比较惊讶</p>
+</li>
+</ol>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_fb_rocksdb</title>
+            <link>https://xujianhai.fun/posts/essay_fb_rocksdb/</link>
+            <pubDate>Wed, 03 Mar 2021 19:25:53 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_fb_rocksdb/</guid>
+            <description>background facebook 在今年(2021年)的论文, 主要讨论了 fb 这几年在 rocksdb 方面的积累, 本来期望还是很大的, 以为有很多特殊的技巧, 但是, 阅读下来总体而言, 确实只是这么多年在 开发落地 rocksdb 方面的总结. 可以作为入门阅读. 这里挑了一些自己感兴趣的方面.
+summary ssd 的写放大原理
+linkbench
+Dynamic Leveled Compaction, where the size of each level in the tree is automatically adjusted based on the actual size of the last level (instead of setting the size of each level statically) [19].
+fb udb
+NAND flash
+prefix bloom filters, applying the bloom filter before index lookups, and other bloom filter improvement：cpu 利用率提升</description>
+            <content type="html"><![CDATA[<h2 id="background">background</h2>
+<p>facebook 在今年(2021年)的论文, 主要讨论了 fb 这几年在 rocksdb 方面的积累, 本来期望还是很大的, 以为有很多特殊的技巧, 但是, 阅读下来总体而言, 确实只是这么多年在 开发落地 rocksdb 方面的总结. 可以作为入门阅读. 这里挑了一些自己感兴趣的方面.</p>
+<h2 id="summary">summary</h2>
+<p>ssd 的写放大原理</p>
+<p>linkbench</p>
+<p>Dynamic Leveled Compaction, where the size of each level in the tree is automatically adjusted based on the actual size of the last level (instead of setting the size of each level statically) [19].</p>
+<p>fb udb</p>
+<p>NAND flash</p>
+<p>prefix bloom filters, applying the bloom filter before index lookups, and other bloom filter improvement：cpu 利用率提升</p>
+<h3 id="常规思考">常规思考</h3>
+<ol>
+<li>资源的隔离性. 考虑 多进程(每个进程一个rocksdb)、多线程(多个 rocksdb instance). 还有很多工作要做</li>
+<li>分布式场景可以不需要 wal, 比如 replication log 替换掉 wal log</li>
+<li>默认参数不一致，参数与存储格式 绑定, 无法升级. 解决方案: 文件配置, validation &amp; migration tool.</li>
+<li>参数的automatic adaptivity/自动适配</li>
+<li>限速的文件删除, 避免 cfs trim -&gt; ssd gc -&gt;  影响前台io -&gt; 限流</li>
+<li>replication &amp; backup: ogic copying 和 physical copying</li>
+</ol>
+<h3 id="存储介质">存储介质</h3>
+<p>自己薄弱的地方, 后续需要重点关注</p>
+<p>open-channel SSDs [50, 66], multi-stream SSD [68] and ZNS [4] promise to improve query latency and save flash erase cycles</p>
+<p>Storage Class Memory (SCM)</p>
+<p>SSD DIF/DIX 的数据保护</p>
+<h3 id="数据安全性">数据安全性</h3>
+<p>论文重点关注的内容, 也是最近存储系统关注的重点. 论文中提及: block level checksum、 filechecksum 和
+wal checksum, 来避免静默错误.</p>
+<p>除此之外, 在分布式场景中 还需要 end-to-end 校验. 还可以考虑 ssd 的 ecc (纠错技术).</p>
+<h3 id="kv接口">kv接口</h3>
+<p>感觉更像是 总结经验: resource management, WAL treatment, batched file deletions, data format compatibility, and configuration management</p>
+<h3 id="version--timestamp">version &amp; timestamp</h3>
+<ol>
+<li>当前 不支持 乱序写 &amp; seq number 的多版本,</li>
+<li>指定过去的快照  目前在 rocksdb 是不支持的</li>
+<li>支持了 时间戳, 但是实现 放到了meta，各种优势不理解, 需要理解</li>
+</ol>
+<h2 id="对标产品">对标产品</h2>
+<p>Several studies have compared the performance of RocksDB with other databases such as InnoDB [41], TokuDB [19] [37], and WiredTiger [10]</p>
+<p>write amplification can be reduced by separating key and value (e.g. WiscKey [35] and ForrestDB [1]), so we are adding this to RocksDB (called BlobDB)[https://github.com/facebook/rocksdb/blob/master/utilities/blob_db/blob_db.cc].</p>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_tectonic</title>
+            <link>https://xujianhai.fun/posts/essay_tectonic/</link>
+            <pubDate>Sun, 28 Feb 2021 23:07:28 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_tectonic/</guid>
+            <description>background 从论文看来, 用分布式文件系统 tectonic 取代了 blob/f4、data warehouse 的存储实现, 类似 azure 的底层文件系统的实现, blob/f4、data warehouse 作为上层 tenants, 直接和存储交互 (类似头条的 byteStore).
+每个 tenant 是一个 namespace, 但是资源隔离是 tenant 级别的(后续看).
+design 传统的 mds + data node + background service 组成, data node 写入时传统的 append 模式, mds 独立进程部署.
+mds data model: 分层存储 Name layer(&amp;ldquo;dir-&amp;gt;list of subdir/name&amp;rdquo;)、File Layer(&amp;ldquo;file id-&amp;gt;list of block id&amp;rdquo;)、Block Layer(&amp;ldquo;block-&amp;gt;list of disk&amp;rdquo;&amp;amp;&amp;ldquo;disk-&amp;gt;list of block&amp;rdquo;). 分层的模型在存储上分层存储, 降低热点, 提高可用性&amp;amp;容量扩展性
+storage model(逻辑分层+物理分层): 自研了 ZippyDB(分布式线性kv存储): paxos+rocksdb, 数据管理是 shard 级别的, 这样, 一个 mds node 可能多个 shard.</description>
+            <content type="html"><![CDATA[<h2 id="background">background</h2>
+<p>从论文看来, 用分布式文件系统 tectonic 取代了 blob/f4、data warehouse 的存储实现, 类似 azure 的底层文件系统的实现, blob/f4、data warehouse 作为上层 tenants, 直接和存储交互 (类似头条的 byteStore).</p>
+<p>每个 tenant 是一个 namespace, 但是资源隔离是 tenant 级别的(后续看).</p>
+<h2 id="design">design</h2>
+<p>传统的 mds + data node + background service 组成, data node 写入时传统的 append 模式, mds 独立进程部署.</p>
+<h3 id="mds">mds</h3>
+<h4 id="data-model">data model:</h4>
+<p>分层存储 Name layer(&ldquo;dir-&gt;list of subdir/name&rdquo;)、File Layer(&ldquo;file id-&gt;list of block id&rdquo;)、Block Layer(&ldquo;block-&gt;list of disk&rdquo;&amp;&ldquo;disk-&gt;list of block&rdquo;). 分层的模型在存储上分层存储, 降低热点, 提高可用性&amp;容量扩展性</p>
+<h4 id="storage-model逻辑分层物理分层">storage model(逻辑分层+物理分层):</h4>
+<p>自研了 ZippyDB(分布式线性kv存储): paxos+rocksdb, 数据管理是 shard 级别的, 这样, 一个 mds node 可能多个 shard. 常规的负载迁移等.</p>
+<p>对于 d1 目录下文件 foo、bar, 会存储为 (d1, foo) 和 (d1, bar) 两个key. 遍历目录下的文件通过 scan 实现(用过的同学都懂的)</p>
+<p>data model 的分层逻辑在存储上 经过 hash 负载到 node 上存储, 避免了 range 局部性热点的问题(比如读取目录下的文件)</p>
+<p>一致性上 不支持跨分片的事务</p>
+<p>小优化: 计算引擎经常需要遍历 目录下的文件读取, mds将 文件名+id 同时下发给 计算引擎 避免 mds 高负载</p>
+<p>实践下来, 2/3 的metadata 操作是 block layer.</p>
+<p>个人疑惑的地方: chunk 的逻辑关系在 metadata 上并没有清晰的表现出来, 但是 block 是逻辑表示, 确实 chunk构成的, 感觉 md 上缺少了部分的表述</p>
+<h3 id="chunk-storedata-node">chunk store/data node</h3>
+<h4 id="持久化">持久化</h4>
+<p>tectonic 的 chunkstore 本质上就是一个对象存储, chunk 构成了上层的 logic block语义.</p>
+<p>tectonic 提供了 block 级别的持久化语义, 空间存储、容量、性能都是 block 级别的, 目前支持 多副本/RS编码 的方式, RS 根据对象的持久性分层 RS(9,6) encoded(长期存储的对象)、RS(3,3)(短期存活的对象); rs 编码的写入15个有14个成功就返回了，剩下的失败的1个 会离线修复; 对于blob的副本模式, 采用 &ldquo;partial block quorum appends&rdquo;, 2/3 的quorum 写入就算成功. 根据 blob hot-&gt;warm/cold 的 age 属性, 采用 Reencoding优化方案: 将复制的blob 在 sealed(不会再写入) 之后 转变成 rs 编码.</p>
+<p>论文中提到了 节点坏盘/高负载 导致 reconstruction read 形成 reconstruction storm 的问题, 为此采用优化 striped rs encoding(约束到10%, 避免成本过高)</p>
+<p>存储实现上, 本地文件读写用 xfs, 比较有意思的是, 每个 storage node 都有 36 hdd+1Tb ssd( xfs md + 缓存 hot chunk).</p>
+<h4 id="placement">placement</h4>
+<p>常规的copyset方案, 会根据情况保持 fixed copyset count.</p>
+<p>论文提到 <code>with only 5% of storage nodes unavailable, 80% of the block groups became unavailable for writes?</code> 的这个问题 不是很理解.</p>
+<h4 id="io-path">IO Path</h4>
+<p>IO路径上, block 只允许创建者 进行 append, 避免多点写入的问题; 对于data awrehouse, 允许一个文件并发写入(个人认为还是chunk粒度的并发).</p>
+<p>full-block 写入会先请求 资源分配, 在进行写入</p>
+<h4 id="sla">sla</h4>
+<p>每个tenant本质上是上层抽象的存储逻辑业务, 每个租户对外提供服务给 各个app, 因为一个集群可能存放多个tenant, 那么 tenant 之前的资源问题就显得很重要.</p>
+<p>论文中根据资源类型抽象了 持久化的资源(存储容量, 变化很慢, 不是隔离的重点) 和 非持久化的资源,  设计了 TrafficGroups, 每个 TrafficGrous 都有对应的 TrafficClasses: Gold, Silver, and Bronze, 分别对应于 latency-sensitive, normal, and background applications. tenant 内部, 空闲的资源(比如 disk time)根据 TrafficClass 进行调度.</p>
+<p>本地资源采用 weighted round-robin (WRR) scheduler 避免quota用光过度使用资源的情况. 为了更好的处理高优请求, 使用了三种IO调度策略:</p>
+<ul>
+<li>使用了 贪婪的优先级算法，只要低优请求在 高优请求插队后 仍然爱有时间完成 那么鼓励插队.
+限制低优请求量</li>
+<li>限制低优算法, 优先服务高优</li>
+<li>IO重调度算法: 将disk阻塞超过阈值的 gold 请求 放到 non-gold 前面</li>
+</ul>
+<p>客户端侧, 采用 分布式 counter 的限流 来保证 资源共享</p>
+<h3 id="background-service">background service</h3>
+<p>常规的设计比如 metadata gc、chunk rebalancer(copyset优化)&amp;repair(clean deleted chunk)</p>
+<h2 id="tenant-view">tenant view</h2>
+<p>security: 分层的 token  鉴权和分发
+data integration:  进程边界 checksum 保证, 不仅仅是 client 和 storage node 的边界
+不支持 geo复制, 上层tenants(比如 blob/warehouse) 实现
+远程数据获取走 代理</p>
+<p>设计比如 <code>Each tenant in a cluster typically owns one namespace.</code>还是比较常规的.
+du  容易过时, 总的而言, 和现在的 dfs(头条的byteStore) 设计差异不大</p>
+<p>论文中着重强调了 将 warehouse 和 blob 混部后 提高了 的资源利用率 并更好的隔离资源的效果, 也是不错的方向.</p>
+<p>future 上来讲, 因为性能 kv 服务还没有迁移过来, 还是有很多work的</p>
+<h2 id="个人感受">个人感受</h2>
+<p>虽然整体架构比较常规, 但是还是有很多可以借鉴的地方: mds 的 逻辑+物理分层设计 极大的避免了 热点问题. 各种IO调度策略优化 提高 SLA, reencode 统一了 blob hot/warm 模型(摒弃了 hystack/f4 两套系统).</p>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_paxostore</title>
+            <link>https://xujianhai.fun/posts/essay_paxostore/</link>
+            <pubDate>Sat, 27 Feb 2021 10:54:55 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_paxostore/</guid>
+            <description>早期做IM 参考微信的做法内部曾经自研过存储一段时间, 奈何组织架构调整, 这里回顾下相关论文
+design 设计上, 将一致性协议和存储实现 分离, 支持 bitcask、LSM-tree、Main/Delta 模型, 上层模型支持 Key-value、Table、Queue、Set 等, 类似 azure 的分层思想, 但是没有走服务分层. 比较有意思的是, paxos 协议用的 无租约 模式, 存在 write-write 冲突 以及 重复提交请求 的问题.
+重点关注下 paxos 实现的一致性保障、存储层实践优化、容灾&amp;amp;数据恢复
+paxos 常规的paxos实现, prepare+accept 两阶段提交, 这里使用 消息传递机制 替换了状态机实现 (有点像raft实现), 不过是无租约的, 这样downtime 的可用性可以大大提升.
+paxos log 作为 数据更新的 wal; paoxs log 由 entry 组成, entry=request id(client id 32bit ipv4 + timestamp second 16bit + request seq 16bit) + promise id(32bit machine id, 用于pre-preparing optimization) + value.</description>
+            <content type="html"><![CDATA[<p>早期做IM 参考微信的做法内部曾经自研过存储一段时间, 奈何组织架构调整, 这里回顾下相关论文</p>
+<h2 id="design">design</h2>
+<p>设计上, 将一致性协议和存储实现 分离, 支持 bitcask、LSM-tree、Main/Delta 模型, 上层模型支持 Key-value、Table、Queue、Set 等, 类似 azure 的分层思想, 但是没有走服务分层. 比较有意思的是, paxos 协议用的 无租约 模式, 存在 write-write 冲突 以及 重复提交请求 的问题.</p>
+<p>重点关注下 paxos 实现的一致性保障、存储层实践优化、容灾&amp;数据恢复</p>
+<h3 id="paxos">paxos</h3>
+<p>常规的paxos实现, prepare+accept 两阶段提交, 这里使用 消息传递机制 替换了状态机实现 (有点像raft实现), 不过是无租约的, 这样downtime 的可用性可以大大提升.</p>
+<p>paxos log 作为 数据更新的 wal; paoxs log 由 entry 组成, entry=request id(client id 32bit ipv4 + timestamp second 16bit + request seq 16bit) + promise id(32bit machine id, 用于pre-preparing optimization) + value.</p>
+<p>key-value 场景中, value 可以使用 paxos log 的entry, 降低写入的IO. 同时, paxos 也被划分成了 chosen 和 ongoing 两部分.</p>
+<p>一致性读写上, 读需要 read majority 确定版本最新(trival paxos, 个人感觉这样可以满足 read-after-write), 但是对于一次读, 只要没落后-1 应该就满足了呀 (论文解释的有问题).</p>
+<p>一致性写, 走 paxos 协议, 但是因为 write-write contention 导致 livelock, paxos-store 用了 time window 来保证 local replica 拒绝 其他的并发请求</p>
+<p>一致性写 还采用了 prespecified replica node 的feature, unspecifield replica node 不是实时 apply, 而是 &ldquo;PaxosLog-entry batched applying&rdquo; (将写频繁的负载).</p>
+<h3 id="存储模型">存储模型</h3>
+<p>常用的存储引擎 bitcask(point query)/lsm(range query); 常用的数据结构是 kv pair(bitcask/lsm)/retional table.  table 也是 kv 存储实现的, 但是 读频繁场景下 会导致性能低下(内存有限, 读取经常需要加载内存), 为此 paxos 用 differential update  技术: read-optimized main-table(主要的数据) + write-friendly delta-table(内存中更新), delta-table 占用内存低, 并周期性的 merged 到 main table.</p>
+<h3 id="容灾数据恢复">容灾&amp;数据恢复</h3>
+<p>多dc 部署, 一个geo region 的多个dc会聚合成 不相连的集合=mini cluster 来对外服务, region 内(inter-region)的 data placement 用 consistent hash,  intra-region(region之间) 用 三个dc 维护 hash到region的数据的副本.</p>
+<p>dc内部采用 mini-cluster 实现, 将 node 划分成多个大小相等的 mini-cluster, 论文定义了 mini-cluster size 为符号C. 注意, 一个node 的数据 会在 remote dc 多个不同的节点. 不理解的地方, 一致性hash算法对于相同的配置, hash 结果也是一样的, 怎么会到不同的 远程节点 呢?  数据分布策略是怎样的呢?</p>
+<p>也就是说, region -&gt; dc -&gt; multi mini-cluster; 以 mini-cluster 做多副本策略. 数据通过通过一致性hash到一个mini-cluster, mini-cluster的节点选择算法没说(说是随机选择).</p>
+<p>数据恢复, 分几种情况:</p>
+<ol>
+<li>增量paxos log entries 存在, 通过 paxos log 恢复</li>
+<li>如果是 append-only, 通过 data image delta 同步</li>
+<li>从整个 data image 恢复 </li>
+</ol>
+<p>有意思的是, 在恢复到crash之前的状态后, 后续的恢复通过 lazy recovery: 也就是一致性读写操作, 个人觉得容易数据丢失</p>
+<h3 id="其他优化">其他优化</h3>
+<ul>
+<li>failover read: 对于副本节点的异常读取: 过期&amp;丢失数据, 会触发 副本的数据修复, 指定时间内数据恢复 就可以继续服务 副本上的读取</li>
+<li>去重: 因为 paxos 流程以及 网络延迟抖动导致 重复请求, 都会导致一个request 产生多条 paxos processure, 这里用 client id 进行去重</li>
+<li>异步: libco 框架实现异步. 通讯层 每个server 有多个 socket, batch process 提高处理能力</li>
+<li>无租约机制: 对比有lease 的raft, 能降低 downtime 不可用时间</li>
+<li>pre-preparing optimization: 跳过 prepare/promise.</li>
+</ul>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_ambry</title>
+            <link>https://xujianhai.fun/posts/essay_ambry/</link>
+            <pubDate>Sun, 21 Feb 2021 16:29:24 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_ambry/</guid>
+            <description>background linkedin 的 blob storage 实现, 已经开源了, 还是java写的. 以前是基于 nas + oracle 搭建的media server落地的, 但是大量的小文件导致巨量的metadata, 内存和cpu都面临 无法水平扩展的窘境. 新的设计, 相比于已有的 facebook hystack/f4 或者 twitter, 更加注重 rebalance 特性 和 geo地理复制.
+design abstraction partition 是一组blob的逻辑抽象, 倾向于称呼 logic partition, 映射到 一组机器的副本 (会考虑到故障域隔离): physical placement. 在 physical placement 上, blob 不断追加到 data 文件, 除此之外, 还需要维护 indexing、journal、bloom filter 的额外数据结构, 每个data 文件 100GB, 写到 80%-90% 的容量空间的时候, partition 会从 read-write state 转换为 read-only state (需要额外的空间负责delete).
+架构   cluster manager: 负责集群管理: physical/hardware layout(node &amp;amp; disk placement, up/down state)、partition state/logic layout(read-write/read-only, mapping: partition(state)-&amp;gt;placement info(dc+datanode+disk))</description>
+            <content type="html"><![CDATA[<h2 id="background">background</h2>
+<p>linkedin 的 blob storage 实现, 已经开源了, 还是java写的. 以前是基于 nas + oracle 搭建的media server落地的, 但是大量的小文件导致巨量的metadata, 内存和cpu都面临 无法水平扩展的窘境. 新的设计, 相比于已有的 facebook hystack/f4 或者 twitter, 更加注重 rebalance 特性 和 geo地理复制.</p>
+<h2 id="design">design</h2>
+<h3 id="abstraction">abstraction</h3>
+<p>partition 是一组blob的逻辑抽象, 倾向于称呼 logic partition, 映射到 一组机器的副本 (会考虑到故障域隔离): physical placement. 在 physical placement 上,  blob 不断追加到 data 文件, 除此之外, 还需要维护 indexing、journal、bloom filter 的额外数据结构, 每个data 文件 100GB, 写到 80%-90% 的容量空间的时候, partition 会从 read-write state 转换为 read-only state (需要额外的空间负责delete).</p>
+<h3 id="架构">架构</h3>
+<ul>
+<li>
+<p>cluster manager: 负责集群管理: physical/hardware layout(node &amp; disk placement, up/down state)、partition state/logic layout(read-write/read-only, mapping: partition(state)-&gt;placement info(dc+datanode+disk))</p>
+</li>
+<li>
+<p>frontier: 负责 安全检查、路由&amp;转发请求, 以及 operation capture 同步给外部 cdc</p>
+</li>
+<li>
+<p>dataNode: 写数据, 配备多份disk</p>
+</li>
+</ul>
+<h3 id="io路径">IO 路径</h3>
+<ul>
+<li>
+<p>put:
+每个 blob 经由 frontier 顺序写入 partition,  http 调用 或者 cdn. blob 如何选择合适的 partition 呢?
+大对象, 比如 video 会被拆分成多个chunk, 避免大对象影响 小对象的读写吞吐. 每个chunk差不多 4MB-8MB, large object-&gt;chunkid slice 会维护在 metadata. 获取 large object 的时候, 通过 sliding buffer 限制避免 IO spike 影响其他的服务.</p>
+</li>
+<li>
+<p>delete
+也是put操作. 会周期性的通过 compaction 回收delete的空间. 空间满了之后 文件会变成 read-only, 回收可能变成 read-write.</p>
+</li>
+<li>
+<p>一致性
+read-after-write
+put 操作随机选择一个partition执行操作. 支持一致性选项: (one, k, majourity, all). 对于 put/delete, 会同步到所有 但是可以选择 ack的一致性选项, get 随机选择一致性的数量的节点. 目前 2 是 延迟&amp;一致性的折中
+multi-dc:
+local dc sync, other dc async</p>
+</li>
+</ul>
+<p>数据文件的设计: 每个写入的blob entry格式: header+blob id + delete flag, blob id = partition id(8 byte) + uuid(32 byte), 可能冲突, datanode 通过failure解决. header: predefined properties(blob size+ttl+create time+content type) + user-defined properties</p>
+<p>batch write 降低disk seek, 并将维护不多的 file handle keep open, 利用 os cache + zero copy 降低复杂度并提升性能.</p>
+<p>索引文件的设计: 为了充分释放内存给 文件读写, 索引采用了 sst file 的lsm设计, 将index 分段 segment, 当memory segment 超过最大大小 就 flush to disk. old segment 存储在磁盘上. 并维护相应的 bloom filter. index file crash了, 直接从 data rebuild</p>
+<h3 id="可用性">可用性</h3>
+<p>传统的三副本机制, 多dc容灾, 通过跨dc异步复制降低延迟. 没有(但是打算)使用 纠删码 来降低副本因子</p>
+<h4 id="sync">sync</h4>
+<p>out-of-sync 的同步算法两阶段实现:</p>
+<ul>
+<li>找到 last sync point 丢失的blob, 就是请求 last  sync point 之后所有的 blob id 然后本地过滤出丢失的 </li>
+<li>执行复制</li>
+</ul>
+<p>本地维护了 journal 数据结构, 维护最近的 写入的 blob</p>
+<h4 id="failure-detection">failure detection:</h4>
+<p>基于熔断算法, 论文称之为 zero-cost</p>
+<h3 id="feature">feature</h3>
+<p>除了传统的 static balance(largre split + cdn), 还设计了 动态负载均衡, 负载不均衡的特点: 新加入节点可能 100x 老节点. ambry 设计了 balance triplet: (idealRW, idealRO, idealUsed), 会计算一个均线 划分 high/below. 针对 high, 设计了两阶段算法:</p>
+<ul>
+<li>将 above-idea 的partition 迁移到了 partition pool, 保证没有disk above idea. 这里需要处理下 read-write 和 read-only partition 的不同策略. read-write 选择最小空间占用的 partition, read-only 随机选择一个 (因为都满了)</li>
+<li>将partition 从 pool 迁移到 below-idea 的disks (random round-robin)</li>
+</ul>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_pebblesdb</title>
+            <link>https://xujianhai.fun/posts/essay_pebblesdb/</link>
+            <pubDate>Wed, 17 Feb 2021 11:28:15 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_pebblesdb/</guid>
+            <description>background 通过 fragmented lsm (FLSM) 降低写放大. 适配到了 HyperLevelDB 修改为 pebblesDB. 显著降低 2.4-3x 写放大. 增加了 6.7x 写吞吐量. 并将 FLSM 作为 mongdb/HyperDex 的底层存储引擎 (IO吞吐量显著增加).
+note: 较大的写放大 会导致 负载过高. 同时 IO竞争 降低在线延迟
+结合了 SkipList + LSM, 以及 parallel seeks, aggressive seek-based compaction, and sstable-level bloom filters, 但是不擅长 range
+design FLSM’s compaction simply appends a new sstable fragment to the next level. guards: 将 key range 划分成 多个不相交的 单元. 每个level 包含多个 guards. level0 不包含 guards 打破了 a level 每个 sstable key 不接连的 约定, 也就是说, 相同的key 可以在 a level 的多个 sstable.</description>
+            <content type="html"><![CDATA[<h2 id="background">background</h2>
+<p>通过 fragmented lsm (FLSM) 降低写放大. 适配到了 HyperLevelDB 修改为 pebblesDB. 显著降低 2.4-3x 写放大. 增加了 6.7x  写吞吐量. 并将 FLSM 作为 mongdb/HyperDex 的底层存储引擎 (IO吞吐量显著增加).</p>
+<p>note: 较大的写放大 会导致 负载过高. 同时 IO竞争 降低在线延迟</p>
+<p>结合了 SkipList + LSM, 以及 parallel seeks, aggressive seek-based compaction, and sstable-level bloom filters, 但是不擅长 range</p>
+<h2 id="design">design</h2>
+<p>FLSM’s compaction simply appends a new sstable fragment to the next level.
+guards: 将 key range 划分成 多个不相交的 单元. 每个level 包含多个 guards. level0 不包含 guards
+打破了 a level 每个 sstable key 不接连的 约定, 也就是说, 相同的key 可以在 a level 的多个 sstable.</p>
+<p>compaction 流程: ???
+guards 选择? guard possibility: 按照比例读取, 就像 skiplist 一样. 但是 compaction 过程中 sstable 分区会导致IO放大.</p>
+<p>guard 是如何工作的呢?
+add 和 delete 都是先存储在 uncommitted guards 的内存结构中, 在 compaction 的时候会存储下来.  compaction 过程中, delete 会迁移 level(i)  相邻的分区 或者 level(i+1)的 child guard. delete 会递归到 最高的 level.
+IO路径:</p>
+<ul>
+<li>Get: 先搜索guard, 在搜索相关的 sstable</li>
+<li>Range: 通过 merge sort</li>
+<li>Put: 类似 lsm, 不过 compaction 基于 partitioned sstable 级别</li>
+<li>Update/Delete: update seq num 或者 添加flag</li>
+<li>compaction: ？ 按照 guard, level(i) 会归并到 level(i+1) 上的 sstables. 再看看. 不同guard 的compaction互不影响, 因此可以并行</li>
+</ul>
+<h2 id="调优">调优</h2>
+<p>flsm 的性能取决于 每个 guard sstable 的数量. 设置参数 max_sstables_per_guard 限制, 超过了就comapct guard 到下一层. =1 就和 lsm 一样</p>
+<h2 id="分析">分析</h2>
+<p>渐进分析不懂</p>
+<h2 id="pebbledb">pebbledb</h2>
+<p>range性能差, 通过 parallel seek 和 seek-based conpaction 优化.</p>
+<ul>
+<li>get: 相比 flsm, 增加了 sstable-level bloom filters 避免无意义的读</li>
+<li>range: 二叉搜索优化, 需要更详细的设计</li>
+<li>delete: 插入一个 delete flag 的value</li>
+</ul>
+<p>guard 的生成: 基于 hash(key) 的 最后几个bit</p>
+<p>从论文的较大, IM/monitor 数据还是适合 rocksdb.</p>
+<h2 id="性能">性能</h2>
+<p>从压测统计的数据上看, pebbledb 在延迟 方面并不占优, 写放大按照预期降低了, 随机写 和 更新性能也不错, 顺序性能明显下降(lsm可以直接移动, pebble 仍然需要 guard-based partition), seek + next 也是很低.  更新吞吐量不错, 得益于 partition的压缩策略</p>
+<p>ps: 每一层的 sstable 的 key range 因为存在 重叠, range 性能严重下降</p>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_tao</title>
+            <link>https://xujianhai.fun/posts/essay_tao/</link>
+            <pubDate>Tue, 16 Feb 2021 16:53:50 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_tao/</guid>
+            <description>传统的图存储了, 早期阅读过, 重新复习记录下.
+需求  论文列举了 使用场景: 用户发布checkin 打卡地点 并 提及 朋友, 朋友之间发布评论. 用户之间的朋友关系维护. 现在面临的问题:
+ edge list 分布式控制逻辑 read-after-write consistency  设计 tao以前, 用 mysql + memcache 针对业务做了实现, 但是耦合太重, 后来针对性的 构建模型. 支持 lookside cache、list edge、lease，remote marker（写后读），支持 inverse 耦合操作.
+data model &amp;amp; api tao的数据模型: 将node/edge 抽象成 object 和 association, object存储 用户、checkin、landmark、comments. association 存储 freendiship、authorship(checkin/comment), 比较特殊的是, action 比如 like/acceptance of invitation, 既可以编码成 object, 也可以编码成 association. 另一些比如 frendiship、authorship 都是双向关系.
+实现上, object 使用 64bit integer 唯一标识, association 用 source object + association type + destination object 标志, 任意两个 object 只有一种type的关系.</description>
+            <content type="html"><![CDATA[<p>传统的图存储了, 早期阅读过, 重新复习记录下.</p>
+<h2 id="需求">需求 </h2>
+<p>论文列举了 使用场景: 用户发布checkin 打卡地点 并 提及 朋友, 朋友之间发布评论. 用户之间的朋友关系维护. 现在面临的问题:</p>
+<ul>
+<li>edge list</li>
+<li>分布式控制逻辑</li>
+<li>read-after-write consistency</li>
+</ul>
+<h2 id="设计">设计</h2>
+<p>tao以前, 用 mysql + memcache 针对业务做了实现, 但是耦合太重, 后来针对性的 构建模型. 支持 lookside cache、list edge、lease，remote marker（写后读），支持 inverse 耦合操作.</p>
+<h3 id="data-model--api">data model &amp; api</h3>
+<p>tao的数据模型: 将node/edge 抽象成 object 和 association, object存储 用户、checkin、landmark、comments. association 存储 freendiship、authorship(checkin/comment), 比较特殊的是, action 比如  like/acceptance of invitation, 既可以编码成 object, 也可以编码成 association. 另一些比如 frendiship、authorship 都是双向关系.</p>
+<p>实现上, object 使用  64bit integer 唯一标识, association 用 source object + association type + destination object 标志, 任意两个 object 只有一种type的关系. object 和 association 用 kv 标识, 如下:</p>
+<pre><code>Object: (id) → (otype, (key -&gt; value)∗)
+Assoc.: (id1, atype, id2) → (time, (key -&gt; value)∗)
+</code></pre><p>api层面上, object api 支持 allocation、retrive、update、delete 操作. association api 支持 assoc_add、assoc_change、assoc_delete, 以及 assoc_list (从最新到最早)、assoc_get、assoc_count、assoc_range、assoc_time_range</p>
+<h3 id="arch">arch</h3>
+<p>底层存储还是 mysql shard + cache tier(memcached), 每个database server 负责一个或多个shard(一致性hash分配). cache tier 支持完整的 api, 每个请求 映射到 cache tier 的一个cache server(算法和db sahrd一致, 比较有意思的是, 每个 object 都包含了shard id). cache tier 使用LRU 维护内存的 object、association list 和 association count.</p>
+<p>对于双向的添加, 接受forward egde 的 cache tier 会先请求 dest object 所在的 cache server 添加反方向的操作, 成功后再添加 forward edge; 中间不一致的状态通过async job 完成 (划重点, 这个设计很关键).</p>
+<p>为了处理高吞吐和大流量, 直接的办法就是 水平扩容 cache tier,  但是 cache tier 太大, 更加容易出现热点, 以及 链接数暴涨的问题, 为了更好的解决这个问题, cache tier 分成了 leader tier 和 多个follower tier, leader tier 的 membership 都是leader, 负责 一个或者多个shard, 所有对这个 db shard 的读写 都走这个 leader cache tier; follower tier 的 membership 都是 follower, follower 负责将 read-miss 和 write 转发给 leader tier; 有意思的是, client 永远不会和 leader tier 沟通, 都是和 最近的 follower tier.</p>
+<p>问题, leader-follower cache 如何保持一致性? follower tier 需要其他 follower tier 通知, 最终一致性的保证, 通过 leader-&gt;multi follower 的 cache-maintenance/invalidation/refill(version number+change set) 消息, follower 同步响应. leader tier 负责 序列化并发 避免惊群.</p>
+<p>因为最终一致性的实现, 以及 mysql + cache 同步机制的差异, 会出现 数据来回变动的现象, slave region中, mysql 存储了旧值, cache tier 一开始收到更新提供给client 新值, 但是因为 缓存压力置换出了数据, 再次从 数据库加载 就是 旧值了. 为了保证更强的一致性, 提供了 <code>critical</code> 模式, 会转发读取 master region.</p>
+<p>问题: cache cpordinator per database ?</p>
+<p>为了应对全球化布局, 单dc内 leader/follower cache tier 的延迟很低, 但是 跨dc的延迟很高, 而且 read-miss 有25倍. facebook 论文的解决方案, 设计了 每个shard的 master/slave region, 每个region都有 自己的数据库 和 leader-follower cache tier, follower region 的 db 复制 leader region db, leader region db 是 ”source of truth“, follower region 是 local-read(read-miss 也是本地), write 是转发到 master region. 每个region都是 完整的副本.</p>
+<p>多个shard 会映射到 多个 region上, 每个shard leader 只在一个region上, 一个region有多个 leader shard 和 follower shard. shard 可以在region之间切换.</p>
+<p>数据库之间的复制通过 统一的 database replication stream. 复制完成之后, 才会发送 invalidation/refill 同步消息 来保证数据的同步.</p>
+<p>后续讨论了 高效的memcache 和 mysql 实现.</p>
+<p>特殊的优化:</p>
+<ol>
+<li>cache load balance, 通过 cloned shard + client cache(version+data) 解决.</li>
+<li>空结果查询优化, 出度高的obejct, 可以选择入度object 进行查询; 限制时间的查询优化  ( 存在的场景下, dest obj time &gt; edge time)</li>
+</ol>
+<h3 id="失败检测">失败检测</h3>
+<p>类似熔断的做法 实现失败检测;</p>
+<p>细分:</p>
+<ul>
+<li>db 不可用: master region master db 不可用, 其他 slave db 直接自动升级; slave region db 挂了, 流量到 master region, binlog 同步组件后续会给 slave db 同步消息.</li>
+<li>leader cache tier 不可用: leader cache tier 的 server 可以互相替代, replacement cache server 会保存 async invalidagtion 给 recovered leader, 同时也会记录到 coordinator 以及 replication stream.  recoverd leader 对外提供服务的时候可能提供 stale value</li>
+<li>refill&amp;invalidation: 内存+磁盘 同步给follower; leader downtime recovery, 会 bulk invalidation; leader permanent replacement, 则 shard对应的数据 全部 invalidation</li>
+<li>follower tier: follower tier 互相补充提供服务, client 请求会提供 primary/backup tier 实现failover (read-after-write 会受到影响).</li>
+</ul>
+<h2 id="个人感受">个人感受</h2>
+<p>整体上感觉还是 业务层的抽象, 提供诸多服务的底层抽象. leader/follower tier 的设计思路不错; master/slave region 比较常规</p>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Pnuts</title>
+            <link>https://xujianhai.fun/posts/essay_pnuts/</link>
+            <pubDate>Mon, 15 Feb 2021 20:12:32 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_pnuts/</guid>
+            <description>定位是 分布式数据库. 特点: 提供 hashed/ordered tables. 中心化管理、地理位置复制、自动负载均衡.
+record 级别的 master-follow replica机制. 列举了 应用的不同一致性模型: read-any, read-critical, read-latest, write, test-and-set-write(乐观锁),
+支持 Bundled updates, notification,
+热点问题如何解决?
+系统架构 tablet controller、router、storage unit.
+router: 1. 维护 record -&amp;gt; tablet -&amp;gt; storage unit 的 internal mapping. 无论是 hash 还是 ordered 都是转换成 tablet. internal map 从 tablet controller 获取. soft state. 2. 包含 scatter-gather engine, 负责处理 multi-record, 并行将多个 record 发送到多个 storage unit. 采用stream模式. (服务端模式, 而不是客户端模式, 因为链接的资源消耗). 以及 topK 的实现.</description>
+            <content type="html"><![CDATA[<p>定位是 分布式数据库. 特点: 提供 hashed/ordered tables. 中心化管理、地理位置复制、自动负载均衡.</p>
+<p>record 级别的 master-follow replica机制. 列举了 应用的不同一致性模型: read-any, read-critical, read-latest, write, test-and-set-write(乐观锁),</p>
+<p>支持 Bundled updates, notification,</p>
+<p>热点问题如何解决?</p>
+<h3 id="系统架构">系统架构</h3>
+<p>tablet controller、router、storage unit.</p>
+<p>router:
+1. 维护 record -&gt; tablet -&gt; storage unit 的 internal mapping. 无论是 hash 还是 ordered 都是转换成 tablet. internal map 从 tablet controller 获取. soft state.
+2. 包含 scatter-gather engine, 负责处理 multi-record, 并行将多个 record 发送到多个 storage unit. 采用stream模式. (服务端模式, 而不是客户端模式, 因为链接的资源消耗). 以及 topK 的实现. 但是不支持 join/aggeration 等这些复杂的操作
+tablet controller: 负载均衡 tablet, active/standby.</p>
+<p>region 为单位进行管理. 基于 pub/sub 进行弹性容错和复制. data tables 数据分片组织成 tablet, 	每个server有 上千个 tablet, 在region 范围内 tablet 只会存储在一个 server上,  	每个tablet只有 几百MB 或者 几GB(包含几千个记录), tablet会进行 rebalance.</p>
+<p>ordered tables 使用 MySQL(innodb) 实现, hash tables 使用基于 unix fs-based hash tables.
+更新 只需要 写入到message broker 就算成功.
+复制通过 message broker 实现异步复制. 复制流程是 ack-all 模式. 跨dc.
+record 通过 per-record master replica 实现 timeline 有序 (所有的更新都经过 master replica 写入 broker).</p>
+<p>比较有意思的是, 每个tablet可能包含 多个集群的key, 通过 per-record 的 master  replica 降低延迟. tablet master 负责存储</p>
+<p>支持 notification, 通知外部 关于内部状态的变更, 不过是对 table 维度的所有topic 进行订阅</p>
+<p>注意, per-record 是为了实现 record 的 timeline 有序, tablet master 是为了保证存储的唯一性.</p>
+<h3 id="容灾">容灾</h3>
+<p>tablet controller 会从远程复制迁移, 配合 checkpoint, checkpoint 之后的更新 都会发送过去. 支持 split.</p>
+<p>tablet 恢复流程:</p>
+<ol>
+<li>tablet controller 向 远程副本(source tablet) 请求copy</li>
+<li>checkpoint 发送到 ymb, 保证复制点之后 后续未完成 的 更新 都会同步到 source tablet</li>
+<li>source tablet 复制到 目标region</li>
+</ol>
+<p>在恢复的过程 也要保证 后续更新同步</p>
+<p>问题:</p>
+<ul>
+<li>pnuts 是几几年的论文, 和 google 对比呢 ?</li>
+</ul>
+<h3 id="总结">总结</h3>
+<p>仅仅支持 hashtable 和 ordered tables 两种, 比较有意思的是, 当时 ordered tables 采用的是 mysql innodb. tablet 以及 tablet controller 的概念 现在看 已经是标配了. 同时支持两种模式, 对于 基于codis 开发分布式kv的小伙伴 可以考虑下.
+在测试中, ordered table 的整体延迟都比 hashed table 低</p>
+<p>range scan 功能上, mysql innodb 比 rocksdb 更好吗?</p>
+<p>bundle updates(社交图谱上的朋友关系的维护), 这个貌似没有更多的展开相关的解决方案, 看上去就是异步两次成功</p>
+<p>Epidemic replication ？ 不懂</p>
+<h3 id="参考">参考</h3>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_wisckey</title>
+            <link>https://xujianhai.fun/posts/essay_wisckey/</link>
+            <pubDate>Mon, 01 Feb 2021 20:32:35 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_wisckey/</guid>
+            <description>序 比较经典的kv存储分离的实现, 将大的value存储在 vlog 文件上, lsm 只存储 (key, offset) 信息, (需要注意的是, vlog的内容也需要记录key的信息, 加快gc), 极大的降低了 lsm 在 写放大, 延长ssd的生命周期. 虽然通过vlog 无法利用顺序读的优势, 但是可以利用 多线程 + ssd 来达到顺序读取的效果. 在内部实现上, 甚至去除了 lsm 中log的模块, 并达到了一致性.
+论文精读 论文开篇对比列出了 hdd/ssd lsm实现的几个问题:
+ ssd 的 顺序IO/随机IO 的差距明显低于 hdd, 这样就显得 lsm 中大量 随机IO-&amp;gt;顺序IO的优化显得没那么必要 (参见论文figure 3) ssd 的内部并行化程度高 ssd 的不擅长重复擦除写, LSM 最差 50x 的写放大会降低 ssd 的生命周期  为此, 设计了 wisckey, 充分利用 ssd 的随机+内部并发能力, 将value存储在vlog上, 同时降低不必要的写放大
+挑战 在设计wisckey, 会和 传统 lsm 设计存在很大的gap, 例如:</description>
+            <content type="html"><![CDATA[<h2 id="序">序</h2>
+<p>比较经典的kv存储分离的实现, 将大的value存储在 vlog 文件上, lsm 只存储 (key, offset) 信息, (需要注意的是, vlog的内容也需要记录key的信息, 加快gc), 极大的降低了 lsm 在 写放大, 延长ssd的生命周期. 虽然通过vlog 无法利用顺序读的优势, 但是可以利用 多线程 + ssd 来达到顺序读取的效果. 在内部实现上, 甚至去除了 lsm 中log的模块, 并达到了一致性.</p>
+<h2 id="论文精读">论文精读</h2>
+<p>论文开篇对比列出了 hdd/ssd lsm实现的几个问题:</p>
+<ol>
+<li>ssd 的 顺序IO/随机IO 的差距明显低于 hdd, 这样就显得 lsm 中大量 随机IO-&gt;顺序IO的优化显得没那么必要 (参见论文figure 3)</li>
+<li>ssd 的内部并行化程度高</li>
+<li>ssd 的不擅长重复擦除写, LSM 最差 50x 的写放大会降低 ssd 的生命周期</li>
+</ol>
+<p>为此, 设计了 wisckey, 充分利用 ssd 的随机+内部并发能力, 将value存储在vlog上, 同时降低不必要的写放大</p>
+<h3 id="挑战">挑战</h3>
+<p>在设计wisckey, 会和 传统 lsm 设计存在很大的gap, 例如:</p>
+<ul>
+<li>range query (scan) 的性能会受到影响, 因为 value 不再有序 (wisckey 基于ssd的内部并行度)</li>
+<li>wisckey 需要额外的 gc 机制回收 invalid value的空闲空间 (gc会影响前台IO)</li>
+<li>kv的崩溃一致性保证 (基于现代文件的append语意)</li>
+</ul>
+<h3 id="收益">收益</h3>
+<p>除了 大数据的range scan 和 随机写入小值 外, 其他情况性能 都远超leveldb (WiscKey is 2.5×–111× faster than LevelDB for loading a database;  for random lookups, WiscKey is 1.6×–14× faster than LevelDB)</p>
+<p>从leveldb的角度出发, 写放大 level * ratio, 默认配置 5 * 10 = 50 倍 (有一些说法是 level * (ratio + 1)), 读放大  (index block + data block + one data block) * sst file numner,  (考虑布隆过滤器不命中的场景), 在论文的配置中可以达到 336 倍.</p>
+<p>与之对比, wisckey kv 分离, 明显降低了读、写、空间放大问题.</p>
+<h3 id="设计">设计</h3>
+<p>wisckey 的设计要点:</p>
+<ol>
+<li>kv分离</li>
+<li>利用ssd 的并行随机读取特性 增强 unsorted value 的能力</li>
+<li>使用 唯一的 crash-consistency &amp; gc 高效的管理 vlog</li>
+<li>在不牺牲一致性的情况下, 移除了 lsm-tree log, 降低 small writes 的系统调用</li>
+</ol>
+<h4 id="io路径">IO路径</h4>
+<ol>
+<li>insert/update: 先插入 (key, value) 到 vlog, 然后组装成 (key,(vlog-offset, value-size)) 存储到lsm.</li>
+<li>lookup: 先查询 lsm, 在读取 vlog</li>
+<li>range query(scan): lsm range scan后, 交给 后台线程读取 (论文中实现有32个线程)</li>
+<li>delete: 仅删除 lsm key, vlog 的invaid value 交给 gc 处理</li>
+<li>gc: 遍历vlog (tail-&gt;head, 分chunk批量读取), 将有效的数据追加到 head 后面, 最终释放之前的数据空间. 这里需要注意到 vlog 中的数据格式: (ksize, vsize, key, value); 为了解决 crash consistency, 每次 append vlog 都会调用 fsync, 同时持久化 （tail, tailoffset) 到 lsm.</li>
+</ol>
+<h4 id="failure">failure</h4>
+<ol>
+<li>crash consistency</li>
+</ol>
+<p>基于现代文件系统的 append 语意 保证 vlog 的一致性. 这个时候 crash 仅仅会发生在 after insert vlog 和 before insert lsm, 这里数据的准确性 以 lsm 为准. 如果 lsm 没有, 那么数据就没有, 中间的冗余数据依赖 gc 回收. 除此之外, vlod 的 item key 也会和 lsm key 比较 进行key的校验</p>
+<h4 id="性能优化">性能优化</h4>
+<ol>
+<li>为了降低 write 系统调用的负担 (尤其是 写密集型), 设计了 vlog userspace buffer 缓冲. (可能会丢失数据)</li>
+<li>周期的持久化 (head, head-vlog-offset) 来加快 crash-recovery. 类似快照的设计了. 这样只需要在恢复的时候从 head-vlog-offset 开始读取. 基于这些措施, 移除了 lsm tree log</li>
+<li>利用 fallocate 文件打洞的方式快速回收文件空间 (有趣的特性, 得研究下)</li>
+</ol>
+<h3 id="bench">bench</h3>
+<p>各种数据都好于 leveldb</p>
+<h2 id="个人想法">个人想法</h2>
+<p>比较适合做 单机的对象存储.</p>
+<p>熟悉下 ycsb</p>
+<p>文件打洞 感觉就是将 分配给 文件的块迅速回收掉</p>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_Dostoevsky</title>
+            <link>https://xujianhai.fun/posts/essay_dostoevsky/</link>
+            <pubDate>Sun, 24 Jan 2021 16:06:33 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_dostoevsky/</guid>
+            <description>从 https://www.jianshu.com/p/8fb8f2458253 看到了 Dostoevsky, 研究了下论文
+tired &amp;amp; level 基本原理  stcs:  每一层文件大小按比例增加, 每一层的文件数量固定. 比如 4层文件, 每层大小4倍增长, 则分别是: 100 MB, 400 MB, 1.6 GB and 6.4 GB.
+层间compaction, 比如 level(i) -&amp;gt; level(i+1), 当i层四个文件都写满了, 则会触发. 会将 level(i) 的四个文件进行 compaction 放到 level(i+1) 【空间放大的原因】
+经典的图, 参考论文
+ level:  每一层的文件大小固定, 文件数量按照层级按比例增长, 比如 4(level 0)、10、100、1000, 每个文件都是 16MB
+层间compaction 是当 level(i) 文件数满的时候触发的. 会从 level(i) 中选取一个文件 和 level(i+1) 的10个文件进行compaction, 并写入11个文件 【写放大的原因】
+经典的图, 参考论文
+写放大 写放大: 一次byte写入, 在磁盘上读写了多少次 (注意: lsm 因为有一次日志写commit-log, 因此至少有一次写放大)</description>
+            <content type="html"><![CDATA[<p>从 <code>https://www.jianshu.com/p/8fb8f2458253</code> 看到了 Dostoevsky, 研究了下论文</p>
+<h2 id="tired--level">tired &amp; level</h2>
+<h3 id="基本原理">基本原理</h3>
+<ul>
+<li>stcs:</li>
+</ul>
+<p>每一层文件大小按比例增加, 每一层的文件数量固定. 比如 4层文件, 每层大小4倍增长, 则分别是: 100 MB, 400 MB, 1.6 GB and 6.4 GB.</p>
+<p>层间compaction, 比如 level(i) -&gt; level(i+1), 当i层四个文件都写满了, 则会触发. 会将 level(i) 的四个文件进行 compaction 放到 level(i+1) 【空间放大的原因】</p>
+<p>经典的图, 参考论文</p>
+<ul>
+<li>level:</li>
+</ul>
+<p>每一层的文件大小固定, 文件数量按照层级按比例增长, 比如 4(level 0)、10、100、1000, 每个文件都是 16MB</p>
+<p>层间compaction 是当 level(i) 文件数满的时候触发的. 会从 level(i) 中选取一个文件 和 level(i+1) 的10个文件进行compaction, 并写入11个文件 【写放大的原因】</p>
+<p>经典的图, 参考论文</p>
+<h3 id="写放大">写放大</h3>
+<p>写放大: 一次byte写入, 在磁盘上读写了多少次 (注意: lsm 因为有一次日志写commit-log, 因此至少有一次写放大)</p>
+<p>stcs:</p>
+<p>O(L), 因为写放大只会放生在层间compaction, 对于图例 4层的 写入, 也就是 5倍写放大</p>
+<p>level:</p>
+<p>O(T * L), 很严重, 也放在层间, 但是level的模型是, 从 level(i) 选取一个文件, 和 level(i+1) 的10个文件进行compaction, 最终导致11倍的写放大(这里的场景是 层间10倍关系, 10个文件是因为 token range 关系是10, 比如上一层10个文件, 下一层就是100个文件, 一般假设是从100个文件中选取10个有重叠的文件进行compaction)</p>
+<p>试验中并没有达到这么多的写放大, 仅仅是11倍, 因为 写入的时间局部性原理(大部分数据是最近修改的, 很少添加新数据或者修改很老的数据), 很多写放大的 overlap 都在 L0/L1 处理了 (L0/L1 的 input sstfile 不止一个)</p>
+<p>需要注意的是, 及时是 读多写少的场景, 当读需要走文件, 写放大由于磁盘竞争也会严重影响读, 除此之外, 当 写放大占用太多磁盘带宽导致 compaction 跟不上, 那么大量数据就会停留在 L0, 导致很严重的读放大</p>
+<h3 id="空间放大">空间放大</h3>
+<p>空间放大: 同一份数据, 被存储了多少遍</p>
+<p>STCS 空间放大严重, 试验中最严重可以观测到 8倍, 主要是由于两个原因:</p>
+<ul>
+<li>input-&gt;ouput 的 level compaction 导致的文件临时放大两倍</li>
+<li>因为相同一层数据存在 overlap, 那么可能相邻文件存在被删除的数据 (最差情况下, 不同层也存在overlap), 试验得到了8倍 (1.2GB的数据写15次)</li>
+</ul>
+<p>level空间放大相对比较轻, 如下:</p>
+<ul>
+<li>分层压缩的时候, 假设分层比例是10, 160M文件大小, 因为总是从 level(i) -&gt; level(i+1) 的比例是 1/10, 因此最多重复 11 个文件, 固定大小就是  160 * 11 &lt; 2GB</li>
+<li>同一层因为没有overlap, 所以只存在 分层之间的数据重复, 如果 level(larget) 填满了, 3层10倍最多也就 1.11倍, 最差情况下, level(larget) 没有填满, 比如 l2 和 l3 都一样大的时候, 那么存在略大于 2倍的 空间放大</li>
+</ul>
+<p>在相同的试验中, 试验2(1.2GB的数据写15次) 略微大于预期的 [1.1, 2] 的放大, 因为 l0 存在overlap 导致的. 试验1符合预期</p>
+<h2 id="论文">论文</h2>
+<p>引入了三个新的设计: lazy leve &amp; Fluid LSM-Tree &amp; Dostoevsky</p>
+<h3 id="基本原理-1">基本原理</h3>
+<ul>
+<li>Lazy Leveling</li>
+</ul>
+<p>只有最后一层进行 level compaction(merge), 其他层不进行merge</p>
+<ul>
+<li>Fluid LSM-Tree</li>
+</ul>
+<p>控制了 largest level 和 其他level 的merge的频率</p>
+<ul>
+<li>Dostoevsky</li>
+</ul>
+<p>Dostoevsky: Space-Time Optimized Evol- vable Scalable Key-Value Store.</p>
+<p>论文一开始详细分析了不同情况下 level/tiering 的复杂度.</p>
+<p>贴图:</p>
+<p><em>update</em>:</p>
+<p>level: O(L * T/B), 每一层都是 T个文件更新, 最差更新L层的次数, 分摊到 B上的entries
+tiering: O(L/B), 每一层都是直接merge, 最差合并L层的次数, 分摊到 B 上的entries</p>
+<p><em>point lookup</em>:</p>
+<p>level:  每一层的误判率, 优化后和level无关
+tiering: T * 误判率, 优化后和level无关</p>
+<p><em>short range</em>:</p>
+<p>level: O(L), 因为每一层层内不重叠, 每层最多查一次, 最多L层
+tiering: O(T * L), 因为每一层重叠, 所以 一层最差T次, 最多L层</p>
+<p><em>long range</em>:</p>
+<p>level:
+tiering:</p>
+<p>需要看下</p>
+<h2 id="参考">参考</h2>
+<ul>
+<li>stcs 的空间放大问题 <a href="https://www.scylladb.com/2018/01/17/compaction-series-space-amplification/">https://www.scylladb.com/2018/01/17/compaction-series-space-amplification/</a></li>
+<li>lcs 的读放大问题 <a href="https://www.scylladb.com/2018/01/31/compaction-series-leveled-compaction/">https://www.scylladb.com/2018/01/31/compaction-series-leveled-compaction/</a></li>
+<li>rocksdb 空间放大优化 <a href="http://cidrdb.org/cidr2017/papers/p82-dong-cidr17.pdf">http://cidrdb.org/cidr2017/papers/p82-dong-cidr17.pdf</a></li>
+</ul>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_fuse</title>
+            <link>https://xujianhai.fun/posts/essay_fuse/</link>
+            <pubDate>Wed, 20 Jan 2021 10:05:14 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_fuse/</guid>
+            <description>peface 做nas的时候, 需要将本地文件系统到远程分布式系统, 一种基于 block 的思路, 另一种基于 fuse 去做. 大都数情况下是基于 fuse.
+abstraction fuse的设计, 就是将内核文件系统的操作委托给 user space 的 custom daemon 进程, 比如: create/delete/open/read/write 以及 元数据操作: getattr/link/unlink/forget 等.
+在使用上, 有两种api 可以使用, 一种是 low-level的, 需要自己设计 recv/protocol parse/reply/config/mout 等行为, 以及 屏蔽内核的差异; 另一种是 high-level的, developer 可以不用关心 path-&amp;gt;inode 的映射, 用户只需要实现相关的方法就行: chown、chmod、truncate.
+底层实现 在fuse底层的实现上, 应用程序读写文件系统, 透传cache的请求, VFS 会委托给 fuse driver, fuse 和 fuse user space daemon 通过 /dev/fuse 文件进行交互 (论文图片). 在 fuse driver-&amp;gt;fuse user daemon 交互过程中, 维护了多个queue: interrupts/forgets/pending/processing/background, 如下:</description>
+            <content type="html"><![CDATA[<h2 id="peface">peface</h2>
+<p>做nas的时候, 需要将本地文件系统到远程分布式系统, 一种基于 block 的思路, 另一种基于 fuse 去做. 大都数情况下是基于 fuse.</p>
+<h2 id="abstraction">abstraction</h2>
+<p>fuse的设计, 就是将内核文件系统的操作委托给 user space 的 custom daemon 进程, 比如: create/delete/open/read/write 以及 元数据操作: getattr/link/unlink/forget 等.</p>
+<p>在使用上, 有两种api 可以使用, 一种是 low-level的, 需要自己设计 recv/protocol parse/reply/config/mout 等行为, 以及 屏蔽内核的差异; 另一种是 high-level的, developer 可以不用关心 path-&gt;inode 的映射, 用户只需要实现相关的方法就行: chown、chmod、truncate.</p>
+<h2 id="底层实现">底层实现</h2>
+<p>在fuse底层的实现上, 应用程序读写文件系统, 透传cache的请求, VFS 会委托给 fuse driver, fuse 和 fuse user space  daemon 通过 <code>/dev/fuse</code> 文件进行交互 (论文图片). 在 fuse driver-&gt;fuse user daemon 交互过程中, 维护了多个queue: interrupts/forgets/pending/processing/background, 如下:</p>
+<p>来两个图</p>
+<p>一个request 在任意时刻只会属于一个queue.</p>
+<p>同步的请求(metadata) 先放在 pendig queue, fuse user daemon 从 <code>/dev/fuse</code> 读取进行处理的时候, request 会被迁移到 processing 队列, fuse user-daemon 响应的时候, 直接到 processing 匹配并移除. 一些特殊的请求, 比如 forget 请求直接进入 forget 队列, interrupt请求 进入 interrupt 队列, 上面这些队列都是同步的; 部分请求比如: read/write(write 只有在 writeback cache被开启的时候才会进入background, writeback 就是说用户的写请求先积攒在page cache 知道 pdflush 被唤醒刷新脏页) 直接进入 backgrounding 队列, 后面再进入 pending 队列, 需要注意, 这里为了约束异步请求阻塞同步请求, 有参数: <code>max background</code>, 限制从异步队列进入pending队列的数量</p>
+<p>除此之外, VFS 也通过 congestion threshold 限流上层用户请求 (一般是75% * all async request)</p>
+<p>几个队列存在优先级: interrupt request 需要被立即处理; forget 和 non-forget request 按照1:2 的概率公平选择 (避免forget尖刺 &amp; 请他请求饥饿). 没有请求的时候, fuse user daemon 则会阻塞.</p>
+<h3 id="重要特性优化">重要特性(优化)</h3>
+<ol>
+<li>
+<p>splice(zero-copy): 为了避免 fuse user-daemon 和 fuse driver 因为读写 <code>/dev/fuse</code> 导致的 kernel/user-space 频繁的数据拷贝, 这里利用了 kernle 提供的 splice 的 zero-copy的特性</p>
+</li>
+<li>
+<p>多线程支持: 实现了 最多10个 idle threads 的pool 处理, 如果超过10个异步请求, 会有相应的线程处理, 但是处理完之后会退出, 创建没有上界</p>
+</li>
+<li>
+<p>writeback cache&amp; max write: 本质上是为了提升每次IO的大小实现更高的iops</p>
+</li>
+</ol>
+<h3 id="测试实现压测">测试实现&amp;压测</h3>
+<p>论文中基于fuse试下了 stackfs, 将fuse请求转发给本地盘的 ext4 上, 观察不同操作类型的性能损失. 其中还对比了 基于重要特性的 opt 版本.</p>
+<p>从结果上看, 性能损耗还是比较明显的, rand 场景下, 最多可以损失达到 80%+, 因为 rand 场景下, 多线程&amp;writeback 并不能真正发挥威力, 并且多线程场景下 还存在锁的开销.</p>
+<h2 id="参考">参考</h2>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_copyset</title>
+            <link>https://xujianhai.fun/posts/essay_copyset/</link>
+            <pubDate>Fri, 15 Jan 2021 21:02:51 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_copyset/</guid>
+            <description>前言 这个论文是从 网易的curve项目了解到的(块存储项目), 浏览了整个论文之后, 发现论文主要是为了解决 大量数据丢失 &amp;amp; 高频数据丢失 折中的处理方案, 通过对比大量数据, 得出 低频大尺寸数据丢失 优先的结论, copyset 的设计将 数据丢失降低, 通过应用 copyset, 将 RAM Cloud 5000节点的 数据丢失率从 99.99%-&amp;gt;0.15%, facebook hdfs 数据丢失率 从 22.8%-&amp;gt; 0.78%.
+论文参考: 1
+基本概念 关于数据丢失: 大规模集群中, 经常会遭受 断电 等数据中心失败场景, 比如断电, 即使电力恢复, 也有 0.5%-1.0%的 节点无法恢复, 很有可能一个chunk的所有副本都不可用, 从而导致数据丢失
+关于数据恢复: 数据修复成本 并不是和 丢失的数据成比例, 而是定位 丢失chunk 所在的完整数据.
+tradeoff(frenquency vs lost data size): 假设每年丢失的不可用数据量是固定的, 那么, 相比于 更多丢失次数 * 每次更少的数据丢失, 我们倾向于 更少的丢失次数 * 每次更多的数据丢失.
+ 对比  random replication: chunk 随机分布在 R 个副本上</description>
+            <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>这个论文是从 网易的curve项目了解到的(块存储项目), 浏览了整个论文之后, 发现论文主要是为了解决 大量数据丢失 &amp; 高频数据丢失 折中的处理方案, 通过对比大量数据, 得出 低频大尺寸数据丢失 优先的结论, copyset 的设计将 数据丢失降低, 通过应用 copyset, 将 RAM Cloud 5000节点的 数据丢失率从 99.99%-&gt;0.15%, facebook hdfs 数据丢失率 从 22.8%-&gt; 0.78%.</p>
+<p>论文参考: <sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<h2 id="基本概念">基本概念</h2>
+<p>关于数据丢失: 大规模集群中, 经常会遭受 断电 等数据中心失败场景, 比如断电, 即使电力恢复, 也有 0.5%-1.0%的 节点无法恢复, 很有可能一个chunk的所有副本都不可用, 从而导致数据丢失</p>
+<p>关于数据恢复: 数据修复成本 并不是和 丢失的数据成比例, 而是定位 丢失chunk 所在的完整数据.</p>
+<p>tradeoff(frenquency vs lost data size): 假设每年丢失的不可用数据量是固定的, 那么, 相比于 更多丢失次数 * 每次更少的数据丢失, 我们倾向于 更少的丢失次数 * 每次更多的数据丢失.</p>
+<ul>
+<li>对比</li>
+</ul>
+<p>random replication: chunk 随机分布在 R 个副本上</p>
+<p>在5000节点的 RAM Cloud, radonm replication 丢失频率高, 每次丢失数据少; copyset replication 次数少, 每次丢失数据多.</p>
+<p>比较有意思的是, 在论文中指出, 3副本的copyset 可能达到 5副本的 random replication</p>
+<h2 id="设计">设计</h2>
+<p>copyset 设计中有几个重要的参数, N: 机器节点数量, R: 副本数, S: scatter width(一个copyset的数据会在几个不同其他的节点上), 对于 3副本的9个节点, scatter width(S)=4 的时候, 会有以下copyset:</p>
+<pre><code>{1,2,3},{4,5,6},{7,8,9},{1,4,7},{2,5,8},{3,6,9}
+</code></pre><p>任意一个节点, 比如 ndoe 1 上面的数据会复制到 2,3 和 4,7, 降低数据丢失的可能性.</p>
+<ul>
+<li>流程</li>
+</ul>
+<ol>
+<li>
+<p>根据参数 N、R、S 计算好 枚举的copyset (并不是所有枚举都有效, 会根据 失败域等条件去除无效的copyset, 比如 要不全部在一个rack里面, 网路配置). 生成若干枚举的数量: p = ceil(s/r-1), 将枚举 切成连续的 copyset</p>
+</li>
+<li>
+<p>先确定chunk的主副本，再选择一个 primary 所在的 copyset 作 secondary. 确定主副本，不同算法不一样</p>
+</li>
+</ol>
+<ul>
+<li>failover</li>
+</ul>
+<p>新节点加入，会导致部分老节点 高负载</p>
+<p>增加scatter width 可以有效的避免热点</p>
+<h2 id="应用数据">应用&amp;数据</h2>
+<p>论文重点讨论了在 RAM Cloud 和 facebook hdfs 的实现. 略过</p>
+<p>从数据上看,  copyset 对小集群不太友好</p>
+<p>s=r-1 特殊配置 断电有优势</p>
+<ul>
+<li>看起来，ramcloud 并不适合 copyset</li>
+</ul>
+<p>文末重点讨论了组合理论, 不关心</p>
+<h2 id="参考">参考</h2>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>作者: Stanford University: <a href="http://www.scs.stanford.edu/~rumble/papers/cidon_copysets.pdf">Copysets: Reducing the Frequency of Data Loss in Cloud Storage</a> <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Essay_atlas</title>
+            <link>https://xujianhai.fun/posts/essay_atlas/</link>
+            <pubDate>Sun, 20 Dec 2020 22:37:58 +0800</pubDate>
+            
+            <guid>https://xujianhai.fun/posts/essay_atlas/</guid>
+            <description>atlas 是 baidu 自研的kv存储系统, 但是从论文中的描述上, 还是更像是 分布式文件对 小文件的优化, 尤其是使用场景: 小图片 等. 在统计意义上, 发现 大部分的读写都集中在 (128k, 256k], 读写比例大概是 96.3% 和 94.1%.
+架构设计: 在架构上, 底层是 块存储服务层: RBS Master + RBS PartServer, PartServer 是block 的存储层, 只负责块的存储, RBS Master 管理 block-&amp;gt; RBS PartServer 的映射 以及 高可用管理, 但是块存储并不适合kv的高频、low-seized 的写入, 因此 需要上层的 PIS Slice 做一层cache, 除此之外, PIS 还需要维护 kv-&amp;gt;block 的映射 (PIS: patch and index system)
+贴个图
+模块设计: PIS 截图就行
+replication 保证多副本高可用(半同步). 内部有 patch 和 index 模块, 新写入的kv 先进入 patch 层(cache+file; 三副本+秒级flush+电池供应), 攒到64MB 的block, 则刷新block到RBS, 并更新原来的kv数据, value 转换为数据的索引: [blockid, offset, length], 并重新块里面的数据信息, 然后写入 index module 的LSM.</description>
+            <content type="html"><![CDATA[<p>atlas 是 baidu 自研的kv存储系统, 但是从论文中的描述上, 还是更像是 分布式文件对 小文件的优化, 尤其是使用场景: 小图片 等. 在统计意义上, 发现 大部分的读写都集中在 (128k, 256k], 读写比例大概是 96.3% 和 94.1%.</p>
+<h2 id="架构设计">架构设计:</h2>
+<p>在架构上, 底层是 块存储服务层: RBS Master + RBS PartServer, PartServer 是block 的存储层, 只负责块的存储, RBS Master 管理 block-&gt; RBS PartServer 的映射 以及 高可用管理, 但是块存储并不适合kv的高频、low-seized 的写入, 因此 需要上层的 PIS Slice 做一层cache, 除此之外, PIS 还需要维护 kv-&gt;block 的映射 (PIS: patch and index system)</p>
+<p>贴个图</p>
+<h2 id="模块设计">模块设计:</h2>
+<h3 id="pis">PIS</h3>
+<p>截图就行</p>
+<p>replication 保证多副本高可用(半同步). 内部有 patch 和 index 模块, 新写入的kv 先进入 patch 层(cache+file; 三副本+秒级flush+电池供应), 攒到64MB 的block, 则刷新block到RBS, 并更新原来的kv数据, value 转换为数据的索引: [blockid, offset, length], 并重新块里面的数据信息, 然后写入 index module 的LSM. (这里需要注意, 当slice leader flush block 后 crash, 存在 redundancy block, 这个应该需要gc掉, 不过论文没讲到)</p>
+<h3 id="rbs">RBS</h3>
+<p>RBS master 维护metadata, 通过LSM 存储. metadta: block table(blockid -&gt; partserver ip list), partserver table(partserver ip -&gt; global part ip list). ha 主备.</p>
+<p>RBS Master 在 client request write 的时候, 会返回 blockId 和 15个ip address(避免写入失败, 可以failover, 保证ip不一样, 并且两机架挂掉可容忍), client 成功后提交 blockid+partserver ip 给 RBS Master.</p>
+<p>RBS partserver 和 RBS Master 之间通过心跳 keepalive, RBS Master 发现 partserver lost, 会执行恢复流程: 1. 更新 block table 避免失败的读取 2. generate repair task &amp; dispatch to selected partserver 3. update metadata(block table &amp; partserver table). 所以恢复流程是在 partserver 上执行的</p>
+<p>块存储, 最大的特点是 使用了 <code> Reed-Solomon coding</code>, 降低数据冗余, 64MB的block, 分成了 8个 8MB 的part, 经过计算一共会产生 12个 part (保证了最多5个part挂了, 数据才无法恢复).</p>
+<h2 id="io路径">IO路径:</h2>
+<p>目前支持的操作有: write(key, value)、read(key, value)、delete(key)</p>
+<h3 id="write">write</h3>
+<p>client write(key, value), 会先通过 hash function(key) (比如 MD5(key) % number of slices) 选择一个 slice, slice 会映射到一个 PIS 上.</p>
+<p>注意, 这里 slice 仅仅是 数据的逻辑单位, slice 的存储会映射到 PIS 物理存储服务上, 支持迁移slice 和 失败恢复 (问题: 论文中并没有讲到 PIS 的recovery failure), 这些行为会集中在 PIS Master (论文中也没描述, 感觉和 dynamo、codis 的数据逻辑抽象类似); 为了降低PIS Master的负载, slice-&gt;PIS Servers 的mapping 会 cache在client 侧.</p>
+<p>PIS 收到请求后, 并不会立即发送给 RBS PartServer, 而是会攒一个 block(64MB)的写入, 来提升编码、存储效率. 64MB block 会先平均分区到 8个 parts 然后分别存储到不同的 part server (涉及到 Reed-Solomon code 编码, TODO: 补充下). 成功存储后上报给 RBS Master</p>
+<p>画个图? 复制层 没写</p>
+<h3 id="read">read</h3>
+<p>client read(key), 会想通过 hash function 得到相应的 slice, 请求 PIS, PIS 会现在 Patch 模块进行匹配, 如果命中, 则直接返回value; 否则进入 index 层匹配, 没命中的话, 则说明key不存在; 命中, 则decode index value 获取 blockId、offset、length, 然后请求 RBS Master 获取 blockid-&gt;RBS PartServer 的映射信息, 得到 blockId 对应的 PartServer 地址, 请求 对应的RBS Partserver 获取数据. (这里不太理解了)</p>
+<pre><code>Otherwise, the function selects eight out of available parts of the block to read and decode to recover the requested data
+</code></pre><h3 id="delete">delete</h3>
+<p>寻址方式同上; PIS 搜到删除请求后, 执行半同步复制; 如果数据在patch层, 则直接删除, 无需请求RBS; 如果在 index 层, 则先标记删除, 等待后续的merge gc.</p>
+<p>gc流程是通过离线的 map-reduce 进行的, 对存在deleted kv的block, 按照: 1. 创建时间 和阈值比较(一周前) 2. 可用数据的空间比例低于阈值 进行判断是否需要gc. gc流程上, 会读取 读取有效的数据并重新写入 RBS, 成功后刷新 metadata(block table 和 partserver table【感觉应该是mapping信息】).</p>
+<p>rewrite之后, partserver 的block data并没有被删除, 需要partserver 不断轮询并对比 RBS Master 上的元数据信息(partserver 上合法的block) 并执行删除.</p>
+<h3 id="another-feature">another feature</h3>
+<p>除了本身的设计, 为了降低功耗, 使用了 arm 替换了 x86, 据说减少了 53%.</p>
+<p>Reed-Solomon code: 相比于三副本 200% 的数据冗余, 这里只有 50% 的数据冗余.</p>
+<h2 id="性能对比">性能对比</h2>
+<p>相比于单纯的 kv 存储, 写吞吐量提高了将近三倍, 因为 PIS patch 的设计降低了 写放大的影响,</p>
+<h2 id="个人评价">个人评价</h2>
+<p>通过 PIS 的patch 层 实现 前台IO 与 后台IO 隔离的设计, 提升了 RBS 的block存储效率; PIS 实现了 slot 迁移与 存储数据value 相分离的效果 (只需要迁移key, 降低了迁移数据量). 是 kv 面向大value存储的 另一个发展方向. 但是定位就比较蛋疼了, 形式是kv的，实现是 block, 底层的 RBS 可以换成 hdfs 等存储设施.</p>
+<p>arm 拥抱云基础设施 值得关注, 尤其是功耗这块. Reed-Solomon code 降低了冗余(这个算不上亮点, 基本是业界基本的做法了)</p>
+]]></content>
+        </item>
         
         <item>
             <title>Kernel_block</title>
@@ -2319,10 +3133,12 @@ locking, buffer cache, access methods and undo management; storage node负责: r
 <p>在后来的引进中, 引入了 dataFrame 的设计, 支持对内存的数据进行解析, 支持 Avro, CSV, elastic search, and Cassandra 等,再后来有使用 dataSet 取代了 dataFrame, 不仅仅继承了 dataFrame 的优点, 还支持了 自定义对象存储 (dataFrame仅支持row对象), 而且类型安全 (如何实现的呢?)</p>
 <p>参考:
 - <a href="https://www.zhihu.com/question/48684460">https://www.zhihu.com/question/48684460</a></p>
-<h2 id="memcache-13">memcache <sup id="fnref:13"><a href="#fn:13" class="footnote-ref" role="doc-noteref">13</a></sup></h2>
+<h2 id="fb-memcache-13">fb memcache <sup id="fnref:13"><a href="#fn:13" class="footnote-ref" role="doc-noteref">13</a></sup></h2>
 <p>架构:</p>
 <p>参考 Figure2, 添加 master、salve region/mcrouter/fronted cluster(memcache)/storage</p>
-<p>主要将接了 facebook 大规模使用memcache 构建了分布式kv存储, 并从单个集群 演化成 地理分布式集群. facebook 对 memcache 的使是 cache-aside 模型的, 也就是  先读cache, miss则读取storage(look-aside); write 先操作 数据库, 然后操作cache. 在整体架构上, 最大粒度是 region, 每个region 内有多个集群, 每个集群由 mysql/memcache/mcrouter 构成, 令我惊讶的是, 因为mysql 是 master/salve replication 模型, 因此 架构上对应了 master/slave region. 不理解 cluster 和 region 抽象了意义 ? 在region内, 多个集群(web+mcrouter+memcached=multiple frontend clusters) 共享了一套底层存储, 使用 mcsqueal 同步删除的刷新(通过批量降低请求率), 但是更新操作呢? 不然可能存储旧值. 对于新的cluster上线, cold cluster 会请求 warm cluster 避免请求回源(使用2s避免 cold cluster delete 但是warm cluster没有删除的场景).  对于master/slave region, 对于 master/slave 复制lag的场景, 使用 <code>remote marker </code> 来度量 master/slave 的lag, 每次set/delete操作, 都会在region内生成一个相应key的 remote mark, 后续请求就会检查 remote mark在做决定. 但是并没有解决因为lag导致 读取replicated region 的 <code>stale data</code>的问题.</p>
+<p>主要将接了 facebook 大规模使用memcache 构建了分布式kv存储, 并从单个集群 演化成 地理分布式集群. facebook 对 memcache 的使用是 cache-aside 模型的, 也就是  先读cache, miss则读取storage(look-aside); write 先操作 数据库, 然后操作cache. 在整体架构上, 最大粒度是 region, 每个region 内有多个集群, 每个集群由 mysql/memcache/mcrouter 构成, 令我惊讶的是, 因为mysql 是 master/salve replication 模型, 因此 架构上对应了 master/slave region. 不理解 cluster 和 region 抽象了意义 ?
+补充: region是为了 地理位置的安全性. cluster 只是多服务器的运维单位粒度统称</p>
+<p>在region内, 多个集群(web+mcrouter+memcached=multiple frontend clusters) 共享了一套底层存储, 使用 mcsqueal 同步删除的刷新(通过批量降低请求率), 但是更新操作呢? 不然可能存储旧值. 对于新的cluster上线, cold cluster 会请求 warm cluster 避免请求回源(使用2s避免 cold cluster delete 但是warm cluster没有删除的场景？).  对于master/slave region, 对于 master/slave 复制lag的场景, 使用 <code>remote marker </code> 来度量 master/slave 的lag, 每次set/delete操作, 都会在region内生成一个相应key的 remote mark, 后续请求就会检查 remote mark在做决定. 但是并没有解决因为lag导致 读取replicated region 的 <code>stale data</code>的问题.</p>
 <p>在使用上, 为了适配不同的使用场景, 比如 读多(容忍过期)、不频繁获取(cache miss昂贵), 将集群的memcached server 换分成多个 pool, 其中, 有一个default/wildcard pool, 其他根据场景在划分, 比如 small pool 和 large pool. 除此之外, 还设计了 memcached replicate 机制(没说怎么复制), 增强处理能力(上层mrouter怎么知道请求其他的replicated memcached实例). 在面向失败的设计原则(少量机器网络不可达、大范围断电), 采用了 <code>Gutter pool</code>, 当client请求没有响应, client就会请求 Gutter pool, 如果未命中, client在请求数据库后就会插入gutter pool, 降低对数据库的压力. 对于 regional 级别的数据(不止一个fronted cluster), 使用 <code>regional pool</code>的 memcached server存储(按道理应该都是 key hash之类的, 那么什么时候走regional pool?).</p>
 <p>在使用上优化, 使用 UDP 进行get 请求降低延迟, 因为 get 本身存在一定比例的失败. set/delete 还是TCP. 除此之外, 通过 mcrouter 降低memcache的TCP连接数, 简化滚动升级的影响. 并基于DAG的依赖实现 并行、批量的请求, 平均下来可以有每个请求包含24个key, 减少了请求数. 为了避免网络堵塞, 使用了 滑动窗口 控制client 并发的请求数 (window size太小, 请求轮次太多, 延迟会增加; window size太大, 因为并发量太大、网络阻塞, memcache会返回失败, client需要请求数据库导致延迟增加).</p>
 <p>memcache 提供了 set/get/delete 的三种语意, 在大规模、不同场景的使用中进行了优化. 对于set, 存在 <code>stale set</code> 和 <code>thundering herds</code>,  <code>stale set</code>, (两次write, 前一次write最后更新了memcache). fb 提供了 <code>lease</code>机制, memcached miss的时候 memcached 会返回一个 lease token 在set的时候进行校验. 同样, 对于 <code>thundering herds</code>, 频繁读取的key被刷新会导致后续大量的set, memcached 对于每个key返回一个10s过期的token, 对于相同key的miss, 其他的client会进行等待一段时间, 这样前面获取lease的client的set之后, 其他client重试就可以获得数据. 对于过期性质的数据, 使用 <code>Transient Item Cache</code>(环形buffer) 降低内存开销.</p>
@@ -2330,7 +3146,7 @@ locking, buffer cache, access methods and undo management; storage node负责: r
 <p>滚动升级的优化, 将数据存放在 <code>System V shared memory regions</code> 确保memcached重启之后数据都会在(但是存在一些stale data)</p>
 <p>问题:</p>
 <ul>
-<li>cluster 和 region 抽象了意义 ? 看样子是, a single storage cluster + mutli fronted cluster = region</li>
+<li>cluster 和 region 抽象了意义 ? 看样子是, a single storage cluster + mutli fronted cluster = region. 为了地理位置容灾</li>
 <li>什么时候走regional pool</li>
 <li>更新是否应该同步?</li>
 </ul>
@@ -3376,7 +4192,7 @@ lfu-decay-time 1   //  单位分钟, 多久进行衰变
 <h2 id="缓存算法">缓存算法</h2>
 <p>这个是补充内容, 记录一些缓存策略:</p>
 <ul>
-<li>Cache Aside: 同时更新缓存和数据库</li>
+<li>Cache Aside/look aside: 同时更新缓存和数据库</li>
 <li>Read/Write Through: 先更新缓存, 缓存负责同步更新数据库 (应用程序只和缓存交互)</li>
 <li>Write Behind Caching: 先更新缓存, 在异步的更新数据库 (应用程序只和缓存交互, 重点在异步更新)</li>
 </ul>
@@ -4472,7 +5288,65 @@ fast unix server: <a href="https://nick-black.com/dankwiki/index.php/Fast_UNIX_S
 <p><em>仿函数</em></p>
 <p>函数指针 使函数作为参数 传递给处理逻辑, 解耦了 可插拔逻辑, 但是函数指针并不能维护 一些本地信息: 比如局部变量, 这个时候可以使用 Functor/仿函数,</p>
 <p><a href="https://cloud.tencent.com/developer/article/1347883">https://cloud.tencent.com/developer/article/1347883</a></p>
-<h2 id="总结">总结</h2>
+<h2 id="设计模式">设计模式</h2>
+<p>单例</p>
+<pre><code>#include &lt;stddef.h&gt;
+#include &lt;memory&gt;
+#include &lt;mutex&gt;  // NOLINT(build/c++11)
+#include &lt;utility&gt;
+#include &quot;include/macros.h&quot;
+
+namespace byte {
+template &lt;typename T&gt;
+class SingletonBase {
+private:
+    // Used to check destructed of object.
+    struct Holder {
+        T value;
+        bool is_alive;
+
+        template &lt;typename... Args&gt;
+        Holder(Holder** holder, Args&amp;&amp;... args)  // NOLINT(runtime/explicit)
+            : value(std::forward&lt;Args&gt;(args)...), is_alive(true) {
+            *holder = this;
+        }
+
+        ~Holder() {
+            is_alive = false;
+        }
+    };
+
+protected:
+    SingletonBase() {}
+    ~SingletonBase() {}
+
+public:
+    // Construct singleton parameters.
+    template &lt;typename... Args&gt;
+    static T* Instance(Args&amp;&amp;... args) {
+        std::call_once(s_once_flag_, [] (Args&amp;&amp;... holder_args) {
+            static Holder holder(&amp;s_holder_, std::forward&lt;Args&gt;(holder_args)...);
+        }, std::forward&lt;Args&gt;(args)...);
+        return &amp;s_holder_-&gt;value;
+    }
+
+    static bool IsAlive() {
+        return s_holder_.get() &amp;&amp; s_holder_-&gt;is_alive;
+    }
+
+private:
+    static Holder* s_holder_;
+    static std::once_flag s_once_flag_;
+
+    DISALLOW_COPY_AND_ASSIGN(SingletonBase);
+};
+
+template &lt;typename T&gt;
+typename SingletonBase&lt;T&gt;::Holder* SingletonBase&lt;T&gt;::s_holder_;
+
+template &lt;typename T&gt;
+typename std::once_flag SingletonBase&lt;T&gt;::s_once_flag_;
+</code></pre><h2 id="总结">总结</h2>
 <p>目前参考 <a href="https://zh.cppreference.com">https://zh.cppreference.com</a> 和 <a href="https://zh.cppreference.com">https://zh.cppreference.com</a> 就足够了. 更多的需要example 辅助学习.</p>
 ]]></content>
         </item>

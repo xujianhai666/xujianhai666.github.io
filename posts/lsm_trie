@@ -1,0 +1,39 @@
+---
+title: "Lsm_tire"
+date: 2021-02-12T19:27:35+08:00
+draft: true
+---
+
+ ## preface
+
+总结下 对 lsm trie 论文的阅读总结. 论文主要针对  大量小kv存储的读写性能差的 问题进行了优化 (因为 kv size小, 导致 bloom filter、index 耗费了大量的空间, 空间放大严重, 内存也无法一次性读取到内存, 导致读性能下降), 本论文采用了 prefix trie 技术, 降低了 索引的 开销, 提升了 读取的性能, 但是再也无法支持 scan 了(毕竟是基于hash)
+
+论文的第二部分描述了lsm 的设计和写放大问题,  比较常规, 直接忽略. 
+
+针对上面提到的问题, 提出了 ssTable-trie 的设计, 这个设计, 在 compaction 过程中, 并没有使用 kv-item ranking, 而是使用了 SHA-1(key) 的 hash key, 这样就讲 multi-level 结构 转换成了 prefix-trie, trie 中的每个节点就是 包含多个 sstable 的 table contianer, 每个节点包含固定数量的 子节点 (子节点数量 也就对应着 leveldb的 write amplication), 直观的感受就是, 通过 lsm prefix trie 实现了 节点分段的效果, 比如 hash key 的前三个bit 作为 level 1, 后面三个bit 在继续划分 level 2. 
+
+kv location 的方式通过 prefix trie 定位, compaction 也就在 一个container(也就是一个node节点) 实现; 但是有一个问题, key 到底放在 prefix trie 的哪个节点呢? 
+
+lsm-trie 只是提出了新的数据放置策略, 但是并没有解决 元数据size过大的问题. 针对这个问题: lsm sstable indices(每个block一个记录,  因此和容量成正比) & bloom filter(和item数量成正比) size 过大的问题(会导致内存无法装载下所有元数据, 进而影响读性能), 论文提出了 HTable 的设计, hash-based 的设计, 有意思的是, HTable 的 block 被认为是 kv 的bucket, key 的 SHA-1 的bit用来定位 HTbale(prefix定位) 和 bucket(取余).
+
+还是无法理解 index 是怎么删除的, 看上去还是基于 bloom filter实现的. HTable 的格式: 前面一系列 data blocks、然后是 rehash index 和 一系列对应于 data blocks 的bloom-filter block. 
+ 
+这里需要考虑一个问题, 一个block可能会被写满, 那么又应该写入哪里? 查询的时候有怎么能够更好的处理这样的放置策略? 热点问题呢? 
+
+对于前面的问题, 论文没讲, 个人猜测继续往下写, 有 filter 进行过滤确定block, 但是因为每个data block一个bloom filter block, 这样误判率应该放大了. 
+
+对于热点问题, HTable 采用了 贪婪的迁移算法, 将 kv-item 从高负载 bucket 迁移到 低负载 bucket 知道 source 不再 高负载 或者 dst 低负载. 迁移过程中, 如何确定被迁移的 key呢? 这里提出了 HashMark 的概念, 用 hash key infix 存储 迁移的目的地. 为了避免item频繁迁移的问题, 采用ratate 32-bit infix 的策略. overflow migration metadata 会单独存储在bucket，记录 src bucket 和 dst bucket 以及 hashmark. 比较有意思的是, overflow item 并不会删除 src bucket 的 bloom filter, 
+
+但是存在 大kv的场景, 会有一个特殊的 HTable 存储, 并且是索引的。 
+
+最后讨论了 HFile 的 bloom filter 的布局形态: HFile专门有Bucket存储, 问题: 不太清楚 是转么一个 HFile 存储  还是 和 data block 一起存储在一个 HFile.  论文只是将 `column of bucket at different sub-level of an HTable container into a single disk block named BloomCluster` ，根据前面的阅读, 应该是和 data block 放在一个 HFile.  但是从 一次读取所有 bloom filter,  应该是存储在单独的文件
+
+
+
+## 参考:
+
+- Zipfian distribution: 齐夫定律, 不同排名之间的频率 和 排名成正比
+- uniform distribution: 均匀分布
+- https://github.com/google/leveldb/blob/master/doc/table_format.md  深入实践下
+
+

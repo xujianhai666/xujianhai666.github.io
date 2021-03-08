@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="定位是 分布式数据库. 特点: 提供 hashed/ordered tables. 中心化管理、地理位置复制、自动负载均衡.
+record 级别的 master-follow replica机制. 列举了 应用的不同一致性模型: read-any, read-critical, read-latest, write, test-and-set-write(乐观锁),
+支持 Bundled updates, notification,
+热点问题如何解决?
+系统架构 tablet controller、router、storage unit.
+router: 1. 维护 record -&amp;gt; tablet -&amp;gt; storage unit 的 internal mapping. 无论是 hash 还是 ordered 都是转换成 tablet. internal map 从 tablet controller 获取. soft state. 2. 包含 scatter-gather engine, 负责处理 multi-record, 并行将多个 record 发送到多个 storage unit. 采用stream模式. (服务端模式, 而不是客户端模式, 因为链接的资源消耗). 以及 topK 的实现." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_pnuts/" />
+
+
+    <title>
+        
+            Pnuts :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Pnuts">
+<meta itemprop="description" content="定位是 分布式数据库. 特点: 提供 hashed/ordered tables. 中心化管理、地理位置复制、自动负载均衡.
+record 级别的 master-follow replica机制. 列举了 应用的不同一致性模型: read-any, read-critical, read-latest, write, test-and-set-write(乐观锁),
+支持 Bundled updates, notification,
+热点问题如何解决?
+系统架构 tablet controller、router、storage unit.
+router: 1. 维护 record -&gt; tablet -&gt; storage unit 的 internal mapping. 无论是 hash 还是 ordered 都是转换成 tablet. internal map 从 tablet controller 获取. soft state. 2. 包含 scatter-gather engine, 负责处理 multi-record, 并行将多个 record 发送到多个 storage unit. 采用stream模式. (服务端模式, 而不是客户端模式, 因为链接的资源消耗). 以及 topK 的实现.">
+<meta itemprop="datePublished" content="2021-02-15T20:12:32&#43;08:00" />
+<meta itemprop="dateModified" content="2021-02-15T20:12:32&#43;08:00" />
+<meta itemprop="wordCount" content="263">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Pnuts"/>
+<meta name="twitter:description" content="定位是 分布式数据库. 特点: 提供 hashed/ordered tables. 中心化管理、地理位置复制、自动负载均衡.
+record 级别的 master-follow replica机制. 列举了 应用的不同一致性模型: read-any, read-critical, read-latest, write, test-and-set-write(乐观锁),
+支持 Bundled updates, notification,
+热点问题如何解决?
+系统架构 tablet controller、router、storage unit.
+router: 1. 维护 record -&gt; tablet -&gt; storage unit 的 internal mapping. 无论是 hash 还是 ordered 都是转换成 tablet. internal map 从 tablet controller 获取. soft state. 2. 包含 scatter-gather engine, 负责处理 multi-record, 并行将多个 record 发送到多个 storage unit. 采用stream模式. (服务端模式, 而不是客户端模式, 因为链接的资源消耗). 以及 topK 的实现."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2021-02-15 20:12:32 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_pnuts/">Pnuts</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>定位是 分布式数据库. 特点: 提供 hashed/ordered tables. 中心化管理、地理位置复制、自动负载均衡.</p>
+<p>record 级别的 master-follow replica机制. 列举了 应用的不同一致性模型: read-any, read-critical, read-latest, write, test-and-set-write(乐观锁),</p>
+<p>支持 Bundled updates, notification,</p>
+<p>热点问题如何解决?</p>
+<h3 id="系统架构">系统架构</h3>
+<p>tablet controller、router、storage unit.</p>
+<p>router:
+1. 维护 record -&gt; tablet -&gt; storage unit 的 internal mapping. 无论是 hash 还是 ordered 都是转换成 tablet. internal map 从 tablet controller 获取. soft state.
+2. 包含 scatter-gather engine, 负责处理 multi-record, 并行将多个 record 发送到多个 storage unit. 采用stream模式. (服务端模式, 而不是客户端模式, 因为链接的资源消耗). 以及 topK 的实现. 但是不支持 join/aggeration 等这些复杂的操作
+tablet controller: 负载均衡 tablet, active/standby.</p>
+<p>region 为单位进行管理. 基于 pub/sub 进行弹性容错和复制. data tables 数据分片组织成 tablet, 	每个server有 上千个 tablet, 在region 范围内 tablet 只会存储在一个 server上,  	每个tablet只有 几百MB 或者 几GB(包含几千个记录), tablet会进行 rebalance.</p>
+<p>ordered tables 使用 MySQL(innodb) 实现, hash tables 使用基于 unix fs-based hash tables.
+更新 只需要 写入到message broker 就算成功.
+复制通过 message broker 实现异步复制. 复制流程是 ack-all 模式. 跨dc.
+record 通过 per-record master replica 实现 timeline 有序 (所有的更新都经过 master replica 写入 broker).</p>
+<p>比较有意思的是, 每个tablet可能包含 多个集群的key, 通过 per-record 的 master  replica 降低延迟. tablet master 负责存储</p>
+<p>支持 notification, 通知外部 关于内部状态的变更, 不过是对 table 维度的所有topic 进行订阅</p>
+<p>注意, per-record 是为了实现 record 的 timeline 有序, tablet master 是为了保证存储的唯一性.</p>
+<h3 id="容灾">容灾</h3>
+<p>tablet controller 会从远程复制迁移, 配合 checkpoint, checkpoint 之后的更新 都会发送过去. 支持 split.</p>
+<p>tablet 恢复流程:</p>
+<ol>
+<li>tablet controller 向 远程副本(source tablet) 请求copy</li>
+<li>checkpoint 发送到 ymb, 保证复制点之后 后续未完成 的 更新 都会同步到 source tablet</li>
+<li>source tablet 复制到 目标region</li>
+</ol>
+<p>在恢复的过程 也要保证 后续更新同步</p>
+<p>问题:</p>
+<ul>
+<li>pnuts 是几几年的论文, 和 google 对比呢 ?</li>
+</ul>
+<h3 id="总结">总结</h3>
+<p>仅仅支持 hashtable 和 ordered tables 两种, 比较有意思的是, 当时 ordered tables 采用的是 mysql innodb. tablet 以及 tablet controller 的概念 现在看 已经是标配了. 同时支持两种模式, 对于 基于codis 开发分布式kv的小伙伴 可以考虑下.
+在测试中, ordered table 的整体延迟都比 hashed table 低</p>
+<p>range scan 功能上, mysql innodb 比 rocksdb 更好吗?</p>
+<p>bundle updates(社交图谱上的朋友关系的维护), 这个貌似没有更多的展开相关的解决方案, 看上去就是异步两次成功</p>
+<p>Epidemic replication ？ 不懂</p>
+<h3 id="参考">参考</h3>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>263 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2021-02-15 20:12 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/essay_tao/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Essay_tao</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/essay_wisckey/">
+                                <span class="button__text">Essay_wisckey</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

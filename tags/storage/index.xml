@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>storage on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/storage/</link>
+    <description>Recent content in storage on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Wed, 20 Jan 2021 10:05:14 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/storage/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Essay_fuse</title>
+      <link>https://xujianhai.fun/posts/essay_fuse/</link>
+      <pubDate>Wed, 20 Jan 2021 10:05:14 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/essay_fuse/</guid>
+      <description>peface 做nas的时候, 需要将本地文件系统到远程分布式系统, 一种基于 block 的思路, 另一种基于 fuse 去做. 大都数情况下是基于 fuse.
+abstraction fuse的设计, 就是将内核文件系统的操作委托给 user space 的 custom daemon 进程, 比如: create/delete/open/read/write 以及 元数据操作: getattr/link/unlink/forget 等.
+在使用上, 有两种api 可以使用, 一种是 low-level的, 需要自己设计 recv/protocol parse/reply/config/mout 等行为, 以及 屏蔽内核的差异; 另一种是 high-level的, developer 可以不用关心 path-&amp;gt;inode 的映射, 用户只需要实现相关的方法就行: chown、chmod、truncate.
+底层实现 在fuse底层的实现上, 应用程序读写文件系统, 透传cache的请求, VFS 会委托给 fuse driver, fuse 和 fuse user space daemon 通过 /dev/fuse 文件进行交互 (论文图片). 在 fuse driver-&amp;gt;fuse user daemon 交互过程中, 维护了多个queue: interrupts/forgets/pending/processing/background, 如下:</description>
+    </item>
+    
+  </channel>
+</rss>

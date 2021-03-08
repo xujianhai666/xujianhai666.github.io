@@ -46,7 +46,7 @@ hadoop 架构
 将论文中 partition/combiner 的抽象成 shuffle, 进行分区、排序、分割, 将属于同一划分（分区）的输出合并在一起并写在磁盘上，最终得到一个分区有序的文件.">
 <meta itemprop="datePublished" content="2020-06-06T10:23:10&#43;08:00" />
 <meta itemprop="dateModified" content="2020-06-06T10:23:10&#43;08:00" />
-<meta itemprop="wordCount" content="3391">
+<meta itemprop="wordCount" content="3398">
 <meta itemprop="image" content="https://xujianhai.fun/"/>
 
 
@@ -366,10 +366,12 @@ locking, buffer cache, access methods and undo management; storage node负责: r
 <p>在后来的引进中, 引入了 dataFrame 的设计, 支持对内存的数据进行解析, 支持 Avro, CSV, elastic search, and Cassandra 等,再后来有使用 dataSet 取代了 dataFrame, 不仅仅继承了 dataFrame 的优点, 还支持了 自定义对象存储 (dataFrame仅支持row对象), 而且类型安全 (如何实现的呢?)</p>
 <p>参考:
 - <a href="https://www.zhihu.com/question/48684460">https://www.zhihu.com/question/48684460</a></p>
-<h2 id="memcache-13">memcache <sup id="fnref:13"><a href="#fn:13" class="footnote-ref" role="doc-noteref">13</a></sup></h2>
+<h2 id="fb-memcache-13">fb memcache <sup id="fnref:13"><a href="#fn:13" class="footnote-ref" role="doc-noteref">13</a></sup></h2>
 <p>架构:</p>
 <p>参考 Figure2, 添加 master、salve region/mcrouter/fronted cluster(memcache)/storage</p>
-<p>主要将接了 facebook 大规模使用memcache 构建了分布式kv存储, 并从单个集群 演化成 地理分布式集群. facebook 对 memcache 的使是 cache-aside 模型的, 也就是  先读cache, miss则读取storage(look-aside); write 先操作 数据库, 然后操作cache. 在整体架构上, 最大粒度是 region, 每个region 内有多个集群, 每个集群由 mysql/memcache/mcrouter 构成, 令我惊讶的是, 因为mysql 是 master/salve replication 模型, 因此 架构上对应了 master/slave region. 不理解 cluster 和 region 抽象了意义 ? 在region内, 多个集群(web+mcrouter+memcached=multiple frontend clusters) 共享了一套底层存储, 使用 mcsqueal 同步删除的刷新(通过批量降低请求率), 但是更新操作呢? 不然可能存储旧值. 对于新的cluster上线, cold cluster 会请求 warm cluster 避免请求回源(使用2s避免 cold cluster delete 但是warm cluster没有删除的场景).  对于master/slave region, 对于 master/slave 复制lag的场景, 使用 <code>remote marker </code> 来度量 master/slave 的lag, 每次set/delete操作, 都会在region内生成一个相应key的 remote mark, 后续请求就会检查 remote mark在做决定. 但是并没有解决因为lag导致 读取replicated region 的 <code>stale data</code>的问题.</p>
+<p>主要将接了 facebook 大规模使用memcache 构建了分布式kv存储, 并从单个集群 演化成 地理分布式集群. facebook 对 memcache 的使用是 cache-aside 模型的, 也就是  先读cache, miss则读取storage(look-aside); write 先操作 数据库, 然后操作cache. 在整体架构上, 最大粒度是 region, 每个region 内有多个集群, 每个集群由 mysql/memcache/mcrouter 构成, 令我惊讶的是, 因为mysql 是 master/salve replication 模型, 因此 架构上对应了 master/slave region. 不理解 cluster 和 region 抽象了意义 ?
+补充: region是为了 地理位置的安全性. cluster 只是多服务器的运维单位粒度统称</p>
+<p>在region内, 多个集群(web+mcrouter+memcached=multiple frontend clusters) 共享了一套底层存储, 使用 mcsqueal 同步删除的刷新(通过批量降低请求率), 但是更新操作呢? 不然可能存储旧值. 对于新的cluster上线, cold cluster 会请求 warm cluster 避免请求回源(使用2s避免 cold cluster delete 但是warm cluster没有删除的场景？).  对于master/slave region, 对于 master/slave 复制lag的场景, 使用 <code>remote marker </code> 来度量 master/slave 的lag, 每次set/delete操作, 都会在region内生成一个相应key的 remote mark, 后续请求就会检查 remote mark在做决定. 但是并没有解决因为lag导致 读取replicated region 的 <code>stale data</code>的问题.</p>
 <p>在使用上, 为了适配不同的使用场景, 比如 读多(容忍过期)、不频繁获取(cache miss昂贵), 将集群的memcached server 换分成多个 pool, 其中, 有一个default/wildcard pool, 其他根据场景在划分, 比如 small pool 和 large pool. 除此之外, 还设计了 memcached replicate 机制(没说怎么复制), 增强处理能力(上层mrouter怎么知道请求其他的replicated memcached实例). 在面向失败的设计原则(少量机器网络不可达、大范围断电), 采用了 <code>Gutter pool</code>, 当client请求没有响应, client就会请求 Gutter pool, 如果未命中, client在请求数据库后就会插入gutter pool, 降低对数据库的压力. 对于 regional 级别的数据(不止一个fronted cluster), 使用 <code>regional pool</code>的 memcached server存储(按道理应该都是 key hash之类的, 那么什么时候走regional pool?).</p>
 <p>在使用上优化, 使用 UDP 进行get 请求降低延迟, 因为 get 本身存在一定比例的失败. set/delete 还是TCP. 除此之外, 通过 mcrouter 降低memcache的TCP连接数, 简化滚动升级的影响. 并基于DAG的依赖实现 并行、批量的请求, 平均下来可以有每个请求包含24个key, 减少了请求数. 为了避免网络堵塞, 使用了 滑动窗口 控制client 并发的请求数 (window size太小, 请求轮次太多, 延迟会增加; window size太大, 因为并发量太大、网络阻塞, memcache会返回失败, client需要请求数据库导致延迟增加).</p>
 <p>memcache 提供了 set/get/delete 的三种语意, 在大规模、不同场景的使用中进行了优化. 对于set, 存在 <code>stale set</code> 和 <code>thundering herds</code>,  <code>stale set</code>, (两次write, 前一次write最后更新了memcache). fb 提供了 <code>lease</code>机制, memcached miss的时候 memcached 会返回一个 lease token 在set的时候进行校验. 同样, 对于 <code>thundering herds</code>, 频繁读取的key被刷新会导致后续大量的set, memcached 对于每个key返回一个10s过期的token, 对于相同key的miss, 其他的client会进行等待一段时间, 这样前面获取lease的client的set之后, 其他client重试就可以获得数据. 对于过期性质的数据, 使用 <code>Transient Item Cache</code>(环形buffer) 降低内存开销.</p>
@@ -377,7 +379,7 @@ locking, buffer cache, access methods and undo management; storage node负责: r
 <p>滚动升级的优化, 将数据存放在 <code>System V shared memory regions</code> 确保memcached重启之后数据都会在(但是存在一些stale data)</p>
 <p>问题:</p>
 <ul>
-<li>cluster 和 region 抽象了意义 ? 看样子是, a single storage cluster + mutli fronted cluster = region</li>
+<li>cluster 和 region 抽象了意义 ? 看样子是, a single storage cluster + mutli fronted cluster = region. 为了地理位置容灾</li>
 <li>什么时候走regional pool</li>
 <li>更新是否应该同步?</li>
 </ul>
@@ -662,7 +664,7 @@ Scalable Causal Consistency for Wide-Area Storage with COPS</a> <a href="#fnref:
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/mit">mit</a></span>
                 </p>
 
-            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>3391 Words</p>
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>3398 Words</p>
 
             <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2020-06-06 10:23 &#43;0800</p>
         </div>
@@ -705,7 +707,7 @@ Scalable Causal Consistency for Wide-Area Storage with COPS</a> <a href="#fnref:
                 <footer class="footer">
     <div class="footer__inner">
         <div class="footer__content">
-            <span>&copy; 2020</span>
+            <span>&copy; 2021</span>
             
                 <span><a href="https://xujianhai.fun/">Zero xu</a></span>
             

@@ -3,6 +3,136 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xujianhai.fun/posts/essay_dadi/</loc>
+    <lastmod>2021-03-03T21:06:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/</loc>
+    <lastmod>2021-03-03T21:06:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/</loc>
+    <lastmod>2021-03-03T21:06:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_fb_rocksdb/</loc>
+    <lastmod>2021-03-03T19:25:53+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_tectonic/</loc>
+    <lastmod>2021-02-28T23:07:28+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_paxostore/</loc>
+    <lastmod>2021-02-27T10:54:55+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/blob/</loc>
+    <lastmod>2021-02-21T16:29:24+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_ambry/</loc>
+    <lastmod>2021-02-21T16:29:24+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/store/</loc>
+    <lastmod>2021-02-21T16:29:24+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/</loc>
+    <lastmod>2021-02-21T16:29:24+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_pebblesdb/</loc>
+    <lastmod>2021-02-17T11:28:15+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_tao/</loc>
+    <lastmod>2021-02-16T16:53:50+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_pnuts/</loc>
+    <lastmod>2021-02-15T20:12:32+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_wisckey/</loc>
+    <lastmod>2021-02-01T20:32:35+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/wisckey/</loc>
+    <lastmod>2021-02-01T20:32:35+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/dostoevsky/</loc>
+    <lastmod>2021-01-24T16:06:33+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_dostoevsky/</loc>
+    <lastmod>2021-01-24T16:06:33+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_fuse/</loc>
+    <lastmod>2021-01-20T10:05:14+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/fuse/</loc>
+    <lastmod>2021-01-20T10:05:14+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/storage/</loc>
+    <lastmod>2021-01-20T10:05:14+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/copyset/</loc>
+    <lastmod>2021-01-15T21:02:51+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_copyset/</loc>
+    <lastmod>2021-01-15T21:02:51+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/atlas/</loc>
+    <lastmod>2020-12-20T22:37:58+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/baidu/</loc>
+    <lastmod>2020-12-20T22:37:58+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/posts/essay_atlas/</loc>
+    <lastmod>2020-12-20T22:37:58+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xujianhai.fun/tags/kv/</loc>
+    <lastmod>2020-12-20T22:37:58+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xujianhai.fun/tags/block/</loc>
     <lastmod>2020-12-08T17:08:42+08:00</lastmod>
   </url>
@@ -14,21 +144,6 @@
   
   <url>
     <loc>https://xujianhai.fun/tags/linux/</loc>
-    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/posts/</loc>
-    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/tags/</loc>
-    <lastmod>2020-12-08T17:08:42+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xujianhai.fun/</loc>
     <lastmod>2020-12-08T17:08:42+08:00</lastmod>
   </url>
   

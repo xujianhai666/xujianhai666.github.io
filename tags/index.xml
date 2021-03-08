@@ -6,98 +6,98 @@
     <description>Recent content in Tags on zero.xu blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 08 Dec 2020 17:08:42 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 21 Feb 2021 16:29:24 +0800</lastBuildDate>
     
 	<atom:link href="https://xujianhai.fun/tags/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>block</title>
-      <link>https://xujianhai.fun/tags/block/</link>
-      <pubDate>Tue, 08 Dec 2020 17:08:42 +0800</pubDate>
+      <title>blob</title>
+      <link>https://xujianhai.fun/tags/blob/</link>
+      <pubDate>Sun, 21 Feb 2021 16:29:24 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/block/</guid>
+      <guid>https://xujianhai.fun/tags/blob/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>linux</title>
-      <link>https://xujianhai.fun/tags/linux/</link>
-      <pubDate>Tue, 08 Dec 2020 17:08:42 +0800</pubDate>
+      <title>store</title>
+      <link>https://xujianhai.fun/tags/store/</link>
+      <pubDate>Sun, 21 Feb 2021 16:29:24 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/linux/</guid>
+      <guid>https://xujianhai.fun/tags/store/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>wireguard</title>
-      <link>https://xujianhai.fun/tags/wireguard/</link>
-      <pubDate>Tue, 13 Oct 2020 09:46:36 +0800</pubDate>
+      <title>wisckey</title>
+      <link>https://xujianhai.fun/tags/wisckey/</link>
+      <pubDate>Mon, 01 Feb 2021 20:32:35 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/wireguard/</guid>
+      <guid>https://xujianhai.fun/tags/wisckey/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>generic</title>
-      <link>https://xujianhai.fun/tags/generic/</link>
-      <pubDate>Sun, 20 Sep 2020 10:00:09 +0800</pubDate>
+      <title>Dostoevsky</title>
+      <link>https://xujianhai.fun/tags/dostoevsky/</link>
+      <pubDate>Sun, 24 Jan 2021 16:06:33 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/generic/</guid>
+      <guid>https://xujianhai.fun/tags/dostoevsky/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>golang</title>
-      <link>https://xujianhai.fun/tags/golang/</link>
-      <pubDate>Sun, 20 Sep 2020 10:00:09 +0800</pubDate>
+      <title>fuse</title>
+      <link>https://xujianhai.fun/tags/fuse/</link>
+      <pubDate>Wed, 20 Jan 2021 10:05:14 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/golang/</guid>
+      <guid>https://xujianhai.fun/tags/fuse/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>grpc</title>
-      <link>https://xujianhai.fun/tags/grpc/</link>
-      <pubDate>Sat, 19 Sep 2020 13:11:35 +0800</pubDate>
+      <title>storage</title>
+      <link>https://xujianhai.fun/tags/storage/</link>
+      <pubDate>Wed, 20 Jan 2021 10:05:14 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/grpc/</guid>
+      <guid>https://xujianhai.fun/tags/storage/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>network</title>
-      <link>https://xujianhai.fun/tags/network/</link>
-      <pubDate>Sat, 19 Sep 2020 13:11:35 +0800</pubDate>
+      <title>copyset</title>
+      <link>https://xujianhai.fun/tags/copyset/</link>
+      <pubDate>Fri, 15 Jan 2021 21:02:51 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/network/</guid>
+      <guid>https://xujianhai.fun/tags/copyset/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>distributed</title>
-      <link>https://xujianhai.fun/tags/distributed/</link>
-      <pubDate>Tue, 21 Jul 2020 23:06:09 +0800</pubDate>
+      <title>atlas</title>
+      <link>https://xujianhai.fun/tags/atlas/</link>
+      <pubDate>Sun, 20 Dec 2020 22:37:58 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/distributed/</guid>
+      <guid>https://xujianhai.fun/tags/atlas/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>google</title>
-      <link>https://xujianhai.fun/tags/google/</link>
-      <pubDate>Tue, 21 Jul 2020 23:06:09 +0800</pubDate>
+      <title>baidu</title>
+      <link>https://xujianhai.fun/tags/baidu/</link>
+      <pubDate>Sun, 20 Dec 2020 22:37:58 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/google/</guid>
+      <guid>https://xujianhai.fun/tags/baidu/</guid>
       <description></description>
     </item>
     
     <item>
-      <title>paxos</title>
-      <link>https://xujianhai.fun/tags/paxos/</link>
-      <pubDate>Sun, 12 Jul 2020 21:18:49 +0800</pubDate>
+      <title>kv</title>
+      <link>https://xujianhai.fun/tags/kv/</link>
+      <pubDate>Sun, 20 Dec 2020 22:37:58 +0800</pubDate>
       
-      <guid>https://xujianhai.fun/tags/paxos/</guid>
+      <guid>https://xujianhai.fun/tags/kv/</guid>
       <description></description>
     </item>
     

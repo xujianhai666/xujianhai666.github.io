@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="background 通过 fragmented lsm (FLSM) 降低写放大. 适配到了 HyperLevelDB 修改为 pebblesDB. 显著降低 2.4-3x 写放大. 增加了 6.7x 写吞吐量. 并将 FLSM 作为 mongdb/HyperDex 的底层存储引擎 (IO吞吐量显著增加).
+note: 较大的写放大 会导致 负载过高. 同时 IO竞争 降低在线延迟
+结合了 SkipList &#43; LSM, 以及 parallel seeks, aggressive seek-based compaction, and sstable-level bloom filters, 但是不擅长 range
+design FLSM’s compaction simply appends a new sstable fragment to the next level. guards: 将 key range 划分成 多个不相交的 单元. 每个level 包含多个 guards. level0 不包含 guards 打破了 a level 每个 sstable key 不接连的 约定, 也就是说, 相同的key 可以在 a level 的多个 sstable." />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_pebblesdb/" />
+
+
+    <title>
+        
+            Essay_pebblesdb :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Essay_pebblesdb">
+<meta itemprop="description" content="background 通过 fragmented lsm (FLSM) 降低写放大. 适配到了 HyperLevelDB 修改为 pebblesDB. 显著降低 2.4-3x 写放大. 增加了 6.7x 写吞吐量. 并将 FLSM 作为 mongdb/HyperDex 的底层存储引擎 (IO吞吐量显著增加).
+note: 较大的写放大 会导致 负载过高. 同时 IO竞争 降低在线延迟
+结合了 SkipList &#43; LSM, 以及 parallel seeks, aggressive seek-based compaction, and sstable-level bloom filters, 但是不擅长 range
+design FLSM’s compaction simply appends a new sstable fragment to the next level. guards: 将 key range 划分成 多个不相交的 单元. 每个level 包含多个 guards. level0 不包含 guards 打破了 a level 每个 sstable key 不接连的 约定, 也就是说, 相同的key 可以在 a level 的多个 sstable.">
+<meta itemprop="datePublished" content="2021-02-17T11:28:15&#43;08:00" />
+<meta itemprop="dateModified" content="2021-02-17T11:28:15&#43;08:00" />
+<meta itemprop="wordCount" content="251">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Essay_pebblesdb"/>
+<meta name="twitter:description" content="background 通过 fragmented lsm (FLSM) 降低写放大. 适配到了 HyperLevelDB 修改为 pebblesDB. 显著降低 2.4-3x 写放大. 增加了 6.7x 写吞吐量. 并将 FLSM 作为 mongdb/HyperDex 的底层存储引擎 (IO吞吐量显著增加).
+note: 较大的写放大 会导致 负载过高. 同时 IO竞争 降低在线延迟
+结合了 SkipList &#43; LSM, 以及 parallel seeks, aggressive seek-based compaction, and sstable-level bloom filters, 但是不擅长 range
+design FLSM’s compaction simply appends a new sstable fragment to the next level. guards: 将 key range 划分成 多个不相交的 单元. 每个level 包含多个 guards. level0 不包含 guards 打破了 a level 每个 sstable key 不接连的 约定, 也就是说, 相同的key 可以在 a level 的多个 sstable."/>
+
+
+
+
+
+    <meta property="article:published_time" content="2021-02-17 11:28:15 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_pebblesdb/">Essay_pebblesdb</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="background">background</h2>
+<p>通过 fragmented lsm (FLSM) 降低写放大. 适配到了 HyperLevelDB 修改为 pebblesDB. 显著降低 2.4-3x 写放大. 增加了 6.7x  写吞吐量. 并将 FLSM 作为 mongdb/HyperDex 的底层存储引擎 (IO吞吐量显著增加).</p>
+<p>note: 较大的写放大 会导致 负载过高. 同时 IO竞争 降低在线延迟</p>
+<p>结合了 SkipList + LSM, 以及 parallel seeks, aggressive seek-based compaction, and sstable-level bloom filters, 但是不擅长 range</p>
+<h2 id="design">design</h2>
+<p>FLSM’s compaction simply appends a new sstable fragment to the next level.
+guards: 将 key range 划分成 多个不相交的 单元. 每个level 包含多个 guards. level0 不包含 guards
+打破了 a level 每个 sstable key 不接连的 约定, 也就是说, 相同的key 可以在 a level 的多个 sstable.</p>
+<p>compaction 流程: ???
+guards 选择? guard possibility: 按照比例读取, 就像 skiplist 一样. 但是 compaction 过程中 sstable 分区会导致IO放大.</p>
+<p>guard 是如何工作的呢?
+add 和 delete 都是先存储在 uncommitted guards 的内存结构中, 在 compaction 的时候会存储下来.  compaction 过程中, delete 会迁移 level(i)  相邻的分区 或者 level(i+1)的 child guard. delete 会递归到 最高的 level.
+IO路径:</p>
+<ul>
+<li>Get: 先搜索guard, 在搜索相关的 sstable</li>
+<li>Range: 通过 merge sort</li>
+<li>Put: 类似 lsm, 不过 compaction 基于 partitioned sstable 级别</li>
+<li>Update/Delete: update seq num 或者 添加flag</li>
+<li>compaction: ？ 按照 guard, level(i) 会归并到 level(i+1) 上的 sstables. 再看看. 不同guard 的compaction互不影响, 因此可以并行</li>
+</ul>
+<h2 id="调优">调优</h2>
+<p>flsm 的性能取决于 每个 guard sstable 的数量. 设置参数 max_sstables_per_guard 限制, 超过了就comapct guard 到下一层. =1 就和 lsm 一样</p>
+<h2 id="分析">分析</h2>
+<p>渐进分析不懂</p>
+<h2 id="pebbledb">pebbledb</h2>
+<p>range性能差, 通过 parallel seek 和 seek-based conpaction 优化.</p>
+<ul>
+<li>get: 相比 flsm, 增加了 sstable-level bloom filters 避免无意义的读</li>
+<li>range: 二叉搜索优化, 需要更详细的设计</li>
+<li>delete: 插入一个 delete flag 的value</li>
+</ul>
+<p>guard 的生成: 基于 hash(key) 的 最后几个bit</p>
+<p>从论文的较大, IM/monitor 数据还是适合 rocksdb.</p>
+<h2 id="性能">性能</h2>
+<p>从压测统计的数据上看, pebbledb 在延迟 方面并不占优, 写放大按照预期降低了, 随机写 和 更新性能也不错, 顺序性能明显下降(lsm可以直接移动, pebble 仍然需要 guard-based partition), seek + next 也是很低.  更新吞吐量不错, 得益于 partition的压缩策略</p>
+<p>ps: 每一层的 sstable 的 key range 因为存在 重叠, range 性能严重下降</p>
+<h2 id="参考">参考</h2>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>251 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2021-02-17 11:28 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/essay_ambry/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Essay_ambry</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/essay_tao/">
+                                <span class="button__text">Essay_tao</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

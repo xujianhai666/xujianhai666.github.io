@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="background linkedin 的 blob storage 实现, 已经开源了, 还是java写的. 以前是基于 nas &#43; oracle 搭建的media server落地的, 但是大量的小文件导致巨量的metadata, 内存和cpu都面临 无法水平扩展的窘境. 新的设计, 相比于已有的 facebook hystack/f4 或者 twitter, 更加注重 rebalance 特性 和 geo地理复制.
+design abstraction partition 是一组blob的逻辑抽象, 倾向于称呼 logic partition, 映射到 一组机器的副本 (会考虑到故障域隔离): physical placement. 在 physical placement 上, blob 不断追加到 data 文件, 除此之外, 还需要维护 indexing、journal、bloom filter 的额外数据结构, 每个data 文件 100GB, 写到 80%-90% 的容量空间的时候, partition 会从 read-write state 转换为 read-only state (需要额外的空间负责delete).
+架构   cluster manager: 负责集群管理: physical/hardware layout(node &amp;amp; disk placement, up/down state)、partition state/logic layout(read-write/read-only, mapping: partition(state)-&amp;gt;placement info(dc&#43;datanode&#43;disk))" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, blob, store" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_ambry/" />
+
+
+    <title>
+        
+            Essay_ambry :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Essay_ambry">
+<meta itemprop="description" content="background linkedin 的 blob storage 实现, 已经开源了, 还是java写的. 以前是基于 nas &#43; oracle 搭建的media server落地的, 但是大量的小文件导致巨量的metadata, 内存和cpu都面临 无法水平扩展的窘境. 新的设计, 相比于已有的 facebook hystack/f4 或者 twitter, 更加注重 rebalance 特性 和 geo地理复制.
+design abstraction partition 是一组blob的逻辑抽象, 倾向于称呼 logic partition, 映射到 一组机器的副本 (会考虑到故障域隔离): physical placement. 在 physical placement 上, blob 不断追加到 data 文件, 除此之外, 还需要维护 indexing、journal、bloom filter 的额外数据结构, 每个data 文件 100GB, 写到 80%-90% 的容量空间的时候, partition 会从 read-write state 转换为 read-only state (需要额外的空间负责delete).
+架构   cluster manager: 负责集群管理: physical/hardware layout(node &amp; disk placement, up/down state)、partition state/logic layout(read-write/read-only, mapping: partition(state)-&gt;placement info(dc&#43;datanode&#43;disk))">
+<meta itemprop="datePublished" content="2021-02-21T16:29:24&#43;08:00" />
+<meta itemprop="dateModified" content="2021-02-21T16:29:24&#43;08:00" />
+<meta itemprop="wordCount" content="337">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="blob,store," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Essay_ambry"/>
+<meta name="twitter:description" content="background linkedin 的 blob storage 实现, 已经开源了, 还是java写的. 以前是基于 nas &#43; oracle 搭建的media server落地的, 但是大量的小文件导致巨量的metadata, 内存和cpu都面临 无法水平扩展的窘境. 新的设计, 相比于已有的 facebook hystack/f4 或者 twitter, 更加注重 rebalance 特性 和 geo地理复制.
+design abstraction partition 是一组blob的逻辑抽象, 倾向于称呼 logic partition, 映射到 一组机器的副本 (会考虑到故障域隔离): physical placement. 在 physical placement 上, blob 不断追加到 data 文件, 除此之外, 还需要维护 indexing、journal、bloom filter 的额外数据结构, 每个data 文件 100GB, 写到 80%-90% 的容量空间的时候, partition 会从 read-write state 转换为 read-only state (需要额外的空间负责delete).
+架构   cluster manager: 负责集群管理: physical/hardware layout(node &amp; disk placement, up/down state)、partition state/logic layout(read-write/read-only, mapping: partition(state)-&gt;placement info(dc&#43;datanode&#43;disk))"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2021-02-21 16:29:24 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_ambry/">Essay_ambry</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <h2 id="background">background</h2>
+<p>linkedin 的 blob storage 实现, 已经开源了, 还是java写的. 以前是基于 nas + oracle 搭建的media server落地的, 但是大量的小文件导致巨量的metadata, 内存和cpu都面临 无法水平扩展的窘境. 新的设计, 相比于已有的 facebook hystack/f4 或者 twitter, 更加注重 rebalance 特性 和 geo地理复制.</p>
+<h2 id="design">design</h2>
+<h3 id="abstraction">abstraction</h3>
+<p>partition 是一组blob的逻辑抽象, 倾向于称呼 logic partition, 映射到 一组机器的副本 (会考虑到故障域隔离): physical placement. 在 physical placement 上,  blob 不断追加到 data 文件, 除此之外, 还需要维护 indexing、journal、bloom filter 的额外数据结构, 每个data 文件 100GB, 写到 80%-90% 的容量空间的时候, partition 会从 read-write state 转换为 read-only state (需要额外的空间负责delete).</p>
+<h3 id="架构">架构</h3>
+<ul>
+<li>
+<p>cluster manager: 负责集群管理: physical/hardware layout(node &amp; disk placement, up/down state)、partition state/logic layout(read-write/read-only, mapping: partition(state)-&gt;placement info(dc+datanode+disk))</p>
+</li>
+<li>
+<p>frontier: 负责 安全检查、路由&amp;转发请求, 以及 operation capture 同步给外部 cdc</p>
+</li>
+<li>
+<p>dataNode: 写数据, 配备多份disk</p>
+</li>
+</ul>
+<h3 id="io路径">IO 路径</h3>
+<ul>
+<li>
+<p>put:
+每个 blob 经由 frontier 顺序写入 partition,  http 调用 或者 cdn. blob 如何选择合适的 partition 呢?
+大对象, 比如 video 会被拆分成多个chunk, 避免大对象影响 小对象的读写吞吐. 每个chunk差不多 4MB-8MB, large object-&gt;chunkid slice 会维护在 metadata. 获取 large object 的时候, 通过 sliding buffer 限制避免 IO spike 影响其他的服务.</p>
+</li>
+<li>
+<p>delete
+也是put操作. 会周期性的通过 compaction 回收delete的空间. 空间满了之后 文件会变成 read-only, 回收可能变成 read-write.</p>
+</li>
+<li>
+<p>一致性
+read-after-write
+put 操作随机选择一个partition执行操作. 支持一致性选项: (one, k, majourity, all). 对于 put/delete, 会同步到所有 但是可以选择 ack的一致性选项, get 随机选择一致性的数量的节点. 目前 2 是 延迟&amp;一致性的折中
+multi-dc:
+local dc sync, other dc async</p>
+</li>
+</ul>
+<p>数据文件的设计: 每个写入的blob entry格式: header+blob id + delete flag, blob id = partition id(8 byte) + uuid(32 byte), 可能冲突, datanode 通过failure解决. header: predefined properties(blob size+ttl+create time+content type) + user-defined properties</p>
+<p>batch write 降低disk seek, 并将维护不多的 file handle keep open, 利用 os cache + zero copy 降低复杂度并提升性能.</p>
+<p>索引文件的设计: 为了充分释放内存给 文件读写, 索引采用了 sst file 的lsm设计, 将index 分段 segment, 当memory segment 超过最大大小 就 flush to disk. old segment 存储在磁盘上. 并维护相应的 bloom filter. index file crash了, 直接从 data rebuild</p>
+<h3 id="可用性">可用性</h3>
+<p>传统的三副本机制, 多dc容灾, 通过跨dc异步复制降低延迟. 没有(但是打算)使用 纠删码 来降低副本因子</p>
+<h4 id="sync">sync</h4>
+<p>out-of-sync 的同步算法两阶段实现:</p>
+<ul>
+<li>找到 last sync point 丢失的blob, 就是请求 last  sync point 之后所有的 blob id 然后本地过滤出丢失的 </li>
+<li>执行复制</li>
+</ul>
+<p>本地维护了 journal 数据结构, 维护最近的 写入的 blob</p>
+<h4 id="failure-detection">failure detection:</h4>
+<p>基于熔断算法, 论文称之为 zero-cost</p>
+<h3 id="feature">feature</h3>
+<p>除了传统的 static balance(largre split + cdn), 还设计了 动态负载均衡, 负载不均衡的特点: 新加入节点可能 100x 老节点. ambry 设计了 balance triplet: (idealRW, idealRO, idealUsed), 会计算一个均线 划分 high/below. 针对 high, 设计了两阶段算法:</p>
+<ul>
+<li>将 above-idea 的partition 迁移到了 partition pool, 保证没有disk above idea. 这里需要处理下 read-write 和 read-only partition 的不同策略. read-write 选择最小空间占用的 partition, read-only 随机选择一个 (因为都满了)</li>
+<li>将partition 从 pool 迁移到 below-idea 的disks (random round-robin)</li>
+</ul>
+<h2 id="参考">参考</h2>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/blob">blob</a></span><span class="tag"><a href="https://xujianhai.fun/tags/store">store</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>337 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2021-02-21 16:29 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/essay_paxostore/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Essay_paxostore</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/essay_pebblesdb/">
+                                <span class="button__text">Essay_pebblesdb</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>

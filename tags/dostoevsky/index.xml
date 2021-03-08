@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Dostoevsky on zero.xu blog</title>
+    <link>https://xujianhai.fun/tags/dostoevsky/</link>
+    <description>Recent content in Dostoevsky on zero.xu blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 24 Jan 2021 16:06:33 +0800</lastBuildDate>
+    
+	<atom:link href="https://xujianhai.fun/tags/dostoevsky/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Essay_Dostoevsky</title>
+      <link>https://xujianhai.fun/posts/essay_dostoevsky/</link>
+      <pubDate>Sun, 24 Jan 2021 16:06:33 +0800</pubDate>
+      
+      <guid>https://xujianhai.fun/posts/essay_dostoevsky/</guid>
+      <description>从 https://www.jianshu.com/p/8fb8f2458253 看到了 Dostoevsky, 研究了下论文
+tired &amp;amp; level 基本原理  stcs:  每一层文件大小按比例增加, 每一层的文件数量固定. 比如 4层文件, 每层大小4倍增长, 则分别是: 100 MB, 400 MB, 1.6 GB and 6.4 GB.
+层间compaction, 比如 level(i) -&amp;gt; level(i+1), 当i层四个文件都写满了, 则会触发. 会将 level(i) 的四个文件进行 compaction 放到 level(i+1) 【空间放大的原因】
+经典的图, 参考论文
+ level:  每一层的文件大小固定, 文件数量按照层级按比例增长, 比如 4(level 0)、10、100、1000, 每个文件都是 16MB
+层间compaction 是当 level(i) 文件数满的时候触发的. 会从 level(i) 中选取一个文件 和 level(i+1) 的10个文件进行compaction, 并写入11个文件 【写放大的原因】
+经典的图, 参考论文
+写放大 写放大: 一次byte写入, 在磁盘上读写了多少次 (注意: lsm 因为有一次日志写commit-log, 因此至少有一次写放大)</description>
+    </item>
+    
+  </channel>
+</rss>

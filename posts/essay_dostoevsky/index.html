@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Zero xu ">
+<meta name="description" content="从 https://www.jianshu.com/p/8fb8f2458253 看到了 Dostoevsky, 研究了下论文
+tired &amp;amp; level 基本原理  stcs:  每一层文件大小按比例增加, 每一层的文件数量固定. 比如 4层文件, 每层大小4倍增长, 则分别是: 100 MB, 400 MB, 1.6 GB and 6.4 GB.
+层间compaction, 比如 level(i) -&amp;gt; level(i&#43;1), 当i层四个文件都写满了, 则会触发. 会将 level(i) 的四个文件进行 compaction 放到 level(i&#43;1) 【空间放大的原因】
+经典的图, 参考论文
+ level:  每一层的文件大小固定, 文件数量按照层级按比例增长, 比如 4(level 0)、10、100、1000, 每个文件都是 16MB
+层间compaction 是当 level(i) 文件数满的时候触发的. 会从 level(i) 中选取一个文件 和 level(i&#43;1) 的10个文件进行compaction, 并写入11个文件 【写放大的原因】
+经典的图, 参考论文
+写放大 写放大: 一次byte写入, 在磁盘上读写了多少次 (注意: lsm 因为有一次日志写commit-log, 因此至少有一次写放大)" />
+<meta name="keywords" content="homepage, blog, science, informatics, development, programming, Dostoevsky" />
+<meta name="robots" content="noodp" />
+<meta name="theme-color" content="#252627" />
+<link rel="canonical" href="https://xujianhai.fun/posts/essay_dostoevsky/" />
+
+
+    <title>
+        
+            Essay_Dostoevsky :: zero.xu blog  — Hello Friend
+        
+    </title>
+
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/css/flag-icon.min.css" rel="stylesheet"
+    type="text/css">
+
+
+
+<link rel="stylesheet" href="https://xujianhai.fun/main.min.5dcefbf8102eb536dd3e2de53ffebfa58599ab2435c241a0db81728a5e015f2e.css">
+
+
+
+
+<meta itemprop="name" content="Essay_Dostoevsky">
+<meta itemprop="description" content="从 https://www.jianshu.com/p/8fb8f2458253 看到了 Dostoevsky, 研究了下论文
+tired &amp; level 基本原理  stcs:  每一层文件大小按比例增加, 每一层的文件数量固定. 比如 4层文件, 每层大小4倍增长, 则分别是: 100 MB, 400 MB, 1.6 GB and 6.4 GB.
+层间compaction, 比如 level(i) -&gt; level(i&#43;1), 当i层四个文件都写满了, 则会触发. 会将 level(i) 的四个文件进行 compaction 放到 level(i&#43;1) 【空间放大的原因】
+经典的图, 参考论文
+ level:  每一层的文件大小固定, 文件数量按照层级按比例增长, 比如 4(level 0)、10、100、1000, 每个文件都是 16MB
+层间compaction 是当 level(i) 文件数满的时候触发的. 会从 level(i) 中选取一个文件 和 level(i&#43;1) 的10个文件进行compaction, 并写入11个文件 【写放大的原因】
+经典的图, 参考论文
+写放大 写放大: 一次byte写入, 在磁盘上读写了多少次 (注意: lsm 因为有一次日志写commit-log, 因此至少有一次写放大)">
+<meta itemprop="datePublished" content="2021-01-24T16:06:33&#43;08:00" />
+<meta itemprop="dateModified" content="2021-01-24T16:06:33&#43;08:00" />
+<meta itemprop="wordCount" content="294">
+<meta itemprop="image" content="https://xujianhai.fun/"/>
+
+
+
+<meta itemprop="keywords" content="Dostoevsky," /><meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://xujianhai.fun/"/>
+
+<meta name="twitter:title" content="Essay_Dostoevsky"/>
+<meta name="twitter:description" content="从 https://www.jianshu.com/p/8fb8f2458253 看到了 Dostoevsky, 研究了下论文
+tired &amp; level 基本原理  stcs:  每一层文件大小按比例增加, 每一层的文件数量固定. 比如 4层文件, 每层大小4倍增长, 则分别是: 100 MB, 400 MB, 1.6 GB and 6.4 GB.
+层间compaction, 比如 level(i) -&gt; level(i&#43;1), 当i层四个文件都写满了, 则会触发. 会将 level(i) 的四个文件进行 compaction 放到 level(i&#43;1) 【空间放大的原因】
+经典的图, 参考论文
+ level:  每一层的文件大小固定, 文件数量按照层级按比例增长, 比如 4(level 0)、10、100、1000, 每个文件都是 16MB
+层间compaction 是当 level(i) 文件数满的时候触发的. 会从 level(i) 中选取一个文件 和 level(i&#43;1) 的10个文件进行compaction, 并写入11个文件 【写放大的原因】
+经典的图, 参考论文
+写放大 写放大: 一次byte写入, 在磁盘上读写了多少次 (注意: lsm 因为有一次日志写commit-log, 因此至少有一次写放大)"/>
+
+
+
+
+
+    <meta property="article:published_time" content="2021-01-24 16:06:33 &#43;0800 CST" />
+
+
+
+
+
+
+
+
+    </head>
+
+    <body class="dark-theme">
+        <div class="container">
+            <header class="header">
+    <span class="header__inner">
+        <a href="https://xujianhai.fun/" style="text-decoration: none;">
+    <div class="logo">
+        
+            <span class="logo__mark">></span>
+            <span class="logo__text">zero.xu|blog</span>
+            <span class="logo__cursor" style=
+                  "
+                   
+                   ">
+            </span>
+        
+    </div>
+</a>
+
+
+        <span class="header__right">
+            
+                <nav class="menu">
+    <ul class="menu__inner"><li><a href="https://xujianhai.fun/about/">About</a></li><li><a href="https://xujianhai.fun/posts/">Posts</a></li>
+    </ul>
+</nav>
+
+                <span class="menu-trigger">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </span>
+            
+
+            <span class="theme-toggle unselectable"><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+</span>
+        </span>
+    </span>
+</header>
+
+
+            <div class="content">
+                
+    <main class="post">
+
+        <div class="post-info">
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>2 minutes
+
+            
+
+            </p>
+        </div>
+
+        <article>
+            <h1 class="post-title">
+                <a href="https://xujianhai.fun/posts/essay_dostoevsky/">Essay_Dostoevsky</a>
+            </h1>
+
+            
+
+            <div class="post-content">
+                <p>从 <code>https://www.jianshu.com/p/8fb8f2458253</code> 看到了 Dostoevsky, 研究了下论文</p>
+<h2 id="tired--level">tired &amp; level</h2>
+<h3 id="基本原理">基本原理</h3>
+<ul>
+<li>stcs:</li>
+</ul>
+<p>每一层文件大小按比例增加, 每一层的文件数量固定. 比如 4层文件, 每层大小4倍增长, 则分别是: 100 MB, 400 MB, 1.6 GB and 6.4 GB.</p>
+<p>层间compaction, 比如 level(i) -&gt; level(i+1), 当i层四个文件都写满了, 则会触发. 会将 level(i) 的四个文件进行 compaction 放到 level(i+1) 【空间放大的原因】</p>
+<p>经典的图, 参考论文</p>
+<ul>
+<li>level:</li>
+</ul>
+<p>每一层的文件大小固定, 文件数量按照层级按比例增长, 比如 4(level 0)、10、100、1000, 每个文件都是 16MB</p>
+<p>层间compaction 是当 level(i) 文件数满的时候触发的. 会从 level(i) 中选取一个文件 和 level(i+1) 的10个文件进行compaction, 并写入11个文件 【写放大的原因】</p>
+<p>经典的图, 参考论文</p>
+<h3 id="写放大">写放大</h3>
+<p>写放大: 一次byte写入, 在磁盘上读写了多少次 (注意: lsm 因为有一次日志写commit-log, 因此至少有一次写放大)</p>
+<p>stcs:</p>
+<p>O(L), 因为写放大只会放生在层间compaction, 对于图例 4层的 写入, 也就是 5倍写放大</p>
+<p>level:</p>
+<p>O(T * L), 很严重, 也放在层间, 但是level的模型是, 从 level(i) 选取一个文件, 和 level(i+1) 的10个文件进行compaction, 最终导致11倍的写放大(这里的场景是 层间10倍关系, 10个文件是因为 token range 关系是10, 比如上一层10个文件, 下一层就是100个文件, 一般假设是从100个文件中选取10个有重叠的文件进行compaction)</p>
+<p>试验中并没有达到这么多的写放大, 仅仅是11倍, 因为 写入的时间局部性原理(大部分数据是最近修改的, 很少添加新数据或者修改很老的数据), 很多写放大的 overlap 都在 L0/L1 处理了 (L0/L1 的 input sstfile 不止一个)</p>
+<p>需要注意的是, 及时是 读多写少的场景, 当读需要走文件, 写放大由于磁盘竞争也会严重影响读, 除此之外, 当 写放大占用太多磁盘带宽导致 compaction 跟不上, 那么大量数据就会停留在 L0, 导致很严重的读放大</p>
+<h3 id="空间放大">空间放大</h3>
+<p>空间放大: 同一份数据, 被存储了多少遍</p>
+<p>STCS 空间放大严重, 试验中最严重可以观测到 8倍, 主要是由于两个原因:</p>
+<ul>
+<li>input-&gt;ouput 的 level compaction 导致的文件临时放大两倍</li>
+<li>因为相同一层数据存在 overlap, 那么可能相邻文件存在被删除的数据 (最差情况下, 不同层也存在overlap), 试验得到了8倍 (1.2GB的数据写15次)</li>
+</ul>
+<p>level空间放大相对比较轻, 如下:</p>
+<ul>
+<li>分层压缩的时候, 假设分层比例是10, 160M文件大小, 因为总是从 level(i) -&gt; level(i+1) 的比例是 1/10, 因此最多重复 11 个文件, 固定大小就是  160 * 11 &lt; 2GB</li>
+<li>同一层因为没有overlap, 所以只存在 分层之间的数据重复, 如果 level(larget) 填满了, 3层10倍最多也就 1.11倍, 最差情况下, level(larget) 没有填满, 比如 l2 和 l3 都一样大的时候, 那么存在略大于 2倍的 空间放大</li>
+</ul>
+<p>在相同的试验中, 试验2(1.2GB的数据写15次) 略微大于预期的 [1.1, 2] 的放大, 因为 l0 存在overlap 导致的. 试验1符合预期</p>
+<h2 id="论文">论文</h2>
+<p>引入了三个新的设计: lazy leve &amp; Fluid LSM-Tree &amp; Dostoevsky</p>
+<h3 id="基本原理-1">基本原理</h3>
+<ul>
+<li>Lazy Leveling</li>
+</ul>
+<p>只有最后一层进行 level compaction(merge), 其他层不进行merge</p>
+<ul>
+<li>Fluid LSM-Tree</li>
+</ul>
+<p>控制了 largest level 和 其他level 的merge的频率</p>
+<ul>
+<li>Dostoevsky</li>
+</ul>
+<p>Dostoevsky: Space-Time Optimized Evol- vable Scalable Key-Value Store.</p>
+<p>论文一开始详细分析了不同情况下 level/tiering 的复杂度.</p>
+<p>贴图:</p>
+<p><em>update</em>:</p>
+<p>level: O(L * T/B), 每一层都是 T个文件更新, 最差更新L层的次数, 分摊到 B上的entries
+tiering: O(L/B), 每一层都是直接merge, 最差合并L层的次数, 分摊到 B 上的entries</p>
+<p><em>point lookup</em>:</p>
+<p>level:  每一层的误判率, 优化后和level无关
+tiering: T * 误判率, 优化后和level无关</p>
+<p><em>short range</em>:</p>
+<p>level: O(L), 因为每一层层内不重叠, 每层最多查一次, 最多L层
+tiering: O(T * L), 因为每一层重叠, 所以 一层最差T次, 最多L层</p>
+<p><em>long range</em>:</p>
+<p>level:
+tiering:</p>
+<p>需要看下</p>
+<h2 id="参考">参考</h2>
+<ul>
+<li>stcs 的空间放大问题 <a href="https://www.scylladb.com/2018/01/17/compaction-series-space-amplification/">https://www.scylladb.com/2018/01/17/compaction-series-space-amplification/</a></li>
+<li>lcs 的读放大问题 <a href="https://www.scylladb.com/2018/01/31/compaction-series-leveled-compaction/">https://www.scylladb.com/2018/01/31/compaction-series-leveled-compaction/</a></li>
+<li>rocksdb 空间放大优化 <a href="http://cidrdb.org/cidr2017/papers/p82-dong-cidr17.pdf">http://cidrdb.org/cidr2017/papers/p82-dong-cidr17.pdf</a></li>
+</ul>
+
+            </div>
+        </article>
+
+        <hr />
+
+        <div class="post-info">
+                <p>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tag meta-icon"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg><span class="tag"><a href="https://xujianhai.fun/tags/dostoevsky">Dostoevsky</a></span>
+                </p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>294 Words</p>
+
+            <p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>2021-01-24 16:06 &#43;0800</p>
+        </div>
+
+        
+            <div class="pagination">
+                <div class="pagination__title">
+                    <span class="pagination__title-h"></span>
+                    <hr />
+                </div>
+
+                <div class="pagination__buttons">
+                    
+                        <span class="button previous">
+                            <a href="https://xujianhai.fun/posts/essay_wisckey/">
+                                <span class="button__icon">←</span>
+                                <span class="button__text">Essay_wisckey</span>
+                            </a>
+                        </span>
+                    
+
+                    
+                        <span class="button next">
+                            <a href="https://xujianhai.fun/posts/essay_fuse/">
+                                <span class="button__text">Essay_fuse</span>
+                                <span class="button__icon">→</span>
+                            </a>
+                        </span>
+                    
+                </div>
+            </div>
+        
+
+        
+    </main>
+
+            </div>
+
+            
+                <footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>&copy; 2021</span>
+            
+                <span><a href="https://xujianhai.fun/">Zero xu</a></span>
+            
+            <span></span>
+            <span> <a href="https://xujianhai.fun/posts/index.xml" target="_blank" title="rss"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a></span>
+        </div>
+    </div>
+    <div class="footer__inner">
+        <div class="footer__content">
+            <span>Powered by <a href="http://gohugo.io">Hugo</a></span>
+            <span>Made with &#10084; by <a href="https://github.com/rhazdon">rhazdon</a></span>
+        </div>
+    </div>
+</footer>
+
+            
+        </div>
+
+        
+
+
+
+
+<script type="text/javascript" src="https://xujianhai.fun/bundle.min.2d5469329143160ae2456a69c3c76dc2d0a3b212b46afe291a51bd68650ed6f8697e001dab54f1c272c77ce08092a8c55e5bb4314e0ee334aab4b927ec896638.js" integrity="sha512-LVRpMpFDFgriRWppw8dtwtCjshK0av4pGlG9aGUO1vhpfgAdq1TxwnLHfOCAkqjFXlu0MU4O4zSqtLkn7IlmOA=="></script>
+
+
+
+    </body>
+</html>
